@@ -7,11 +7,12 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: vfx_UI_Fight 2
+  m_Name: vfx_UI_Fight 4
   m_Shader: {fileID: 4800000, guid: fe945ff95459d6147beacd73bf356745, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _DEFORM_USE_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -24,7 +25,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _DeformTex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 10ff51d2d87fb7b46b70b55f8551c146, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DissolveTex:
@@ -32,7 +33,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: d9b6ce2f4f5c5414184eadc0930fcdb0, type: 3}
+        m_Texture: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
@@ -55,18 +56,18 @@ Material:
     m_Floats:
     - _AlphaClip: 0
     - _AlphaCutoff: 0.5
-    - _BlendMode: 1
+    - _BlendMode: 10
     - _CullMode: 0
     - _DeformMask_Type: 0
     - _DeformType: 0
     - _Deform_Mask_Rotate: 0
     - _Deform_Mask_Smooth: 0
-    - _Deform_Pan_ParticleCustom2Y: 1
+    - _Deform_Pan_ParticleCustom2Y: 0
     - _Deform_Radial: 0
     - _Deform_Rotate: 0
-    - _Deform_Str_ParticleCustom2X: 1
-    - _Deform_Strength: 0
-    - _Deform_Use: 0
+    - _Deform_Str_ParticleCustom2X: 0
+    - _Deform_Strength: 2
+    - _Deform_Use: 1
     - _DissolveMask_BlendType: 0
     - _DissolveMask_Type: 0
     - _DissolveTex_Reverse: 0
@@ -82,7 +83,7 @@ Material:
     - _Dissolve_Use: 0
     - _Dissolve_smooth: 0
     - _ERRORTOGGLE: 0
-    - _Emission: 22
+    - _Emission: 10.91
     - _Emission_Mode: 0
     - _FixedTiling: 0
     - _Fresnel_AlphaClip: 0
@@ -90,7 +91,7 @@ Material:
     - _Fresnel_AlphaClipPower: 1.5
     - _Fresnel_AlphaClipStepMax: 0.6125
     - _Fresnel_AlphaClipStepMin: 0.05
-    - _Hue: 0.16
+    - _Hue: 0
     - _MainTex_ColorMode: 0
     - _Main_Alpha_Ch: 0
     - _Main_Pan_ParticleCustom1Z: 1
@@ -114,7 +115,7 @@ Material:
     - _Value: 1
     m_Colors:
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
-    - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}
+    - _Deform_Panning: {r: -2, g: -2, b: 0, a: 0}
     - _Deform_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
     - _Dissolve_Edge_Color: {r: 4, g: 0.9547434, b: 0.2641504, a: 1}
     - _Dissolve_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}

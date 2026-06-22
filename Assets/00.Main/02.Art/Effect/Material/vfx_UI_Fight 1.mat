@@ -106,7 +106,7 @@ Material:
     - _Mask_Strength: 1
     - _Mask_Strength_Mode: 0
     - _Mask_Use: 0
-    - _Pixelate: 0
+    - _Pixelate: 128
     - _Saturation: 1
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
