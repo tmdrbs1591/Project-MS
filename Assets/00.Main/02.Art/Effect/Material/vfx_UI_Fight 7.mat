@@ -90,7 +90,7 @@ Material:
     - _Fresnel_AlphaClipPower: 1.5
     - _Fresnel_AlphaClipStepMax: 0.6125
     - _Fresnel_AlphaClipStepMin: 0.05
-    - _Hue: -0.01
+    - _Hue: 1
     - _MainTex_ColorMode: 0
     - _Main_Alpha_Ch: 0
     - _Main_Pan_ParticleCustom1Z: 1
