@@ -5232,8 +5232,9 @@ GameObject:
   - component: {fileID: 6321507263111378228}
   - component: {fileID: 5319083615416620057}
   - component: {fileID: 5778645350101891059}
-  - component: {fileID: 1128815336218145953}
   - component: {fileID: 4368065185338325822}
+  - component: {fileID: -442724134004869900}
+  - component: {fileID: 6449380891761742645}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -5323,46 +5324,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
---- !u!114 &1128815336218145953
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7046108178494118532}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74d3918ba9ab495419665c577838d4c3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SlimeCharacterController
-  moveSpeed: 7
-  jumpForce: 14
-  groundAccel: 60
-  airAccel: 25
-  fallGravityMultiplier: 2.2
-  lowJumpMultiplier: 2.5
-  jumpBufferTime: 0.15
-  coyoteTime: 0.12
-  autoHop: 1
-  hopInterval: 0.1
-  hopForce: 5
-  hopStretch: 0.12
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  groundCheckDistance: 0.1
-  bodyTransform: {fileID: 5261741292391120622}
-  anchorToBottom: 1
-  squashStiffness: 320
-  squashDamping: 14
-  jumpStretch: 0.35
-  landSquash: 0.45
-  airStretchFactor: 0.03
-  idleWobbleAmount: 0.04
-  idleWobbleSpeed: 6
-  dustEffect: {fileID: 361476220340871056}
-  netLerpSpeed: 18
-  netExtrapolate: 1
 --- !u!114 &4368065185338325822
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5382,10 +5343,91 @@ MonoBehaviour:
   OwnershipTransfer: 0
   observableSearch: 2
   ObservedComponents:
-  - {fileID: 1128815336218145953}
+  - {fileID: -442724134004869900}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
+--- !u!114 &-442724134004869900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7046108178494118532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f38b3a5dd2b90f74789a791949b60746, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SlimeCharacter
+  keySetting:
+    moveLeft: 15
+    moveRight: 18
+    jump: 1
+    basicAttack: 0
+    skillQ: 31
+    skillE: 19
+    dash: 51
+    ultimate: 32
+  movementData:
+    moveSpeed: 7
+    jumpForce: 14
+    groundAcceleration: 60
+    airAcceleration: 25
+    fallGravityMultiplier: 2.2
+    lowJumpMultiplier: 2.5
+    jumpBufferTime: 0.15
+    coyoteTime: 0.12
+    maxSpeed: 18
+    defaultDashPower: 18
+    defaultDashDuration: 0.12
+    groundLayer:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    groundCheckDistance: 0.08
+  cooldownData:
+    basicAttack: 0.35
+    skillQ: 3
+    skillE: 5
+    dash: 1
+    ultimate: 20
+  interpolationDelay: 0.1
+  attackPoint: {fileID: 5261741292391120622}
+  attackRadius: 0.8
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  visualController: {fileID: 0}
+--- !u!114 &6449380891761742645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7046108178494118532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0222ddcebd2a8b44a1745b5c963f28f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SlimeVisualController
+  autoHop: 1
+  hopInterval: 0.1
+  hopForce: 5
+  hopStretch: 0.12
+  movingVelocityThreshold: 0.05
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheckDistance: 0.1
+  bodyTransform: {fileID: 5261741292391120622}
+  anchorToBottom: 1
+  squashStiffness: 320
+  squashDamping: 14
+  jumpStretch: 0.35
+  landSquash: 0.45
+  airStretchFactor: 0.03
+  idleWobbleAmount: 0.04
+  idleWobbleSpeed: 6
+  dustEffect: {fileID: 361476220340871056}
 --- !u!1 &7259081736856323254
 GameObject:
   m_ObjectHideFlags: 0
