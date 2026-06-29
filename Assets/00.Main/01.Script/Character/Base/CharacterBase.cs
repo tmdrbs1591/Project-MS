@@ -39,11 +39,12 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
     [Header("Network")]
     [SerializeField] private float interpolationDelay = 0.1f;
 
+    public CharacterHealth Health { get; private set; }
+
     protected Rigidbody2D Rb { get; private set; }
     protected Collider2D Col { get; private set; }
     protected PhotonView Pv { get; private set; }
     protected CharacterStat Stat { get; private set; }
-    protected CharacterHealth Health { get; private set; }
     protected CharacterMovementHandler Movement { get; private set; }
 
     protected bool IsMine => Pv == null || Pv.IsMine;
