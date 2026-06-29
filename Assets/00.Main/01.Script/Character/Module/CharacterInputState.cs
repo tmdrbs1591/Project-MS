@@ -1,4 +1,6 @@
-﻿/// <summary>
+﻿using UnityEngine;
+
+/// <summary>
 /// 이번 프레임에 읽은 캐릭터 입력 상태다.
 ///
 /// [역할]
@@ -18,5 +20,5 @@ public struct CharacterInputState
     public bool SkillEPressed;
     public bool DashPressed;
     public bool UltimatePressed;
-    public UnityEngine.Vector2 MouseWorldPosition;
+    public Vector2 MouseWorldPosition;
 }
