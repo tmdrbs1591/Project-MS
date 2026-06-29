@@ -7,11 +7,12 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: vfx_Smoke_00
+  m_Name: vfx_Basic_grenade_00 3
   m_Shader: {fileID: 4800000, guid: fe945ff95459d6147beacd73bf356745, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _DISSOLVE_USE_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -32,7 +33,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 66d3b11c49b3fee4da7a3bc1eca48818, type: 3}
+        m_Texture: {fileID: 2800000, guid: f8b7a01b58bdddf49934caedb3470e6c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
@@ -70,8 +71,8 @@ Material:
     - _DissolveMask_BlendType: 0
     - _DissolveMask_Type: 0
     - _DissolveTex_Reverse: 0
-    - _Dissolve_Edge_Thick: 0.02
-    - _Dissolve_Edge_smooth: 0.9
+    - _Dissolve_Edge_Thick: 7.14
+    - _Dissolve_Edge_smooth: 1
     - _Dissolve_Mask_Rotate: 0
     - _Dissolve_Mask_Smooth: 0
     - _Dissolve_Panning_Type: 0
@@ -79,10 +80,10 @@ Material:
     - _Dissolve_Progress: 1
     - _Dissolve_Radial: 0
     - _Dissolve_Rotate: 0
-    - _Dissolve_Use: 0
-    - _Dissolve_smooth: 0
+    - _Dissolve_Use: 1
+    - _Dissolve_smooth: 0.698
     - _ERRORTOGGLE: 0
-    - _Emission: 2
+    - _Emission: 5.84
     - _Emission_Mode: 0
     - _FixedTiling: 0
     - _Fresnel_AlphaClip: 0
@@ -110,13 +111,13 @@ Material:
     - _Saturation: 1
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
-    - _Use_Dissolve_Edge: 0
+    - _Use_Dissolve_Edge: 1
     - _Value: 1
     m_Colors:
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
-    - _Dissolve_Edge_Color: {r: 4, g: 0.9547434, b: 0.2641504, a: 1}
+    - _Dissolve_Edge_Color: {r: 12.205715, g: 2.3005536, b: 0, a: 1}
     - _Dissolve_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Dissolve_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Dissolve_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
