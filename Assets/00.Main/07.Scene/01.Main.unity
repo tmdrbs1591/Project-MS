@@ -1848,6 +1848,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -442724134004869900, guid: 944f259ac7b9d274ab525683ad592129, type: 3}
+      propertyPath: targetLayer.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -442724134004869900, guid: 944f259ac7b9d274ab525683ad592129, type: 3}
       propertyPath: movementData.groundLayer.m_Bits
       value: 64
       objectReference: {fileID: 0}

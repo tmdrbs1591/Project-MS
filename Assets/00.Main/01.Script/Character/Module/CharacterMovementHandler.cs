@@ -102,7 +102,7 @@ public class CharacterMovementHandler
     {
         Bounds bounds = col.bounds;
         Vector2 size = new Vector2(bounds.size.x * 0.9f, 0.05f);
-        Vector2 origin = new Vector2(bounds.center.x, bounds.min.y + 0.02f);
+        Vector2 origin = new Vector2(bounds.center.x, bounds.min.y - 0.025f);
 
         RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, Vector2.down, data.groundCheckDistance, data.groundLayer);
         IsGrounded = hit.collider != null && rb.linearVelocity.y <= 0.01f;

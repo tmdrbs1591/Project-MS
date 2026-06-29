@@ -19,8 +19,8 @@ using UnityEngine;
 ///
 /// 이 스크립트는 슬라임 전용 특성이므로 다른 캐릭터 프리팹에는 붙이지 않는다.
 /// </summary>
+[DefaultExecutionOrder(1)]
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
 public class SlimeVisualController : MonoBehaviour
 {
     [Header("Auto Hop")]
@@ -29,10 +29,6 @@ public class SlimeVisualController : MonoBehaviour
     [SerializeField] private float hopForce = 5f;
     [SerializeField] private float hopStretch = 0.12f;
     [SerializeField] private float movingVelocityThreshold = 0.05f;
-
-    [Header("Ground Check")]
-    [SerializeField] private LayerMask groundLayer = ~0;
-    [SerializeField] private float groundCheckDistance = 0.1f;
 
     [Header("Body")]
     [SerializeField] private Transform bodyTransform;
@@ -51,11 +47,12 @@ public class SlimeVisualController : MonoBehaviour
     [SerializeField] private ParticleSystem dustEffect;
 
     private Rigidbody2D rb;
-    private Collider2D col;
     private PhotonView pv;
 
     private bool wasGrounded;
     private bool hasVisualState;
+    private bool cachedIsGrounded;
+    private float cachedMoveInput;
     private float hopTimer;
     private float stretch;
     private float stretchVelocity;
@@ -67,7 +64,6 @@ public class SlimeVisualController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        col = GetComponent<Collider2D>();
         pv = GetComponent<PhotonView>();
 
         if (bodyTransform == null)
@@ -108,6 +104,9 @@ public class SlimeVisualController : MonoBehaviour
             hasVisualState = true;
         }
 
+        cachedIsGrounded = isGrounded;
+        cachedMoveInput = moveInput;
+
         ApplyLandingSquash(isGrounded, velocity);
         UpdateDustEffect(isGrounded, moveInput);
         UpdateSquash(deltaTime, isGrounded, moveInput, velocity);
@@ -116,7 +115,7 @@ public class SlimeVisualController : MonoBehaviour
 
     private void HandleAutoHop()
     {
-        if (!autoHop || !IsGrounded() || Mathf.Abs(rb.linearVelocity.x) < movingVelocityThreshold)
+        if (!autoHop || !cachedIsGrounded || Mathf.Abs(cachedMoveInput) < movingVelocityThreshold)
         {
             hopTimer = 0f;
             return;
@@ -130,16 +129,6 @@ public class SlimeVisualController : MonoBehaviour
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
         rb.AddForce(Vector2.up * hopForce, ForceMode2D.Impulse);
         stretchVelocity += hopStretch * 45f;
-    }
-
-    private bool IsGrounded()
-    {
-        Bounds bounds = col.bounds;
-        Vector2 size = new Vector2(bounds.size.x * 0.9f, 0.05f);
-        Vector2 origin = new Vector2(bounds.center.x, bounds.min.y + 0.02f);
-        RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, Vector2.down, groundCheckDistance, groundLayer);
-
-        return hit.collider != null && rb.linearVelocity.y <= 0.01f;
     }
 
     private void ApplyLandingSquash(bool isGrounded, Vector2 velocity)

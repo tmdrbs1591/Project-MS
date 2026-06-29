@@ -63,7 +63,8 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
         {
             Rb.bodyType = RigidbodyType2D.Kinematic;
             Rb.simulated = false;
-            Col.enabled = false;
+            foreach (Collider2D c in GetComponentsInChildren<Collider2D>())
+                c.enabled = false;
         }
     }
 
@@ -94,7 +95,7 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
         if (!IsMine)
             return;
 
-        Movement.TickFixed(input.CurrentState);
+        Movement.TickFixed(input.ReadFixed());
         OnCharacterVisualTick(Time.fixedDeltaTime, Movement.IsGrounded, Movement.MoveInput, Movement.CurrentVelocity);
     }
 

@@ -5414,10 +5414,6 @@ MonoBehaviour:
   hopForce: 5
   hopStretch: 0.12
   movingVelocityThreshold: 0.05
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  groundCheckDistance: 0.1
   bodyTransform: {fileID: 5261741292391120622}
   anchorToBottom: 1
   squashStiffness: 320

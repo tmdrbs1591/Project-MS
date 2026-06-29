@@ -17,6 +17,7 @@ public class CharacterInputHandler
     public CharacterInputState CurrentState { get; private set; }
 
     private CharacterKeySetting keySetting;
+    private bool jumpPendingFixed;
 
     public CharacterInputHandler(CharacterKeySetting keySetting)
     {
@@ -26,6 +27,15 @@ public class CharacterInputHandler
     public void SetKeySetting(CharacterKeySetting newKeySetting)
     {
         keySetting = newKeySetting;
+    }
+
+    // FixedUpdate에서 호출. 누적된 점프 입력을 소비하고 올바른 상태를 반환한다.
+    public CharacterInputState ReadFixed()
+    {
+        CharacterInputState state = CurrentState;
+        state.JumpPressed = jumpPendingFixed;
+        jumpPendingFixed = false;
+        return state;
     }
 
     public CharacterInputState Read()
@@ -38,7 +48,11 @@ public class CharacterInputHandler
         if (IsKeyPressed(keySetting.moveRight))
             state.MoveDirection += 1f;
 
-        state.JumpPressed = WasKeyPressedThisFrame(keySetting.jump);
+        bool jumpThisFrame = WasKeyPressedThisFrame(keySetting.jump);
+        if (jumpThisFrame)
+            jumpPendingFixed = true;
+
+        state.JumpPressed = jumpThisFrame;
         state.JumpHeld = IsKeyPressed(keySetting.jump);
         state.BasicAttackPressed = WasMousePressedThisFrame(keySetting.basicAttack);
         state.SkillQPressed = WasKeyPressedThisFrame(keySetting.skillQ);
