@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿    using UnityEngine;
 
 /// <summary>
 /// 슬라임 플레이어 캐릭터 예시다.
@@ -24,7 +24,12 @@ public class SlimeCharacter : CharacterBase
     [SerializeField] private float attackRadius = 0.8f;
     [SerializeField] private LayerMask targetLayer;
 
+    [Header("Projectile")]
+    [SerializeField] private Projectile projectilePrefab;
+    [SerializeField] private LayerMask projectileTargetLayer;
+
     private SlimeVisualController visualController;
+    private SlimeMouseArmController mouseArmController;
 
     protected override void Awake()
     {
@@ -32,12 +37,15 @@ public class SlimeCharacter : CharacterBase
 
         if (visualController == null)
             visualController = GetComponent<SlimeVisualController>();
+
+        if (mouseArmController == null)
+            mouseArmController = GetComponent<SlimeMouseArmController>();
     }
 
     protected override void BasicAttack()
     {
         Debug.Log("슬라임 평타");
-        HitTargets(Stat.GetAttackDamage(CharacterActionType.BasicAttack));
+        FireProjectile(CharacterActionType.BasicAttack);
     }
 
     protected override void SkillQ()
@@ -80,6 +88,32 @@ public class SlimeCharacter : CharacterBase
     {
         if (visualController != null)
             visualController.TickVisual(deltaTime, isGrounded, moveInput, velocity, Movement.FacingDirection);
+    }
+
+    private void FireProjectile(CharacterActionType actionType)
+    {
+        if (projectilePrefab == null)
+        {
+            Debug.LogWarning("[SlimeCharacter.cs] Projectile Prefab이 연결되지 않았습니다.");
+            return;
+        }
+
+        Transform firePoint = mouseArmController != null && mouseArmController.FirePoint != null
+            ? mouseArmController.FirePoint
+            : attackPoint;
+
+        if (firePoint == null)
+        {
+            Debug.LogWarning("[SlimeCharacter.cs] 발사 위치가 없습니다. Attack Point 또는 Fire Point를 연결하세요.");
+            return;
+        }
+
+        Vector2 direction = mouseArmController != null
+            ? mouseArmController.GetAimDirection(Camera.main, firePoint)
+            : (Movement.FacingDirection > 0 ? Vector2.right : Vector2.left);
+
+        Projectile projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
+        projectile.Initialize(direction, Stat.GetAttackDamage(actionType), projectileTargetLayer);
     }
 
     private void HitTargets(float damage)
