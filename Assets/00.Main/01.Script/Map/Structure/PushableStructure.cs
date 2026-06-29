@@ -6,35 +6,60 @@ using UnityEngine;
 /// 플레이어가 밀 수 있는 구조물이다.
 ///
 /// [역할]
-///   - 플레이어와 물리 충돌로 자연스럽게 밀린다 (Rigidbody2D 질량으로 저항감 조절).
-///   - 낙하 중 플레이어와 충돌하면 MasterClient가 해당 플레이어에게 데미지 RPC를 전송한다.
-///   - 총알에 맞으면 MasterClient가 총알 반대 방향으로 힘을 가한다.
+///   - MasterClient: 물리엔진이 자연스럽게 밀고, 낙하 데미지 판정도 담당한다.
+///   - 비방장: 로컬 충돌을 감지해 MasterClient에 AddNetworkForce RPC를 보낸다.
+///   - 총알에 맞으면 MasterClient가 반대 방향으로 힘을 가한다.
 ///   - 위치 동기화는 NetworkRigidbody2D가 담당한다.
 ///
 /// [필요한 것]
 ///   - Collider2D + Rigidbody2D (Dynamic)
-///   - PhotonView + NetworkRigidbody2D (위치 동기화용)
+///   - PhotonView (Ownership Transfer: Fixed) + NetworkRigidbody2D
 ///   - 플레이어 태그: "Player" / 총알 태그: "Bullet"
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(NetworkRigidbody2D))]
 public class PushableStructure : StructureBase
 {
     [SerializeField] private float bulletPushForce = 8f;
     [SerializeField] private float fallDamage = 20f;
     [SerializeField] private float fallSpeedThreshold = 5f;
+    [SerializeField] private float playerPushMultiplier = 1.5f;
+    [SerializeField] private float minPushSpeed = 2f;
 
     private Rigidbody2D rb;
+    private NetworkRigidbody2D netRb;
 
-    private void Awake() => rb = GetComponent<Rigidbody2D>();
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        netRb = GetComponent<NetworkRigidbody2D>();
+    }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!PhotonNetwork.IsMasterClient) return;
-
         if (collision.collider.CompareTag("Player"))
-            TryApplyFallDamage(collision);
-        else if (collision.collider.CompareTag("Bullet"))
+        {
+            PhotonView playerView = collision.collider.GetComponent<PhotonView>();
+            if (playerView == null || !playerView.IsMine) return;
+
+            if (!PhotonNetwork.IsMasterClient)
+                PushFromPlayer(collision);
+
+            if (PhotonNetwork.IsMasterClient)
+                TryApplyFallDamage(collision);
+        }
+        else if (collision.collider.CompareTag("Bullet") && PhotonNetwork.IsMasterClient)
+        {
             ApplyBulletPush(collision);
+        }
+    }
+
+    private void PushFromPlayer(Collision2D collision)
+    {
+        Rigidbody2D playerRb = collision.collider.attachedRigidbody;
+        float speed = playerRb != null ? Mathf.Max(playerRb.linearVelocity.magnitude, minPushSpeed) : minPushSpeed;
+        Vector2 pushDir = ((Vector2)transform.position - (Vector2)collision.collider.bounds.center).normalized;
+        netRb.AddNetworkForce(pushDir * speed * playerPushMultiplier);
     }
 
     private void TryApplyFallDamage(Collision2D collision)
@@ -47,7 +72,7 @@ public class PushableStructure : StructureBase
             if (contact.normal.y < 0.5f) continue;
 
             PhotonView playerView = collision.collider.GetComponent<PhotonView>();
-            playerView?.RPC("TakeDamage", playerView.Owner, fallDamage);
+            playerView?.RPC("TakeDamageRPC", playerView.Owner, fallDamage);
             break;
         }
     }

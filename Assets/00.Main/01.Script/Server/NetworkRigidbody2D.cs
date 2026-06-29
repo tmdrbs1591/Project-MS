@@ -28,8 +28,8 @@ public class NetworkRigidbody2D : MonoBehaviourPun, IPunObservable, IPunOwnershi
     [SerializeField] private float interpolationDelay = 0.1f;
 
     [Header("소유권")]
-    [Tooltip("플레이어가 밀면 그 플레이어가 박스 소유권을 가져와 직접 시뮬레이션(즉각 반응)")]
-    [SerializeField] private bool takeOwnershipOnTouch = true;
+    [Tooltip("활성화 시 충돌한 플레이어에게 소유권 이전. 양쪽 동시 충돌 시 핑퐁 문제 발생으로 기본 비활성화.")]
+    [SerializeField] private bool takeOwnershipOnTouch = false;
 
     private Rigidbody2D rb;
 
@@ -190,6 +190,24 @@ public class NetworkRigidbody2D : MonoBehaviourPun, IPunObservable, IPunOwnershi
             if (buffer.Count > 30)
                 buffer.RemoveAt(0);
         }
+    }
+
+    /// <summary>
+    /// 구조물에 힘을 가한다. MasterClient면 직접 적용, 아니면 MasterClient에 RPC 요청.
+    /// PushableStructure/BreakableStructure에서 비방장 플레이어의 밀기에 사용한다.
+    /// </summary>
+    public void AddNetworkForce(Vector2 force)
+    {
+        if (PhotonNetwork.IsMasterClient)
+            rb.AddForce(force, ForceMode2D.Impulse);
+        else
+            photonView.RPC(nameof(AddForceRPC), RpcTarget.MasterClient, force);
+    }
+
+    [PunRPC]
+    private void AddForceRPC(Vector2 force)
+    {
+        rb.AddForce(force, ForceMode2D.Impulse);
     }
 
     // 플레이어가 박스를 "능동적으로 밀 때"만 그 플레이어가 소유권을 가져온다.
