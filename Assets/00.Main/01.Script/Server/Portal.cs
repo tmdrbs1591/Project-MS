@@ -1,4 +1,3 @@
-using Photon.Pun;
 using UnityEngine;
 
 /// <summary>
@@ -13,12 +12,11 @@ using UnityEngine;
 public class Portal : MonoBehaviour
 {
     [Header("연결")]
-    [Tooltip("매칭을 담당하는 MatchmakingManager. 비워두면 씬에서 자동으로 찾는다.")]
+    [Tooltip("매칭 UI 래퍼. 비워두면 씬에서 자동으로 찾는다.")]
     [SerializeField] private MatchmakingManager matchmaking;
 
     private void Awake()
     {
-        // 트리거 콜라이더 보장 (상호작용 범위)
         var col = GetComponent<Collider2D>();
         if (!col.isTrigger)
             col.isTrigger = true;

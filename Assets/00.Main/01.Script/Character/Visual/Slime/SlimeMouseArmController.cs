@@ -25,9 +25,13 @@ public class SlimeMouseArmController : MonoBehaviour
 
     private Vector3 armRootBaseScale;
     private int armDirection = 1;
+    private float currentAngle;
 
     public Transform FirePoint => firePoint;
     public int ArmDirection => armDirection;
+
+    /// <summary>마지막으로 계산/적용된 팔 회전 각도(도). 네트워크 동기화에 사용.</summary>
+    public float CurrentAngle => currentAngle;
 
     private void Awake()
     {
@@ -35,9 +39,32 @@ public class SlimeMouseArmController : MonoBehaviour
             armRootBaseScale = armRoot.localScale;
     }
 
-    private void Update()
+    // ※ Update 에서 자동으로 마우스를 읽지 않는다.
+    //   내 캐릭터(권한자)는 SlimeCharacter 가 AimAtMouse() 를 호출하고,
+    //   원격 캐릭터는 SlimeCharacter 가 ApplyAim(dir, angle) 로 동기화된 값을 적용한다.
+    //   (예전엔 모든 인스턴스가 로컬 마우스를 읽어서 상대 팔이 내 마우스를 따라가는 버그가 있었다.)
+
+    /// <summary>내 캐릭터: 로컬 마우스 위치로 팔 방향/각도를 계산해 적용한다.</summary>
+    public void AimAtMouse()
     {
         UpdateArmAimByMousePosition();
+    }
+
+    /// <summary>원격 캐릭터: 네트워크로 받은 방향/각도를 그대로 적용한다.</summary>
+    public void ApplyAim(int networkArmDirection, float networkAngle)
+    {
+        armDirection = networkArmDirection >= 0 ? 1 : -1;
+        currentAngle = networkAngle;
+
+        if (armRoot == null)
+            return;
+
+        armRoot.localScale = new Vector3(
+            Mathf.Abs(armRootBaseScale.x) * armDirection,
+            armRootBaseScale.y,
+            armRootBaseScale.z
+        );
+        armRoot.localRotation = Quaternion.Euler(0f, 0f, networkAngle + rotationOffset);
     }
 
     public Vector2 GetAimDirection(Camera targetCamera, Transform fallbackPoint)
@@ -97,6 +124,7 @@ public class SlimeMouseArmController : MonoBehaviour
         if (armDirection < 0)
             angle -= 180f;
 
+        currentAngle = angle; // 네트워크로 보낼 값(오프셋 적용 전). ApplyAim 이 오프셋을 더한다.
         armRoot.localRotation = Quaternion.Euler(0f, 0f, angle + rotationOffset);
     }
 

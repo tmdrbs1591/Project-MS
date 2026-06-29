@@ -1,68 +1,74 @@
-using Map;
-using Photon.Pun;
+using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 총알에 맞으면 부서지는 구조물이다.
+/// 총알에 맞으면 부서지는 구조물이다. (Fusion 2 / Shared 모드)
 ///
-/// [역할]
-///   - MasterClient: 물리엔진이 자연스럽게 밀고, 총알 충돌 횟수를 관리한다.
-///   - 비방장: 로컬 충돌을 감지해 MasterClient에 AddNetworkForce RPC를 보낸다.
-///   - maxHits에 도달하면 모든 클라이언트에 RPC로 파괴를 알린다.
-///   - 위치 동기화는 NetworkRigidbody2D가 담당한다.
+/// [동작]
+///   - 박스 권한이 물리/충돌 횟수를 관리한다. 충돌 횟수는 [Networked] 로 동기화.
+///   - 플레이어가 밀면 "미는 플레이어 소유자"가 박스 권한에 Rpc_AddForce 를 보낸다.
+///   - 남은 횟수가 0 이 되면 박스 권한이 Runner.Despawn 으로 모두에게서 제거한다.
+///   - 위치 동기화는 NetworkRigidbody2D(Physics 애드온)가 담당한다.
 ///
-/// [필요한 것]
+/// [필요 컴포넌트 (프리팹)]
 ///   - Collider2D + Rigidbody2D (Dynamic)
-///   - PhotonView (Ownership Transfer: Fixed) + NetworkRigidbody2D
+///   - NetworkObject + Fusion 의 NetworkRigidbody2D (Physics 애드온)
 ///   - 총알 태그: "Bullet"
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(NetworkRigidbody2D))]
-public class BreakableStructure : StructureBase
+public class BreakableStructure : NetworkBehaviour
 {
     [SerializeField] private int maxHits = 3;
     [SerializeField] private float playerPushMultiplier = 1.5f;
     [SerializeField] private float minPushSpeed = 2f;
 
-    private int currentHits;
-    private NetworkRigidbody2D netRb;
+    [Networked] private int CurrentHits { get; set; }
+
+    private Rigidbody2D rb;
 
     private void Awake()
     {
-        currentHits = maxHits;
-        netRb = GetComponent<NetworkRigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    public override void Spawned()
+    {
+        if (Object.HasStateAuthority)
+            CurrentHits = maxHits;
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.collider.CompareTag("Player"))
         {
-            PhotonView playerView = collision.collider.GetComponent<PhotonView>();
-            if (playerView == null || !playerView.IsMine) return;
-
-            if (!PhotonNetwork.IsMasterClient)
-                PushFromPlayer(collision);
+            NetworkObject playerObj = collision.collider.GetComponentInParent<NetworkObject>();
+            if (playerObj != null && playerObj.HasStateAuthority)
+                RequestPushFromPlayer(collision);
         }
-        else if (collision.collider.CompareTag("Bullet") && PhotonNetwork.IsMasterClient)
+        else if (collision.collider.CompareTag("Bullet") && Object != null && Object.HasStateAuthority)
         {
-            currentHits--;
-            if (currentHits <= 0)
-                photonView.RPC(nameof(BreakRPC), RpcTarget.All);
+            CurrentHits--;
+            if (CurrentHits <= 0)
+                Runner.Despawn(Object);
         }
     }
 
-    private void PushFromPlayer(Collision2D collision)
+    private void RequestPushFromPlayer(Collision2D collision)
     {
         Rigidbody2D playerRb = collision.collider.attachedRigidbody;
         float speed = playerRb != null ? Mathf.Max(playerRb.linearVelocity.magnitude, minPushSpeed) : minPushSpeed;
         Vector2 pushDir = ((Vector2)transform.position - (Vector2)collision.collider.bounds.center).normalized;
-        netRb.AddNetworkForce(pushDir * speed * playerPushMultiplier);
+        Vector2 force = pushDir * speed * playerPushMultiplier;
+
+        if (Object != null && Object.HasStateAuthority)
+            rb.AddForce(force, ForceMode2D.Impulse);
+        else
+            Rpc_AddForce(force);
     }
 
-    [PunRPC]
-    private void BreakRPC()
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void Rpc_AddForce(Vector2 force)
     {
-        // 프로토타입: 즉시 비활성화. 이후 파괴 이펙트 재생 후 PhotonNetwork.Destroy로 교체
-        gameObject.SetActive(false);
+        rb.AddForce(force, ForceMode2D.Impulse);
     }
 }

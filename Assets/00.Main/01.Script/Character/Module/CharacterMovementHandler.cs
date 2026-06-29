@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -11,9 +10,11 @@ using UnityEngine;
 ///   - 기본 대시 함수를 제공해서 자식 캐릭터가 Dash에서 쉽게 호출할 수 있게 한다.
 ///   - 방향 전환은 루트 Transform의 scale.x를 바꾸는 기존 프로젝트 방식을 따른다.
 ///
-/// [주의]
+/// [Fusion 이전 메모]
+///   - 모든 시뮬레이션은 CharacterBase.FixedUpdateNetwork() 에서 호출되며,
+///     deltaTime 으로 Runner.DeltaTime 을 받는다(Unity 의 Time.fixedDeltaTime 대신).
+///   - 대시는 코루틴 대신 틱 기반 타이머로 처리해 네트워크 시뮬레이션과 정확히 맞춘다.
 ///   - 이 클래스는 MonoBehaviour가 아니므로 프리팹에 붙이지 않는다.
-///   - 슬라임 통통점프처럼 특정 캐릭터만 쓰는 움직임은 SlimeAutoHop 같은 별도 스크립트가 담당한다.
 /// </summary>
 public class CharacterMovementHandler
 {
@@ -34,9 +35,10 @@ public class CharacterMovementHandler
     private float coyoteTimer;
     private float originalGravityScale;
     private bool playerJumping;
-    private Coroutine dashRoutine;
-    private MonoBehaviour coroutineRunner;
-    private Vector3 baseScale;
+
+    // 틱 기반 대시 상태
+    private float dashTimer;
+    private Vector2 dashVelocity;
 
     public CharacterMovementHandler(Rigidbody2D rb, Collider2D col, Transform rootTransform, CharacterMovementData data)
     {
@@ -47,34 +49,34 @@ public class CharacterMovementHandler
 
         rb.freezeRotation = true;
         originalGravityScale = rb.gravityScale;
-        baseScale = rootTransform.localScale;
         CurrentVelocity = rb.linearVelocity;
     }
 
-    public void TickFixed(CharacterInputState inputState)
+    /// <summary>네트워크 틱마다 호출. deltaTime 은 Runner.DeltaTime.</summary>
+    public void TickFixed(CharacterInputState inputState, float deltaTime)
     {
         CheckGround();
         UpdateMoveInput(inputState.MoveDirection);
-        Move();
-        Jump(inputState.JumpPressed);
-        ApplyBetterGravity(inputState.JumpHeld);
+        TickDash(deltaTime);
+        Move(deltaTime);
+        Jump(inputState.JumpPressed, deltaTime);
+        ApplyBetterGravity(inputState.JumpHeld, deltaTime);
         ClampSpeed();
         CurrentVelocity = rb.linearVelocity;
     }
 
-    public void StartDefaultDash(MonoBehaviour runner)
+    public void StartDefaultDash()
     {
-        StartDash(runner, new Vector2(FacingDirection, 0f), data.defaultDashPower, data.defaultDashDuration);
+        StartDash(new Vector2(FacingDirection, 0f), data.defaultDashPower, data.defaultDashDuration);
     }
 
-    public void StartDash(MonoBehaviour runner, Vector2 direction, float power, float duration)
+    public void StartDash(Vector2 direction, float power, float duration)
     {
-        coroutineRunner = runner;
-
-        if (dashRoutine != null)
-            coroutineRunner.StopCoroutine(dashRoutine);
-
-        dashRoutine = coroutineRunner.StartCoroutine(DashRoutine(direction.normalized, power, duration));
+        Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : new Vector2(FacingDirection, 0f);
+        dashVelocity = dir * power;
+        dashTimer = duration;
+        IsDashing = true;
+        rb.gravityScale = 0f;
     }
 
     public void ApplyNetworkVisualState(int facingDirection, float moveInput, bool isGrounded, Vector2 velocity)
@@ -83,6 +85,21 @@ public class CharacterMovementHandler
         MoveInput = moveInput;
         IsGrounded = isGrounded;
         CurrentVelocity = velocity;
+    }
+
+    private void TickDash(float deltaTime)
+    {
+        if (!IsDashing)
+            return;
+
+        rb.linearVelocity = dashVelocity;
+        dashTimer -= deltaTime;
+
+        if (dashTimer <= 0f)
+        {
+            IsDashing = false;
+            rb.gravityScale = originalGravityScale;
+        }
     }
 
     private void UpdateMoveInput(float moveInput)
@@ -105,29 +122,29 @@ public class CharacterMovementHandler
         IsGrounded = hit.collider != null && rb.linearVelocity.y <= 0.01f;
     }
 
-    private void Move()
+    private void Move(float deltaTime)
     {
         if (IsDashing)
             return;
 
         float targetX = MoveInput * data.moveSpeed;
         float acceleration = IsGrounded ? data.groundAcceleration : data.airAcceleration;
-        float newX = Mathf.MoveTowards(rb.linearVelocity.x, targetX, acceleration * Time.fixedDeltaTime);
+        float newX = Mathf.MoveTowards(rb.linearVelocity.x, targetX, acceleration * deltaTime);
 
         rb.linearVelocity = new Vector2(newX, rb.linearVelocity.y);
     }
 
-    private void Jump(bool jumpPressed)
+    private void Jump(bool jumpPressed, float deltaTime)
     {
         if (IsGrounded)
             coyoteTimer = data.coyoteTime;
         else
-            coyoteTimer -= Time.fixedDeltaTime;
+            coyoteTimer -= deltaTime;
 
         if (jumpPressed)
             jumpBufferTimer = data.jumpBufferTime;
         else
-            jumpBufferTimer -= Time.fixedDeltaTime;
+            jumpBufferTimer -= deltaTime;
 
         if (jumpBufferTimer <= 0f || coyoteTimer <= 0f)
             return;
@@ -141,7 +158,7 @@ public class CharacterMovementHandler
         Jumped?.Invoke();
     }
 
-    private void ApplyBetterGravity(bool jumpHeld)
+    private void ApplyBetterGravity(bool jumpHeld, float deltaTime)
     {
         if (IsDashing)
             return;
@@ -149,12 +166,12 @@ public class CharacterMovementHandler
         if (rb.linearVelocity.y < 0f)
         {
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y *
-                                 (data.fallGravityMultiplier - 1f) * Time.fixedDeltaTime;
+                                 (data.fallGravityMultiplier - 1f) * deltaTime;
         }
         else if (rb.linearVelocity.y > 0f && !jumpHeld && playerJumping)
         {
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y *
-                                 (data.lowJumpMultiplier - 1f) * Time.fixedDeltaTime;
+                                 (data.lowJumpMultiplier - 1f) * deltaTime;
         }
     }
 
@@ -162,18 +179,5 @@ public class CharacterMovementHandler
     {
         if (rb.linearVelocity.sqrMagnitude > data.maxSpeed * data.maxSpeed)
             rb.linearVelocity = rb.linearVelocity.normalized * data.maxSpeed;
-    }
-
-    private IEnumerator DashRoutine(Vector2 direction, float power, float duration)
-    {
-        IsDashing = true;
-        rb.gravityScale = 0f;
-        rb.linearVelocity = direction * power;
-
-        yield return new WaitForSeconds(duration);
-
-        rb.gravityScale = originalGravityScale;
-        IsDashing = false;
-        dashRoutine = null;
     }
 }

@@ -1,19 +1,14 @@
-using Photon.Pun;
+using UnityEngine;
 
 /// <summary>
-/// 맵에 배치되는 모든 구조물이 상속받는 부모 클래스다.
+/// 정적 구조물의 공통 부모(식별자). 네트워크가 필요 없는 구조물용이다.
 ///
-/// [역할]
-///   - PushableStructure, StaticStructure, BreakableStructure의 공통 식별자 역할을 한다.
-///   - 네트워크 동기화가 필요한 자식 클래스는 PhotonView를 오브젝트에 추가하고 photonView를 활용한다.
-///
-/// [자식 클래스별 필요 컴포넌트]
-///   - PushableStructure : Collider2D + Rigidbody2D + PhotonView + NetworkRigidbody2D
-///   - StaticStructure   : Collider2D (PhotonView 불필요)
-///   - BreakableStructure: Collider2D + PhotonView
+/// [Fusion 이전 메모]
+///   - 네트워크 동기화가 필요한 구조물(PushableStructure / BreakableStructure)은
+///     단일 상속 제약 때문에 이 클래스를 상속하지 않고 NetworkBehaviour 를 직접 상속한다.
+///   - StaticStructure 처럼 동기화가 필요 없는 구조물만 이 클래스를 쓴다.
 /// </summary>
-
 namespace Map
 {
-    public abstract class StructureBase : MonoBehaviourPun { }
+    public abstract class StructureBase : MonoBehaviour { }
 }

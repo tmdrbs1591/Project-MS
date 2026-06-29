@@ -1,35 +1,32 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Photon.Pun;
+using Fusion;
 
 /// <summary>
 /// 플레이어가 포탈 앞에 닿으면 자기 안의 Key UI 캔버스([F] 매칭)를 켜고,
 /// 그 상태에서 F 를 누르면 포탈과 상호작용(매칭 시작)한다.
 ///
-/// [필요한 것]
-///   - 플레이어에 Rigidbody2D + Collider2D (이미 있음 → SlimeCharacterController)
-///   - 플레이어 자식에 "Key UI Canvas" (예: [F] 매칭 텍스트). 평소엔 꺼진 채로 두고,
-///     이 스크립트의 Key UI Canvas 칸에 그 오브젝트를 연결한다.
-///   - 포탈 오브젝트에는 Portal 스크립트 + Is Trigger 콜라이더
-///
-/// 트리거 감지는 플레이어 쪽에서 받는다(플레이어에 Rigidbody2D 가 있으므로).
+/// [Fusion 이전 메모]
+///   - "내 캐릭터인지"는 NetworkObject.HasStateAuthority 로 판단한다.
+///   - 로비처럼 아직 네트워크에 스폰되지 않은(NetworkObject 가 없거나 무효한) 로컬
+///     캐릭터에서는 항상 내 것으로 취급해 로컬에서 동작한다.
 /// </summary>
 public class PortalInteractor : MonoBehaviour
 {
     [Header("UI")]
-    [Tooltip("포탈에 닿았을 때 켤 Key UI 캔버스 (플레이어 자식의 [F] 매칭 UI). 평소엔 꺼둠")]
+    [Tooltip("포탈에 닿았을 때 켤 Key UI 캔버스 (평소엔 꺼둠)")]
     [SerializeField] private GameObject keyUICanvas;
 
-    private Portal currentPortal;     // 현재 범위 안에 있는 포탈
-    private PhotonView pv;            // 멀티에서 내 캐릭터만 조작하도록
+    private Portal currentPortal;
+    private NetworkObject netObject;
 
-    private bool IsMine => pv == null || pv.IsMine;
+    // 네트워크 오브젝트가 없거나(로비 로컬) 무효하면 내 것으로 간주.
+    private bool IsMine => netObject == null || !netObject.IsValid || netObject.HasStateAuthority;
 
     private void Awake()
     {
-        pv = GetComponent<PhotonView>();
+        netObject = GetComponent<NetworkObject>();
 
-        // 시작할 땐 Key UI 를 꺼둔다
         if (keyUICanvas != null)
             keyUICanvas.SetActive(false);
     }
@@ -37,14 +34,13 @@ public class PortalInteractor : MonoBehaviour
     private void Update()
     {
         if (!IsMine) return;
-        if (currentPortal == null) return; // 범위 밖이면 무시
+        if (currentPortal == null) return;
 
         var kb = Keyboard.current;
         if (kb != null && kb.fKey.wasPressedThisFrame)
         {
             currentPortal.Interact();
 
-            // 매칭을 시작했으니 Key UI 는 닫아둔다 (상태 표시는 MatchmakingManager 가 담당)
             if (keyUICanvas != null)
                 keyUICanvas.SetActive(false);
         }
@@ -59,7 +55,7 @@ public class PortalInteractor : MonoBehaviour
 
         currentPortal = portal;
         if (keyUICanvas != null)
-            keyUICanvas.SetActive(true); // [F] 매칭 UI 켜기
+            keyUICanvas.SetActive(true);
     }
 
     private void OnTriggerExit2D(Collider2D other)
@@ -71,6 +67,6 @@ public class PortalInteractor : MonoBehaviour
 
         currentPortal = null;
         if (keyUICanvas != null)
-            keyUICanvas.SetActive(false); // 범위 벗어나면 UI 끄기
+            keyUICanvas.SetActive(false);
     }
 }

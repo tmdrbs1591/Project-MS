@@ -11,10 +11,10 @@ GameObject:
   - component: {fileID: 7438856661331267108}
   - component: {fileID: 2274050781115389371}
   - component: {fileID: 1669374011101868542}
-  - component: {fileID: 7493729023327923038}
   - component: {fileID: 2297937548139665669}
   - component: {fileID: 8580297805805811395}
-  - component: {fileID: 3345619187066300421}
+  - component: {fileID: 4507379730588882779}
+  - component: {fileID: 5163196538136971691}
   m_Layer: 6
   m_Name: BreakableStructure
   m_TagString: Untagged
@@ -142,29 +142,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &7493729023327923038
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3595553388960100342}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: PhotonUnityNetworking::Photon.Pun.PhotonView
-  ObservedComponentsFoldoutOpen: 1
-  Group: 0
-  prefixField: -1
-  Synchronization: 3
-  OwnershipTransfer: 0
-  observableSearch: 2
-  ObservedComponents:
-  - {fileID: 3345619187066300421}
-  sceneViewId: 0
-  InstantiationId: 0
-  isRuntimeInstantiated: 0
 --- !u!50 &2297937548139665669
 Rigidbody2D:
   serializedVersion: 5
@@ -207,7 +184,7 @@ MonoBehaviour:
   maxHits: 1
   playerPushMultiplier: 1.5
   minPushSpeed: 2
---- !u!114 &3345619187066300421
+--- !u!114 &4507379730588882779
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -216,8 +193,37 @@ MonoBehaviour:
   m_GameObject: {fileID: 3595553388960100342}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 271e4c301991c1344a72afed2dba48cc, type: 3}
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkRigidbody2D
-  interpolationDelay: 0.1
-  takeOwnershipOnTouch: 1
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3249239226
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 8580297805805811395}
+  - {fileID: 5163196538136971691}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &5163196538136971691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3595553388960100342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5e690b5fb1084f5ab1c86457af401d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody2D
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 1
+  _interpolationTarget: {fileID: 0}
+  UsePreciseRotation: 0
+  UseRenderSleepThresholds: 1
+  RenderThresholds:
+    UseEnergy: 1
+    Position: 0.01
+    Rotation: 0.01
+    Scale: 0.01

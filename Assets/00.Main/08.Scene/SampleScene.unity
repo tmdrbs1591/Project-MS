@@ -645,12 +645,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58e0f6a5baf998a4c9eef32a8892a42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawner
-  playerPrefabName: Player
+  playerPrefab: {fileID: 1269463429214901233, guid: 944f259ac7b9d274ab525683ad592129, type: 3}
   spawnPoints:
   - {fileID: 1446138944}
   - {fileID: 943449752}
-  sendRate: 50
-  serializationRate: 50
 --- !u!4 &1722130397
 Transform:
   m_ObjectHideFlags: 0
@@ -917,6 +915,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 457571017228806609, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 761915017
+      objectReference: {fileID: 0}
     - target: {fileID: 1242744449192383872, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
       propertyPath: sceneViewId
       value: 505
@@ -929,9 +931,25 @@ PrefabInstance:
       propertyPath: sceneViewId
       value: 500
       objectReference: {fileID: 0}
+    - target: {fileID: 2250676779391065323, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 1784819237
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602039026830920364, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 840010591
+      objectReference: {fileID: 0}
     - target: {fileID: 3134536327295272236, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
       propertyPath: sceneViewId
       value: 503
+      objectReference: {fileID: 0}
+    - target: {fileID: 4189850737422329296, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 1098690217
+      objectReference: {fileID: 0}
+    - target: {fileID: 4221147416530800479, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 1205316772
       objectReference: {fileID: 0}
     - target: {fileID: 5066124856578679022, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
       propertyPath: sceneViewId
@@ -984,6 +1002,14 @@ PrefabInstance:
     - target: {fileID: 5683574075673358560, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5888790257724993217, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 2988877222
+      objectReference: {fileID: 0}
+    - target: {fileID: 8282791527613937961, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
+      propertyPath: SortKey
+      value: 1343857648
       objectReference: {fileID: 0}
     - target: {fileID: 9038218236247733929, guid: c00b2bfcbfb8403438b941f161006d7c, type: 3}
       propertyPath: sceneViewId

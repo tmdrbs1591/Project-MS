@@ -1,28 +1,27 @@
-﻿using System.Collections.Generic;
-using Photon.Pun;
+using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 모든 플레이어 캐릭터가 상속받는 부모 클래스다.
+/// 모든 플레이어 캐릭터가 상속받는 부모 클래스다. (Fusion 2 / Shared 모드)
 ///
 /// [역할]
-///   - PhotonView 기준으로 내 캐릭터만 입력과 물리를 처리한다.
-///   - 입력, 이동, 쿨타임 처리는 Module 폴더의 일반 C# 클래스에게 맡긴다.
-///   - 이동 모듈에서 발생한 점프 신호와 현재 이동 상태를 자식 캐릭터에게 넘긴다.
-///   - 후배들은 이 클래스를 직접 수정하지 않고, Playable 폴더의 캐릭터 클래스에서
-///     BasicAttack, SkillQ, SkillE, Dash, Ultimate, Passive 함수를 구현한다.
+///   - StateAuthority(= 내 캐릭터)인 클라만 입력을 읽고 물리를 시뮬레이션한다.
+///   - 위치/회전/속도 동기화는 프리팹에 붙인 Fusion 의 NetworkRigidbody2D 가 담당한다.
+///   - 방향/이동량/접지 같은 "시각용 상태"는 [Networked] 로 동기화해 원격 캐릭터의
+///     애니메이션(스쿼시/먼지 등)을 똑같이 재현한다.
+///   - 현재 체력은 [Networked] 단일 진실 소스이며, 데미지/힐은 그 캐릭터의
+///     StateAuthority 에서만 RPC 로 적용된다 → 호스트/클라가 다를 수 없다.
 ///
-/// [필요한 것]
-///   - 플레이어 프리팹에 Rigidbody2D + Collider2D + PhotonView
-///   - PhotonView의 Observed Components에 이 클래스를 상속받은 캐릭터 스크립트 등록
-///   - Resources 폴더 안의 플레이어 프리팹을 PhotonNetwork.Instantiate로 생성
-///
-/// 슬라임 통통점프 같은 캐릭터 전용 특성은 이 클래스에 넣지 않고 별도 전용 스크립트로 분리한다.
+/// [필요 컴포넌트 (프리팹)]
+///   - NetworkObject (Fusion 이 자동 추가)
+///   - Rigidbody2D + Collider2D
+///   - Fusion 의 NetworkRigidbody2D (Physics 애드온) — 물리 위치 동기화
+///   - 이 클래스를 상속한 캐릭터 스크립트(SlimeCharacter 등)
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
-[RequireComponent(typeof(PhotonView))]
-public abstract class CharacterBase : MonoBehaviour, IPunObservable
+public abstract class CharacterBase : NetworkBehaviour
 {
     [Header("Stat")]
     [SerializeField] private CharacterStatData statData = new CharacterStatData();
@@ -36,62 +35,64 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
     [Header("Cooldown")]
     [SerializeField] private CharacterCooldownData cooldownData = new CharacterCooldownData();
 
-    [Header("Network")]
-    [SerializeField] private float interpolationDelay = 0.1f;
-
-    /// <summary>
-    /// 현재 씬에 살아있는 모든 캐릭터 목록. 카메라 등에서 플레이어들을 찾을 때 사용한다.
-    /// (각 클라이언트에는 자기 캐릭터 + 상대 캐릭터가 모두 존재하므로 둘 다 들어온다)
-    /// </summary>
+    /// <summary>현재 씬의 모든 캐릭터(카메라 등에서 사용).</summary>
     public static readonly List<CharacterBase> All = new List<CharacterBase>();
+
+    // ---- 네트워크 동기화 상태 ----
+    [Networked] private float NetHealth { get; set; }
+    [Networked] private int NetFacing { get; set; }
+    [Networked] private float NetMoveInput { get; set; }
+    [Networked] private Vector2 NetVelocity { get; set; }
+    [Networked] private NetworkBool NetGrounded { get; set; }
+    [Networked] private NetworkBool NetIsDead { get; set; }
 
     public CharacterHealth Health { get; private set; }
 
     protected Rigidbody2D Rb { get; private set; }
     protected Collider2D Col { get; private set; }
-    protected PhotonView Pv { get; private set; }
     protected CharacterStat Stat { get; private set; }
     protected CharacterMovementHandler Movement { get; private set; }
 
-    protected bool IsMine => Pv == null || Pv.IsMine;
+    /// <summary>이 캐릭터를 내가 조종하는가(= StateAuthority).</summary>
+    protected bool IsMine => Object != null && Object.HasStateAuthority;
 
     private CharacterInputHandler input;
     private CharacterCooldownHandler cooldown;
-    private readonly List<CharacterNetworkState> networkBuffer = new List<CharacterNetworkState>(32);
-    private Vector2 syncedVelocity;
+    private bool ready;
+    private ChangeDetector changeDetector;
 
     protected virtual void Awake()
     {
         Rb = GetComponent<Rigidbody2D>();
         Col = GetComponent<Collider2D>();
-        Pv = GetComponent<PhotonView>();
 
         input = new CharacterInputHandler(keySetting);
         cooldown = new CharacterCooldownHandler(cooldownData);
         Stat = new CharacterStat(statData);
 
-        Health = new CharacterHealth(Stat);
+        // 현재 체력은 네트워크 프로퍼티(NetHealth)를 백킹 스토어로 사용한다.
+        Health = new CharacterHealth(Stat, () => NetHealth, v => NetHealth = v);
         Health.Died += OnDead;
 
         Movement = new CharacterMovementHandler(Rb, Col, transform, movementData);
         Movement.Jumped += OnCharacterJump;
-
-        if (!IsMine)
-        {
-            Rb.bodyType = RigidbodyType2D.Kinematic;
-            Rb.simulated = false;
-            foreach (Collider2D c in GetComponentsInChildren<Collider2D>())
-                c.enabled = false;
-        }
     }
 
-    protected virtual void OnEnable()
+    public override void Spawned()
     {
         if (!All.Contains(this))
             All.Add(this);
+
+        changeDetector = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
+
+        // StateAuthority(내 캐릭터)만 체력을 초기화한다.
+        if (Object.HasStateAuthority)
+            Health.Initialize();
+
+        ready = true;
     }
 
-    protected virtual void OnDisable()
+    public override void Despawned(NetworkRunner runner, bool hasState)
     {
         All.Remove(this);
     }
@@ -100,33 +101,67 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
     {
         All.Remove(this);
 
-        if (Movement == null)
-            return;
-
-        Movement.Jumped -= OnCharacterJump;
+        if (Movement != null)
+            Movement.Jumped -= OnCharacterJump;
     }
 
-    protected virtual void Update()
+    private void Update()
     {
-        if (!IsMine)
-        {
-            InterpolateRemoteCharacter();
+        if (!ready || !IsMine)
             return;
-        }
 
+        // 입력(엣지 감지)은 프레임 기준으로 읽는다. 점프는 다음 네트워크 틱에서 소비.
         CharacterInputState inputState = input.Read();
         HandleActionInput(inputState);
         cooldown.Tick(Time.deltaTime);
         Passive();
+        OnLocalUpdate();
     }
 
-    protected virtual void FixedUpdate()
+    public override void FixedUpdateNetwork()
     {
         if (!IsMine)
             return;
 
-        Movement.TickFixed(input.ReadFixed());
-        OnCharacterVisualTick(Time.fixedDeltaTime, Movement.IsGrounded, Movement.MoveInput, Movement.CurrentVelocity);
+        // 내 캐릭터만 시뮬레이션. dt 는 네트워크 틱 간격.
+        Movement.TickFixed(input.ReadFixed(), Runner.DeltaTime);
+        OnNetworkTick(Runner.DeltaTime);
+
+        // 원격 클라가 시각을 재현할 수 있도록 시각용 상태를 동기화.
+        NetFacing = Movement.FacingDirection;
+        NetMoveInput = Movement.MoveInput;
+        NetGrounded = Movement.IsGrounded;
+        NetVelocity = Rb.linearVelocity;
+    }
+
+    public override void Render()
+    {
+        if (!ready)
+            return;
+
+        // 사망 등 네트워크 값 변화 감지 (모든 클라에서)
+        DetectChanges();
+
+        if (!IsMine)
+        {
+            // 원격 캐릭터: 동기화된 시각 상태를 모듈에 주입해 애니메이션을 재현.
+            // 속도도 동기화된 값을 써야 한다(원격 Rigidbody 는 kinematic 이라 velocity 가 부정확).
+            Movement.ApplyNetworkVisualState(NetFacing, NetMoveInput, NetGrounded, NetVelocity);
+        }
+
+        OnCharacterVisualTick(Time.deltaTime, Movement.IsGrounded, Movement.MoveInput, Movement.CurrentVelocity);
+    }
+
+    private void DetectChanges()
+    {
+        if (changeDetector == null)
+            return;
+
+        foreach (string change in changeDetector.DetectChanges(this))
+        {
+            if (change == nameof(NetIsDead) && NetIsDead)
+                OnDeadVisual();
+        }
     }
 
     public void SetKeySetting(CharacterKeySetting newKeySetting)
@@ -153,104 +188,70 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
         action?.Invoke();
     }
 
-    private void InterpolateRemoteCharacter()
-    {
-        if (networkBuffer.Count == 0)
-            return;
+    // ---------------- 데미지 / 힐 (권한 측에서만 적용) ----------------
 
-        double renderTime = PhotonNetwork.Time - interpolationDelay;
-        CharacterNetworkState newest = networkBuffer[networkBuffer.Count - 1];
-
-        if (renderTime >= newest.Time)
-        {
-            ApplyNetworkState(newest, newest.Position);
-            return;
-        }
-
-        if (renderTime <= networkBuffer[0].Time)
-        {
-            ApplyNetworkState(networkBuffer[0], networkBuffer[0].Position);
-            return;
-        }
-
-        for (int i = 0; i < networkBuffer.Count - 1; i++)
-        {
-            CharacterNetworkState from = networkBuffer[i];
-            CharacterNetworkState to = networkBuffer[i + 1];
-
-            if (renderTime < from.Time || renderTime > to.Time)
-                continue;
-
-            double span = to.Time - from.Time;
-            float t = span > 0.0 ? (float)((renderTime - from.Time) / span) : 0f;
-            Vector3 position = Vector3.Lerp(from.Position, to.Position, t);
-            syncedVelocity = Vector2.Lerp(from.Velocity, to.Velocity, t);
-
-            CharacterNetworkState near = t < 0.5f ? from : to;
-            ApplyNetworkState(near, position);
-
-            if (i > 0)
-                networkBuffer.RemoveRange(0, i);
-
-            return;
-        }
-    }
-
-    private void ApplyNetworkState(CharacterNetworkState state, Vector3 position)
-    {
-        transform.position = position;
-        Movement.ApplyNetworkVisualState(state.FacingDirection, state.MoveInput, state.IsGrounded, syncedVelocity);
-        OnCharacterVisualTick(Time.deltaTime, Movement.IsGrounded, Movement.MoveInput, Movement.CurrentVelocity);
-    }
-
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-        {
-            stream.SendNext(transform.position);
-            stream.SendNext(Rb.linearVelocity);
-            stream.SendNext((short)Movement.FacingDirection);
-            stream.SendNext(Movement.MoveInput);
-            stream.SendNext(Movement.IsGrounded);
-        }
-        else
-        {
-            CharacterNetworkState state = new CharacterNetworkState
-            {
-                Time = info.SentServerTime,
-                Position = (Vector3)stream.ReceiveNext(),
-                Velocity = (Vector2)stream.ReceiveNext(),
-                FacingDirection = (short)stream.ReceiveNext(),
-                MoveInput = (float)stream.ReceiveNext(),
-                IsGrounded = (bool)stream.ReceiveNext()
-            };
-
-            if (networkBuffer.Count > 0 && state.Time <= networkBuffer[networkBuffer.Count - 1].Time)
-                return;
-
-            networkBuffer.Add(state);
-            if (networkBuffer.Count > 30)
-                networkBuffer.RemoveAt(0);
-        }
-    }
-
+    /// <summary>어디서든 호출 가능. 실제 적용은 이 캐릭터의 StateAuthority 에서 일어난다.</summary>
     public void TakeDamage(float damage)
     {
+        if (Object == null)
+            return;
+
+        if (Object.HasStateAuthority)
+            ApplyDamage(damage);
+        else
+            Rpc_TakeDamage(damage);
+    }
+
+    public void RequestHealByMaxHealthPercent(float percent)
+    {
+        if (Object == null)
+            return;
+
+        if (Object.HasStateAuthority)
+            Health.HealByMaxHealthPercent(percent);
+        else
+            Rpc_HealPercent(percent);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void Rpc_TakeDamage(float damage)
+    {
+        ApplyDamage(damage);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void Rpc_HealPercent(float percent)
+    {
+        Health.HealByMaxHealthPercent(percent);
+    }
+
+    private void ApplyDamage(float damage)
+    {
         Health.TakeDamage(damage);
+        if (Health.IsDead)
+            NetIsDead = true;
     }
 
-    protected virtual void OnCharacterJump()
-    {
-    }
+    // ---------------- 가상 메서드 ----------------
 
-    protected virtual void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
-    {
-    }
+    protected virtual void OnCharacterJump() { }
 
+    /// <summary>매 프레임(내 캐릭터, 권한자) 호출. 마우스 조준 등 프레임 단위 로컬 처리용.</summary>
+    protected virtual void OnLocalUpdate() { }
+
+    /// <summary>네트워크 틱마다(권한자) 호출. 슬라임 통통점프 등 물리 영향 로직용.</summary>
+    protected virtual void OnNetworkTick(float deltaTime) { }
+
+    protected virtual void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity) { }
+
+    /// <summary>StateAuthority 에서 사망 처리되었을 때(체력 0).</summary>
     protected virtual void OnDead()
     {
-        Debug.Log($"캐릭터 사망");
+        Debug.Log("캐릭터 사망");
     }
+
+    /// <summary>모든 클라에서 사망이 동기화됐을 때(연출용).</summary>
+    protected virtual void OnDeadVisual() { }
 
     protected abstract void BasicAttack();
     protected abstract void SkillQ();

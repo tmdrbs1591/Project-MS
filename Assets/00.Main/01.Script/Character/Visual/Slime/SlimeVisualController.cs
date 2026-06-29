@@ -1,23 +1,20 @@
-﻿using Photon.Pun;
 using UnityEngine;
 
 /// <summary>
 /// 슬라임 캐릭터의 통통 움직임, 말랑말랑 몸통, 먼지 이펙트를 담당하는 전용 컨트롤러다.
 ///
-/// [역할]
-///   - 슬라임이 땅에서 이동 중이면 일정 간격마다 Rigidbody2D에 위쪽 힘을 줘서 통통 뛰게 만든다.
-///   - 점프, 통통점프, 착지 순간에 몸통을 늘리거나 눌러서 Squash & Stretch 느낌을 만든다.
-///   - 공중에서는 세로 속도에 따라 몸통이 길게 늘어나거나 납작해진다.
-///   - 가만히 있을 때는 아주 작게 흔들리는 idle wobble을 만든다.
-///   - 땅에서 이동 중일 때만 dustEffect의 emission을 켠다.
+/// [Fusion 이전 메모]
+///   - 물리에 영향을 주는 통통점프(AddForce)는 네트워크 틱에서만 실행돼야 하므로
+///     SlimeCharacter.OnNetworkTick → NetworkHop() 으로 호출된다(권한자에서만).
+///   - 시각(스쿼시/먼지)은 모든 클라가 동기화된 상태로 재현하므로 TickVisual() 은
+///     CharacterBase.Render → OnCharacterVisualTick 에서 모두 호출된다.
+///   - 따라서 이 스크립트는 더 이상 PhotonView/IsMine 을 직접 다루지 않는다.
 ///
 /// [필요한 것]
-///   - SlimeCharacter가 붙은 Player 루트에 함께 붙인다.
-///   - Rigidbody2D + Collider2D + PhotonView가 같은 루트에 있어야 한다.
-///   - Body Transform에는 실제로 늘어나고 줄어들 몸통 Sprite Transform을 연결한다.
-///   - Dust Effect에는 기존 Player 자식의 ParticleSystem을 연결한다.
-///
-/// 이 스크립트는 슬라임 전용 특성이므로 다른 캐릭터 프리팹에는 붙이지 않는다.
+///   - SlimeCharacter 가 붙은 Player 루트에 함께 붙인다.
+///   - Rigidbody2D 가 같은 루트에 있어야 한다.
+///   - Body Transform 에 늘어나고 줄어들 몸통 Sprite Transform 을 연결한다.
+///   - Dust Effect 에는 ParticleSystem 을 연결한다.
 /// </summary>
 [DefaultExecutionOrder(1)]
 [RequireComponent(typeof(Rigidbody2D))]
@@ -47,12 +44,9 @@ public class SlimeVisualController : MonoBehaviour
     [SerializeField] private ParticleSystem dustEffect;
 
     private Rigidbody2D rb;
-    private PhotonView pv;
 
     private bool wasGrounded;
     private bool hasVisualState;
-    private bool cachedIsGrounded;
-    private float cachedMoveInput;
     private float hopTimer;
     private float stretch;
     private float stretchVelocity;
@@ -60,12 +54,9 @@ public class SlimeVisualController : MonoBehaviour
     private Vector3 bodyBaseLocalPosition;
     private Vector3 bodyBaseLocalScale;
 
-    private bool IsMine => pv == null || pv.IsMine;
-
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        pv = GetComponent<PhotonView>();
 
         if (bodyTransform == null)
             bodyTransform = transform;
@@ -85,19 +76,31 @@ public class SlimeVisualController : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
-    {
-        if (!IsMine)
-            return;
-
-        HandleAutoHop();
-    }
-
     public void PlayJumpStretch()
     {
         stretchVelocity += jumpStretch * 60f;
     }
 
+    /// <summary>네트워크 틱마다(권한자) 호출. 통통점프 물리 적용.</summary>
+    public void NetworkHop(float deltaTime, bool isGrounded, float moveInput)
+    {
+        if (!autoHop || !isGrounded || Mathf.Abs(moveInput) < movingVelocityThreshold)
+        {
+            hopTimer = 0f;
+            return;
+        }
+
+        hopTimer += deltaTime;
+        if (hopTimer < hopInterval)
+            return;
+
+        hopTimer = 0f;
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
+        rb.AddForce(Vector2.up * hopForce, ForceMode2D.Impulse);
+        stretchVelocity += hopStretch * 45f;
+    }
+
+    /// <summary>매 프레임(모든 클라) 호출. 시각만 갱신.</summary>
     public void TickVisual(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity, int bodyDirection)
     {
         if (!hasVisualState)
@@ -106,31 +109,10 @@ public class SlimeVisualController : MonoBehaviour
             hasVisualState = true;
         }
 
-        cachedIsGrounded = isGrounded;
-        cachedMoveInput = moveInput;
-
         ApplyLandingSquash(isGrounded, velocity);
         UpdateDustEffect(isGrounded, moveInput);
         UpdateSquash(deltaTime, isGrounded, moveInput, velocity, bodyDirection);
         wasGrounded = isGrounded;
-    }
-
-    private void HandleAutoHop()
-    {
-        if (!autoHop || !cachedIsGrounded || Mathf.Abs(cachedMoveInput) < movingVelocityThreshold)
-        {
-            hopTimer = 0f;
-            return;
-        }
-
-        hopTimer += Time.fixedDeltaTime;
-        if (hopTimer < hopInterval)
-            return;
-
-        hopTimer = 0f;
-        rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
-        rb.AddForce(Vector2.up * hopForce, ForceMode2D.Impulse);
-        stretchVelocity += hopStretch * 45f;
     }
 
     private void ApplyLandingSquash(bool isGrounded, Vector2 velocity)

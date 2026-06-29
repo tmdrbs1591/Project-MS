@@ -1,21 +1,17 @@
-﻿    using UnityEngine;
+using Fusion;
+using UnityEngine;
 
 /// <summary>
-/// 슬라임 플레이어 캐릭터 예시다.
+/// 슬라임 플레이어 캐릭터. (Fusion 2 / Shared 모드)
 ///
 /// [역할]
-///   - CharacterBase를 상속받아 실제 캐릭터의 평타, Q, E, 대시, 궁극기, 패시브를 구현한다.
-///   - 후배들이 새 캐릭터를 만들 때 이 파일을 복사해서 클래스 이름과 스킬 내용을 바꾸면 된다.
-///   - 공통 입력, 이동, 점프, 쿨타임, Photon 동기화는 CharacterBase와 Module 쪽에서 처리한다.
-///   - 슬라임 전용 통통점프, 말랑말랑 몸통, 먼지 이펙트는 SlimeVisualController에 넘겨서 처리한다.
+///   - CharacterBase 를 상속받아 평타/Q/E/대시/궁/패시브를 구현한다.
+///   - 발사체는 Runner.Spawn 으로 네트워크 스폰되어 모두에게 보인다.
+///   - 근접 스킬 데미지는 CharacterBase.TakeDamage 로 요청(피격자 권한에서 적용).
+///   - 통통점프/스쿼시는 SlimeVisualController 에 위임한다.
 ///
-/// [필요한 것]
-///   - Player 프리팹에 Rigidbody2D + Collider2D + PhotonView
-///   - Player 프리팹에 SlimeVisualController를 함께 붙이고 Body Transform/Dust Effect를 연결
-///   - PhotonView Observed Components에 이 SlimeCharacter 컴포넌트 등록
-///   - 대시는 Movement.StartDefaultDash(this)를 호출해서 기본 대시를 사용
-///
-/// 프로토타입 단계에서는 Debug.Log로 동작을 확인하고, 이후 공격 판정/이펙트/데미지를 추가한다.
+/// 액션 함수들은 CharacterBase 가 "내 캐릭터(StateAuthority)" 에서만 호출하므로
+/// 여기서 별도 권한 체크는 필요 없다.
 /// </summary>
 public class SlimeCharacter : CharacterBase
 {
@@ -28,8 +24,16 @@ public class SlimeCharacter : CharacterBase
     [SerializeField] private Projectile projectilePrefab;
     [SerializeField] private LayerMask projectileTargetLayer;
 
+    // 팔 조준 동기화: 권한자가 마우스로 계산한 방향/각도를 원격이 그대로 재현한다.
+    [Networked] private float NetAimAngle { get; set; }
+    [Networked] private int NetArmDirection { get; set; }
+
     private SlimeVisualController visualController;
     private SlimeMouseArmController mouseArmController;
+
+    // 발사 입력은 프레임에서 받고, 스폰은 네트워크 틱에서 처리(지연/지터 감소).
+    private bool firePending;
+    private CharacterActionType pendingFireAction;
 
     protected override void Awake()
     {
@@ -44,39 +48,32 @@ public class SlimeCharacter : CharacterBase
 
     protected override void BasicAttack()
     {
-        Debug.Log("슬라임 평타");
-        FireProjectile(CharacterActionType.BasicAttack);
+        // 실제 스폰은 다음 네트워크 틱에서(OnNetworkTick) 처리해 틱과 정렬한다.
+        firePending = true;
+        pendingFireAction = CharacterActionType.BasicAttack;
     }
 
     protected override void SkillQ()
     {
-        Debug.Log("슬라임 Q 스킬");
         HitTargets(Stat.GetAttackDamage(CharacterActionType.SkillQ));
     }
 
     protected override void SkillE()
     {
-        Debug.Log("슬라임 E 스킬");
         HitTargets(Stat.GetAttackDamage(CharacterActionType.SkillE));
     }
 
     protected override void Dash()
     {
-        Debug.Log("슬라임 대시");
-        Movement.StartDefaultDash(this);
+        Movement.StartDefaultDash();
     }
 
     protected override void Ultimate()
     {
-        Debug.Log("슬라임 궁극기");
         HitTargets(Stat.GetAttackDamage(CharacterActionType.Ultimate));
     }
 
-    protected override void Passive()
-    {
-        // 패시브는 매 프레임 호출된다.
-        // 예: 체력이 낮을 때 이동 속도 증가, 일정 시간마다 회복, 조건부 강화 등
-    }
+    protected override void Passive() { }
 
     protected override void OnCharacterJump()
     {
@@ -84,17 +81,49 @@ public class SlimeCharacter : CharacterBase
             visualController.PlayJumpStretch();
     }
 
+    protected override void OnLocalUpdate()
+    {
+        // 내 캐릭터만 로컬 마우스로 팔을 조준한다.
+        if (mouseArmController != null)
+            mouseArmController.AimAtMouse();
+    }
+
+    protected override void OnNetworkTick(float deltaTime)
+    {
+        // 통통점프 물리는 네트워크 틱에서(권한자) 적용.
+        if (visualController != null)
+            visualController.NetworkHop(deltaTime, Movement.IsGrounded, Movement.MoveInput);
+
+        // 팔 조준 값을 동기화(원격이 재현).
+        if (mouseArmController != null)
+        {
+            NetAimAngle = mouseArmController.CurrentAngle;
+            NetArmDirection = mouseArmController.ArmDirection;
+        }
+
+        // 틱 정렬된 발사체 스폰.
+        if (firePending)
+        {
+            firePending = false;
+            FireProjectile(pendingFireAction);
+        }
+    }
+
     protected override void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
     {
         if (visualController != null)
             visualController.TickVisual(deltaTime, isGrounded, moveInput, velocity, Movement.FacingDirection);
+
+        // 원격 캐릭터의 팔은 동기화된 조준 값으로 재현한다(내 마우스가 아니라).
+        if (!IsMine && mouseArmController != null)
+            mouseArmController.ApplyAim(NetArmDirection, NetAimAngle);
     }
 
     private void FireProjectile(CharacterActionType actionType)
     {
         if (projectilePrefab == null)
         {
-            Debug.LogWarning("[SlimeCharacter.cs] Projectile Prefab이 연결되지 않았습니다.");
+            Debug.LogWarning("[SlimeCharacter] Projectile Prefab 이 연결되지 않았습니다.");
             return;
         }
 
@@ -104,7 +133,7 @@ public class SlimeCharacter : CharacterBase
 
         if (firePoint == null)
         {
-            Debug.LogWarning("[SlimeCharacter.cs] 발사 위치가 없습니다. Attack Point 또는 Fire Point를 연결하세요.");
+            Debug.LogWarning("[SlimeCharacter] 발사 위치가 없습니다. Attack Point 또는 Fire Point 를 연결하세요.");
             return;
         }
 
@@ -112,8 +141,21 @@ public class SlimeCharacter : CharacterBase
             ? mouseArmController.GetAimDirection(Camera.main, firePoint)
             : (Movement.FacingDirection > 0 ? Vector2.right : Vector2.left);
 
-        Projectile projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
-        projectile.Initialize(direction, Stat.GetAttackDamage(actionType), projectileTargetLayer);
+        float damage = Stat.GetAttackDamage(actionType);
+        Vector3 spawnPos = firePoint.position;
+
+        // 네트워크 스폰: 발사자가 StateAuthority 가 되며, onBeforeSpawned 에서 방향/데미지 주입.
+        Runner.Spawn(
+            projectilePrefab,
+            spawnPos,
+            Quaternion.identity,
+            Object.InputAuthority,
+            (runner, obj) =>
+            {
+                Projectile p = obj.GetComponent<Projectile>();
+                if (p != null)
+                    p.Initialize(runner, spawnPos, direction, damage, projectileTargetLayer);
+            });
     }
 
     private void HitTargets(float damage)
@@ -124,8 +166,9 @@ public class SlimeCharacter : CharacterBase
         Collider2D[] hits = Physics2D.OverlapCircleAll(attackPoint.position, attackRadius, targetLayer);
         foreach (Collider2D hit in hits)
         {
-            Debug.Log($"{hit.name}에게 {damage} 데미지");
-            // Todo. Character.TakeDamage(damage);
+            CharacterBase target = hit.GetComponentInParent<CharacterBase>();
+            if (target != null && target != this)
+                target.TakeDamage(damage);
         }
     }
 

@@ -1,24 +1,22 @@
-using Map;
-using Photon.Pun;
+using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 플레이어가 밀 수 있는 구조물이다.
+/// 플레이어가 밀 수 있는 구조물이다. (Fusion 2 / Shared 모드)
 ///
-/// [역할]
-///   - MasterClient: 물리엔진이 자연스럽게 밀고, 낙하 데미지 판정도 담당한다.
-///   - 비방장: 로컬 충돌을 감지해 MasterClient에 AddNetworkForce RPC를 보낸다.
-///   - 총알에 맞으면 MasterClient가 반대 방향으로 힘을 가한다.
-///   - 위치 동기화는 NetworkRigidbody2D가 담당한다.
+/// [동작]
+///   - 이 박스의 StateAuthority(기본: Shared 모드 마스터)가 물리를 시뮬레이션한다.
+///   - 다른 클라가 박스를 밀면, "미는 플레이어의 소유자"가 박스 권한에 Rpc_AddForce 를 보낸다.
+///   - 박스 권한이 힘을 적용하고, 위치는 NetworkRigidbody2D(Fusion 물리 애드온)가 동기화한다.
+///   - 낙하 데미지 판정은 박스 권한에서만 수행한다.
 ///
-/// [필요한 것]
+/// [필요 컴포넌트 (프리팹)]
 ///   - Collider2D + Rigidbody2D (Dynamic)
-///   - PhotonView (Ownership Transfer: Fixed) + NetworkRigidbody2D
+///   - NetworkObject + Fusion 의 NetworkRigidbody2D (Physics 애드온, 에디터에서 추가)
 ///   - 플레이어 태그: "Player" / 총알 태그: "Bullet"
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(NetworkRigidbody2D))]
-public class PushableStructure : StructureBase
+public class PushableStructure : NetworkBehaviour
 {
     [SerializeField] private float bulletPushForce = 8f;
     [SerializeField] private float fallDamage = 20f;
@@ -27,39 +25,50 @@ public class PushableStructure : StructureBase
     [SerializeField] private float minPushSpeed = 2f;
 
     private Rigidbody2D rb;
-    private NetworkRigidbody2D netRb;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        netRb = GetComponent<NetworkRigidbody2D>();
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.collider.CompareTag("Player"))
         {
-            PhotonView playerView = collision.collider.GetComponent<PhotonView>();
-            if (playerView == null || !playerView.IsMine) return;
+            // "미는 플레이어의 소유자"만 푸시를 시작한다(중복 방지).
+            NetworkObject playerObj = collision.collider.GetComponentInParent<NetworkObject>();
+            bool pushedByMyPlayer = playerObj != null && playerObj.HasStateAuthority;
 
-            if (!PhotonNetwork.IsMasterClient)
-                PushFromPlayer(collision);
+            if (pushedByMyPlayer)
+                RequestPushFromPlayer(collision);
 
-            if (PhotonNetwork.IsMasterClient)
+            // 낙하 데미지는 박스 권한에서만 판정.
+            if (Object != null && Object.HasStateAuthority)
                 TryApplyFallDamage(collision);
         }
-        else if (collision.collider.CompareTag("Bullet") && PhotonNetwork.IsMasterClient)
+        else if (collision.collider.CompareTag("Bullet") && Object != null && Object.HasStateAuthority)
         {
             ApplyBulletPush(collision);
         }
     }
 
-    private void PushFromPlayer(Collision2D collision)
+    private void RequestPushFromPlayer(Collision2D collision)
     {
         Rigidbody2D playerRb = collision.collider.attachedRigidbody;
         float speed = playerRb != null ? Mathf.Max(playerRb.linearVelocity.magnitude, minPushSpeed) : minPushSpeed;
         Vector2 pushDir = ((Vector2)transform.position - (Vector2)collision.collider.bounds.center).normalized;
-        netRb.AddNetworkForce(pushDir * speed * playerPushMultiplier);
+        Vector2 force = pushDir * speed * playerPushMultiplier;
+
+        if (Object != null && Object.HasStateAuthority)
+            rb.AddForce(force, ForceMode2D.Impulse);
+        else
+            Rpc_AddForce(force);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void Rpc_AddForce(Vector2 force)
+    {
+        rb.AddForce(force, ForceMode2D.Impulse);
     }
 
     private void TryApplyFallDamage(Collision2D collision)
@@ -71,8 +80,9 @@ public class PushableStructure : StructureBase
             // normal.y > 0 : 플레이어가 구조물 아래에 있음 (위에서 낙하 중)
             if (contact.normal.y < 0.5f) continue;
 
-            PhotonView playerView = collision.collider.GetComponent<PhotonView>();
-            playerView?.RPC("TakeDamageRPC", playerView.Owner, fallDamage);
+            CharacterBase player = collision.collider.GetComponentInParent<CharacterBase>();
+            if (player != null)
+                player.TakeDamage(fallDamage); // 피격자 권한에서 적용됨
             break;
         }
     }
