@@ -58,6 +58,7 @@ public class SlimeVisualController : MonoBehaviour
     private float stretchVelocity;
     private float halfHeight;
     private Vector3 bodyBaseLocalPosition;
+    private Vector3 bodyBaseLocalScale;
 
     private bool IsMine => pv == null || pv.IsMine;
 
@@ -70,6 +71,7 @@ public class SlimeVisualController : MonoBehaviour
             bodyTransform = transform;
 
         bodyBaseLocalPosition = bodyTransform.localPosition;
+        bodyBaseLocalScale = bodyTransform.localScale;
 
         SpriteRenderer spriteRenderer = bodyTransform.GetComponentInChildren<SpriteRenderer>();
         if (spriteRenderer != null)
@@ -96,7 +98,7 @@ public class SlimeVisualController : MonoBehaviour
         stretchVelocity += jumpStretch * 60f;
     }
 
-    public void TickVisual(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
+    public void TickVisual(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity, int bodyDirection)
     {
         if (!hasVisualState)
         {
@@ -109,7 +111,7 @@ public class SlimeVisualController : MonoBehaviour
 
         ApplyLandingSquash(isGrounded, velocity);
         UpdateDustEffect(isGrounded, moveInput);
-        UpdateSquash(deltaTime, isGrounded, moveInput, velocity);
+        UpdateSquash(deltaTime, isGrounded, moveInput, velocity, bodyDirection);
         wasGrounded = isGrounded;
     }
 
@@ -153,7 +155,7 @@ public class SlimeVisualController : MonoBehaviour
             emission.enabled = running;
     }
 
-    private void UpdateSquash(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
+    private void UpdateSquash(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity, int bodyDirection)
     {
         float airStretch = 0f;
         if (!isGrounded)
@@ -172,7 +174,13 @@ public class SlimeVisualController : MonoBehaviour
         float scaleY = Mathf.Max(0.2f, 1f + finalStretch);
         float scaleX = Mathf.Max(0.2f, 1f - finalStretch * 0.6f);
 
-        bodyTransform.localScale = new Vector3(scaleX, scaleY, 1f);
+        int direction = bodyDirection >= 0 ? 1 : -1;
+
+        bodyTransform.localScale = new Vector3(
+            Mathf.Abs(bodyBaseLocalScale.x) * scaleX * direction,
+            bodyBaseLocalScale.y * scaleY,
+            bodyBaseLocalScale.z
+        );
 
         if (anchorToBottom && halfHeight > 0f)
         {
