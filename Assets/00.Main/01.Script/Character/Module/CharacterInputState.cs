@@ -18,4 +18,5 @@ public struct CharacterInputState
     public bool SkillEPressed;
     public bool DashPressed;
     public bool UltimatePressed;
+    public UnityEngine.Vector2 MouseWorldPosition;
 }

@@ -1,4 +1,5 @@
-﻿using UnityEngine.InputSystem;
+﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// 현재 키 설정을 기준으로 키보드와 마우스 입력을 읽는 모듈이다.
@@ -55,6 +56,7 @@ public class CharacterInputHandler
         state.JumpPressed = jumpThisFrame;
         state.JumpHeld = IsKeyPressed(keySetting.jump);
         state.BasicAttackPressed = WasMousePressedThisFrame(keySetting.basicAttack);
+        state.MouseWorldPosition = ReadMouseWorldPosition();
         state.SkillQPressed = WasKeyPressedThisFrame(keySetting.skillQ);
         state.SkillEPressed = WasKeyPressedThisFrame(keySetting.skillE);
         state.DashPressed = WasKeyPressedThisFrame(keySetting.dash);
@@ -74,6 +76,17 @@ public class CharacterInputHandler
     {
         Keyboard keyboard = Keyboard.current;
         return keyboard != null && key != Key.None && keyboard[key].wasPressedThisFrame;
+    }
+
+    private Vector2 ReadMouseWorldPosition()
+    {
+        Mouse mouse = Mouse.current;
+        if (mouse == null || Camera.main == null)
+            return Vector2.zero;
+
+        Vector3 screenPos = mouse.position.ReadValue();
+        screenPos.z = -Camera.main.transform.position.z;
+        return Camera.main.ScreenToWorldPoint(screenPos);
     }
 
     private bool WasMousePressedThisFrame(CharacterMouseButton button)
