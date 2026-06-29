@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 7493729023327923038}
   - component: {fileID: 2297937548139665669}
   - component: {fileID: 8580297805805811395}
+  - component: {fileID: 3345619187066300421}
   m_Layer: 6
   m_Name: BreakableStructure
   m_TagString: Untagged
@@ -159,7 +160,8 @@ MonoBehaviour:
   Synchronization: 3
   OwnershipTransfer: 0
   observableSearch: 2
-  ObservedComponents: []
+  ObservedComponents:
+  - {fileID: 3345619187066300421}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
@@ -175,7 +177,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 3
+  m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 1
@@ -203,3 +205,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BreakableStructure
   maxHits: 1
+--- !u!114 &3345619187066300421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3595553388960100342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 271e4c301991c1344a72afed2dba48cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkRigidbody2D
+  interpolationDelay: 0.1
+  takeOwnershipOnTouch: 1
