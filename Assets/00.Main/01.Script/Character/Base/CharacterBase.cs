@@ -39,6 +39,12 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
     [Header("Network")]
     [SerializeField] private float interpolationDelay = 0.1f;
 
+    /// <summary>
+    /// 현재 씬에 살아있는 모든 캐릭터 목록. 카메라 등에서 플레이어들을 찾을 때 사용한다.
+    /// (각 클라이언트에는 자기 캐릭터 + 상대 캐릭터가 모두 존재하므로 둘 다 들어온다)
+    /// </summary>
+    public static readonly List<CharacterBase> All = new List<CharacterBase>();
+
     public CharacterHealth Health { get; private set; }
 
     protected Rigidbody2D Rb { get; private set; }
@@ -79,8 +85,21 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
         }
     }
 
+    protected virtual void OnEnable()
+    {
+        if (!All.Contains(this))
+            All.Add(this);
+    }
+
+    protected virtual void OnDisable()
+    {
+        All.Remove(this);
+    }
+
     protected virtual void OnDestroy()
     {
+        All.Remove(this);
+
         if (Movement == null)
             return;
 
