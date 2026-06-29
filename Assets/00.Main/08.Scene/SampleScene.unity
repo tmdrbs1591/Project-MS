@@ -374,7 +374,7 @@ GameObject:
   - component: {fileID: 669845289}
   - component: {fileID: 669845288}
   m_Layer: 0
-  m_Name: Square
+  m_Name: CameraArea
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
