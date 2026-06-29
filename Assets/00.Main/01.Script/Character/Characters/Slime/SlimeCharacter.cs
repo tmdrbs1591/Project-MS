@@ -24,8 +24,7 @@ public class SlimeCharacter : CharacterBase
     [SerializeField] private float attackRadius = 0.8f;
     [SerializeField] private LayerMask targetLayer;
 
-    [Header("Visual")]
-    [SerializeField] private SlimeVisualController visualController;
+    private SlimeVisualController visualController;
 
     protected override void Awake()
     {
@@ -38,18 +37,19 @@ public class SlimeCharacter : CharacterBase
     protected override void BasicAttack()
     {
         Debug.Log("슬라임 평타");
-        HitTargets(1);
+        HitTargets(Stat.GetAttackDamage(CharacterActionType.BasicAttack));
     }
 
     protected override void SkillQ()
     {
         Debug.Log("슬라임 Q 스킬");
-        HitTargets(2);
+        HitTargets(Stat.GetAttackDamage(CharacterActionType.SkillQ));
     }
 
     protected override void SkillE()
     {
         Debug.Log("슬라임 E 스킬");
+        HitTargets(Stat.GetAttackDamage(CharacterActionType.SkillE));
     }
 
     protected override void Dash()
@@ -61,7 +61,7 @@ public class SlimeCharacter : CharacterBase
     protected override void Ultimate()
     {
         Debug.Log("슬라임 궁극기");
-        HitTargets(5);
+        HitTargets(Stat.GetAttackDamage(CharacterActionType.Ultimate));
     }
 
     protected override void Passive()
@@ -79,10 +79,10 @@ public class SlimeCharacter : CharacterBase
     protected override void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
     {
         if (visualController != null)
-            visualController.TickVisual(deltaTime, isGrounded, moveInput, velocity);
+            visualController.TickVisual(deltaTime, isGrounded, moveInput, velocity, Movement.FacingDirection);
     }
 
-    private void HitTargets(int damage)
+    private void HitTargets(float damage)
     {
         if (attackPoint == null)
             return;
@@ -91,6 +91,7 @@ public class SlimeCharacter : CharacterBase
         foreach (Collider2D hit in hits)
         {
             Debug.Log($"{hit.name}에게 {damage} 데미지");
+            // Todo. Character.TakeDamage(damage);
         }
     }
 
