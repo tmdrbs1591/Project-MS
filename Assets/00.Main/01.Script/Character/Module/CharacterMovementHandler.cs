@@ -27,7 +27,7 @@ public class CharacterMovementHandler
 
     private readonly Rigidbody2D rb;
     private readonly Collider2D col;
-    private readonly Transform transform;
+    private readonly Transform rootTransform;
     private readonly CharacterMovementData data;
 
     private float jumpBufferTimer;
@@ -38,16 +38,16 @@ public class CharacterMovementHandler
     private MonoBehaviour coroutineRunner;
     private Vector3 baseScale;
 
-    public CharacterMovementHandler(Rigidbody2D rb, Collider2D col, Transform transform, CharacterMovementData data)
+    public CharacterMovementHandler(Rigidbody2D rb, Collider2D col, Transform rootTransform, CharacterMovementData data)
     {
         this.rb = rb;
         this.col = col;
-        this.transform = transform;
+        this.rootTransform = rootTransform;
         this.data = data;
 
         rb.freezeRotation = true;
         originalGravityScale = rb.gravityScale;
-        baseScale = transform.localScale;
+        baseScale = rootTransform.localScale;
         CurrentVelocity = rb.linearVelocity;
     }
 
@@ -83,7 +83,6 @@ public class CharacterMovementHandler
         MoveInput = moveInput;
         IsGrounded = isGrounded;
         CurrentVelocity = velocity;
-        ApplyFacing();
     }
 
     private void UpdateMoveInput(float moveInput)
@@ -94,8 +93,6 @@ public class CharacterMovementHandler
             FacingDirection = 1;
         else if (MoveInput < -0.01f)
             FacingDirection = -1;
-
-        ApplyFacing();
     }
 
     private void CheckGround()
@@ -178,14 +175,5 @@ public class CharacterMovementHandler
         rb.gravityScale = originalGravityScale;
         IsDashing = false;
         dashRoutine = null;
-    }
-
-    private void ApplyFacing()
-    {
-        transform.localScale = new Vector3(
-            Mathf.Abs(baseScale.x) * FacingDirection,
-            baseScale.y,
-            baseScale.z
-        );
     }
 }

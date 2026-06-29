@@ -24,27 +24,8 @@ using UnityEngine;
 [RequireComponent(typeof(PhotonView))]
 public abstract class CharacterBase : MonoBehaviour, IPunObservable
 {
-    [Header("Health")]
-    [SerializeField] private float maxHealth = 100f;
-
-    public float MaxHealth => maxHealth;
-    public float CurrentHealth { get; private set; }
-
-    public void Heal(float amount)
-    {
-        CurrentHealth = Mathf.Min(CurrentHealth + amount, maxHealth);
-    }
-
-    public void TakeDamage(float amount)
-    {
-        CurrentHealth = Mathf.Max(CurrentHealth - amount, 0f);
-    }
-
-    [PunRPC]
-    public void TakeDamageRPC(float amount)
-    {
-        TakeDamage(amount);
-    }
+    [Header("Stat")]
+    [SerializeField] private CharacterStatData statData = new CharacterStatData();
 
     [Header("Key Setting")]
     [SerializeField] private CharacterKeySetting keySetting = new CharacterKeySetting();
@@ -61,6 +42,8 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
     protected Rigidbody2D Rb { get; private set; }
     protected Collider2D Col { get; private set; }
     protected PhotonView Pv { get; private set; }
+    protected CharacterStat Stat { get; private set; }
+    protected CharacterHealth Health { get; private set; }
     protected CharacterMovementHandler Movement { get; private set; }
 
     protected bool IsMine => Pv == null || Pv.IsMine;
@@ -72,13 +55,17 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
 
     protected virtual void Awake()
     {
-        CurrentHealth = maxHealth;
         Rb = GetComponent<Rigidbody2D>();
         Col = GetComponent<Collider2D>();
         Pv = GetComponent<PhotonView>();
 
         input = new CharacterInputHandler(keySetting);
         cooldown = new CharacterCooldownHandler(cooldownData);
+        Stat = new CharacterStat(statData);
+
+        Health = new CharacterHealth(Stat);
+        Health.Died += OnDead;
+
         Movement = new CharacterMovementHandler(Rb, Col, transform, movementData);
         Movement.Jumped += OnCharacterJump;
 
@@ -227,12 +214,22 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
         }
     }
 
+    public void TakeDamage(float damage)
+    {
+        Health.TakeDamage(damage);
+    }
+
     protected virtual void OnCharacterJump()
     {
     }
 
     protected virtual void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
     {
+    }
+
+    protected virtual void OnDead()
+    {
+        Debug.Log($"캐릭터 사망");
     }
 
     protected abstract void BasicAttack();
