@@ -24,6 +24,28 @@ using UnityEngine;
 [RequireComponent(typeof(PhotonView))]
 public abstract class CharacterBase : MonoBehaviour, IPunObservable
 {
+    [Header("Health")]
+    [SerializeField] private float maxHealth = 100f;
+
+    public float MaxHealth => maxHealth;
+    public float CurrentHealth { get; private set; }
+
+    public void Heal(float amount)
+    {
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, maxHealth);
+    }
+
+    public void TakeDamage(float amount)
+    {
+        CurrentHealth = Mathf.Max(CurrentHealth - amount, 0f);
+    }
+
+    [PunRPC]
+    public void TakeDamageRPC(float amount)
+    {
+        TakeDamage(amount);
+    }
+
     [Header("Key Setting")]
     [SerializeField] private CharacterKeySetting keySetting = new CharacterKeySetting();
 
@@ -50,6 +72,7 @@ public abstract class CharacterBase : MonoBehaviour, IPunObservable
 
     protected virtual void Awake()
     {
+        CurrentHealth = maxHealth;
         Rb = GetComponent<Rigidbody2D>();
         Col = GetComponent<Collider2D>();
         Pv = GetComponent<PhotonView>();

@@ -20,7 +20,7 @@ MonoBehaviour:
     AppVersion: 
     UseNameServer: 1
     FixedRegion: kr
-    Server:
+    Server: 
     Port: 0
     ProxyServer: 
     Protocol: 0
@@ -39,6 +39,10 @@ MonoBehaviour:
   - DestroySpaceship
   - Fire
   - RespawnSpaceship
+  - PickupRPC
+  - RespawnRPC
+  - BreakRPC
+  - TakeDamageRPC
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0
