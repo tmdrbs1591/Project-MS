@@ -47,7 +47,7 @@ public class PushableStructure : StructureBase
             if (contact.normal.y < 0.5f) continue;
 
             PhotonView playerView = collision.collider.GetComponent<PhotonView>();
-            playerView?.RPC("TakeDamageRPC", playerView.Owner, fallDamage);
+            playerView?.RPC("TakeDamage", playerView.Owner, fallDamage);
             break;
         }
     }

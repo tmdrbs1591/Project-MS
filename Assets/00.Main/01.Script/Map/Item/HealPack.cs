@@ -21,6 +21,6 @@ public class HealPack : ItemBase
         CharacterBase character = player.GetComponent<CharacterBase>();
         if (character == null) return;
 
-        character.Heal(character.MaxHealth * 0.5f);
+        character.Health.HealByMaxHealthPercent(50);
     }
 }
