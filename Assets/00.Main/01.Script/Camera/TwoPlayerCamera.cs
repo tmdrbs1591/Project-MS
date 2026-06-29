@@ -8,12 +8,16 @@ using UnityEngine;
 ///   - 매 프레임 살아있는 캐릭터들(CharacterBase.All)의 중간점으로 카메라를 옮긴다.
 ///   - 둘이 멀어지면 둘 다 화면에 들어오도록 orthographicSize 를 키워 줌 아웃한다.
 ///   - 너무 가까워도 minSize 아래로는 당기지 않는다(최소 줌). maxSize 로 상한도 둔다.
+///   - boundsCollider(카메라 영역 콜라이더)를 지정하면, 화면이 그 영역 밖으로
+///     절대 나가지 않게 위치와 줌을 제한한다. 콜라이더 아래 경계가 곧 카메라가
+///     내려갈 수 있는 한계가 되므로 땅 밑을 비추지 않는다.
 ///   - 위치/줌 모두 SmoothDamp 로 부드럽게 따라간다.
 ///
 /// [씬 설정]
 ///   - Main Camera 에 이 스크립트를 붙인다. 카메라는 반드시 Orthographic 이어야 한다.
-///   - 플레이어가 1명만 있으면 그 한 명을, 0명이면 마지막 위치를 유지한다.
-///   - 별도 타깃 지정은 필요 없다. PlayerSpawner 로 스폰된 캐릭터를 자동으로 잡는다.
+///   - 카메라 영역: 맵을 덮는 빈 GameObject 에 BoxCollider2D 를 붙여 원하는 영역
+///     크기로 맞추고(Is Trigger 권장 — 물리 충돌 방지), 그 콜라이더를
+///     Bounds Collider 칸에 넣는다. 아래 경계를 바닥보다 살짝 위로 두면 땅 밑이 안 보인다.
 /// </summary>
 [RequireComponent(typeof(Camera))]
 public class TwoPlayerCamera : MonoBehaviour
@@ -29,6 +33,10 @@ public class TwoPlayerCamera : MonoBehaviour
     [Tooltip("가장 멀어졌을 때의 줌 상한. 0 이하면 무제한.")]
     [SerializeField] private float maxSize = 20f;
 
+    [Header("카메라 영역 (콜라이더)")]
+    [Tooltip("지정하면 카메라 화면이 이 콜라이더 영역 밖으로 나가지 않는다. 아래 경계가 카메라 하한이 된다. 비워두면 제한 없음.")]
+    [SerializeField] private Collider2D boundsCollider;
+
     [Header("부드러움")]
     [Tooltip("위치가 목표를 따라잡는 데 걸리는 대략적인 시간(초). 작을수록 빠릿.")]
     [SerializeField] private float positionSmoothTime = 0.2f;
@@ -37,7 +45,8 @@ public class TwoPlayerCamera : MonoBehaviour
 
     private Camera cam;
     private float zoomVelocity;
-    private Vector3 moveVelocity;
+    private float moveVelocityX;
+    private float moveVelocityY;
 
     private void Awake()
     {
@@ -62,22 +71,46 @@ public class TwoPlayerCamera : MonoBehaviour
             max = Vector3.Max(max, p);
         }
 
-        // 1) 중간점으로 이동 (카메라 z 는 그대로 유지)
-        Vector3 center = (min + max) * 0.5f;
-        Vector3 targetPos = new Vector3(center.x, center.y, transform.position.z);
-        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref moveVelocity, positionSmoothTime);
+        bool hasBounds = boundsCollider != null;
+        Bounds area = hasBounds ? boundsCollider.bounds : default;
+        float aspect = cam.aspect > 0f ? cam.aspect : 1f;
 
-        // 2) 둘 다 담을 orthographicSize 계산
-        //    세로: 절반 높이 = (간격/2) + 여백
-        //    가로: aspect 로 나눠 세로 size 단위로 환산
-        float halfHeightNeeded = (max.y - min.y) * 0.5f + paddingY;
+        // 1) 둘 다 담을 orthographicSize 계산
         float halfWidthNeeded = (max.x - min.x) * 0.5f + paddingX;
-        float sizeFromWidth = cam.aspect > 0f ? halfWidthNeeded / cam.aspect : halfWidthNeeded;
+        float halfHeightNeeded = (max.y - min.y) * 0.5f + paddingY;
+        float sizeFromWidth = halfWidthNeeded / aspect;
 
-        float targetSize = Mathf.Max(halfHeightNeeded, sizeFromWidth, minSize);
+        float targetSize = Mathf.Max(sizeFromWidth, halfHeightNeeded, minSize);
         if (maxSize > 0f)
             targetSize = Mathf.Min(targetSize, maxSize);
 
-        cam.orthographicSize = Mathf.SmoothDamp(cam.orthographicSize, targetSize, ref zoomVelocity, zoomSmoothTime);
+        // 영역이 있으면 화면이 영역보다 커지지 않게 줌 상한 제한
+        if (hasBounds)
+        {
+            float maxByHeight = area.extents.y;
+            float maxByWidth = area.extents.x / aspect;
+            targetSize = Mathf.Min(targetSize, maxByHeight, maxByWidth);
+        }
+
+        float size = Mathf.SmoothDamp(cam.orthographicSize, targetSize, ref zoomVelocity, zoomSmoothTime);
+        cam.orthographicSize = size;
+
+        // 2) 중간점으로 이동
+        float targetX = (min.x + max.x) * 0.5f;
+        float targetY = (min.y + max.y) * 0.5f;
+        float x = Mathf.SmoothDamp(transform.position.x, targetX, ref moveVelocityX, positionSmoothTime);
+        float y = Mathf.SmoothDamp(transform.position.y, targetY, ref moveVelocityY, positionSmoothTime);
+
+        // 3) 영역 콜라이더 안으로 화면을 가둔다
+        if (hasBounds)
+        {
+            float halfH = size;
+            float halfW = size * aspect;
+
+            x = area.size.x >= halfW * 2f ? Mathf.Clamp(x, area.min.x + halfW, area.max.x - halfW) : area.center.x;
+            y = area.size.y >= halfH * 2f ? Mathf.Clamp(y, area.min.y + halfH, area.max.y - halfH) : area.center.y;
+        }
+
+        transform.position = new Vector3(x, y, transform.position.z);
     }
 }
