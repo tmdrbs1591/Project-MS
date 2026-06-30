@@ -16,7 +16,7 @@ using UnityEngine;
 ///   - 플레이어 태그: "Player" / 총알 태그: "Bullet"
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
-public class PushableStructure : NetworkBehaviour
+public class PushableStructure : NetworkBehaviour, IStateAuthorityChanged
 {
     [SerializeField] private float bulletPushForce = 8f;
     [SerializeField] private float fallDamage = 20f;
@@ -25,6 +25,9 @@ public class PushableStructure : NetworkBehaviour
     [SerializeField] private float minPushSpeed = 2f;
 
     private Rigidbody2D rb;
+
+    // Authority Transfer 요청 후 적용할 힘을 임시 보관한다.
+    private Vector2? pendingForce;
 
     private void Awake()
     {
@@ -60,15 +63,24 @@ public class PushableStructure : NetworkBehaviour
         Vector2 force = pushDir * speed * playerPushMultiplier;
 
         if (Object != null && Object.HasStateAuthority)
+        {
             rb.AddForce(force, ForceMode2D.Impulse);
+        }
         else
-            Rpc_AddForce(force);
+        {
+            // RPC(왕복 RTT) 대신 Authority Transfer(편도 RTT/2)로 지연을 줄인다.
+            pendingForce = force;
+            Object.RequestStateAuthority();
+        }
     }
 
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void Rpc_AddForce(Vector2 force)
+    public void StateAuthorityChanged()
     {
-        rb.AddForce(force, ForceMode2D.Impulse);
+        if (Object.HasStateAuthority && pendingForce.HasValue)
+        {
+            rb.AddForce(pendingForce.Value, ForceMode2D.Impulse);
+            pendingForce = null;
+        }
     }
 
     private void TryApplyFallDamage(Collision2D collision)

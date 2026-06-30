@@ -32,6 +32,9 @@ public class Projectile : NetworkBehaviour
     private float damage;
     private LayerMask targetLayer;
 
+    // 원격 클라의 비주얼 전용 타이머. Spawned() 시점부터 실제 경과 시간을 잰다.
+    private float localSpawnTime = -1f;
+
     /// <summary>스폰 직전(onBeforeSpawned)에 발사자가 호출. 네트워크 초기 상태를 세팅한다.</summary>
     public void Initialize(NetworkRunner runner, Vector3 startPos, Vector2 shootDirection,
                            float projectileDamage, LayerMask projectileTargetLayer)
@@ -54,7 +57,8 @@ public class Projectile : NetworkBehaviour
         float angle = Mathf.Atan2(Dir.y, Dir.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
 
-        UpdatePosition();
+        localSpawnTime = Time.time;
+        transform.position = StartPosition;
     }
 
     public override void FixedUpdateNetwork()
@@ -72,8 +76,18 @@ public class Projectile : NetworkBehaviour
 
     public override void Render()
     {
-        // 틱 사이 프레임도 부드럽게: 같은 공식으로 보간 없이 외삽.
-        UpdatePosition();
+        if (!Object.HasStateAuthority && localSpawnTime >= 0f)
+        {
+            // 원격 클라: 틱 기준 대신 로컬 스폰 시간 기준으로 이동.
+            // FireTick 기준을 쓰면 원격 수신 지연(n틱)만큼 총알이 총구 앞에서 시작해 어긋난다.
+            float visualElapsed = Time.time - localSpawnTime;
+            transform.position = StartPosition + Dir * (Speed * visualElapsed);
+        }
+        else
+        {
+            // 발사자(권한): 시뮬레이션과 동일한 틱 기준으로 외삽.
+            UpdatePosition();
+        }
     }
 
     private void UpdatePosition()
