@@ -25,7 +25,6 @@ using UnityEngine.SceneManagement;
 ///   - Fusion App Id 가 PhotonAppSettings 에 설정되어 있어야 한다.
 ///   - Player 프리팹에 NetworkObject 가 붙어 있어야 한다.
 /// </summary>
-[RequireComponent(typeof(NetworkRunner))]
 public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 {
     public static NetworkLauncher Instance { get; private set; }
@@ -56,8 +55,8 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        runner = GetComponent<NetworkRunner>();
-        runner.ProvideInput = true; // Shared 모드에서도 입력 콜백을 받기 위해
+        // 러너는 PrepareRunner 에서 전용 자식 오브젝트에 생성한다.
+        // (러너를 이 오브젝트에 직접 붙이면 Shutdown 이 NetworkLauncher 까지 파괴해 재매칭이 깨진다.)
     }
 
     /// <summary>매칭 시작. (포탈/버튼에서 호출)</summary>
@@ -67,9 +66,15 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
             return;
 
         isMatching = true;
-        SetStatus("로비 접속 중...");
+        // 재매칭을 위해 직전 세션의 상태 플래그를 초기화한다.
+        startGameRequested = false;
+        joinedViaList = false;
+        playerSpawnedInGameScene = false;
 
-        runner.AddCallbacks(this);
+        SetStatus("상대 찾는 중...");
+
+        // 종료됐던 러너는 재사용할 수 없으므로, 필요하면 새 러너로 교체한다.
+        PrepareRunner();
 
         // 1) 세션 로비에 들어가 현재 열려있는 방 목록을 받는다 (OnSessionListUpdated).
         StartGameResult lobbyResult = await runner.JoinSessionLobby(SessionLobby.Shared);
@@ -84,14 +89,46 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         // 이후 OnSessionListUpdated 에서 빈 방을 찾으면 그 방으로, 없으면 새 방으로 접속한다.
     }
 
+    /// <summary>
+    /// StartGame 에 쓸 NetworkRunner 를 준비한다.
+    /// 한 번 Shutdown 된 러너는 재사용할 수 없으므로, 매번 전용 자식 오브젝트에 새로 만든다.
+    /// 러너가 자기 오브젝트에 있으므로 Shutdown 시 그 오브젝트만 파괴되고 NetworkLauncher 는 유지된다.
+    /// </summary>
+    private void PrepareRunner()
+    {
+        // 살아있고 종료되지 않은 러너가 있으면 재사용.
+        if (runner != null && !runner.IsShutdown)
+        {
+            runner.ProvideInput = true;
+            return;
+        }
+
+        // 종료됐는데 오브젝트가 남아있다면 정리.
+        if (runner != null)
+            Destroy(runner.gameObject);
+
+        // 전용 자식 오브젝트에 러너 + 씬 매니저를 새로 만든다.
+        GameObject runnerObject = new GameObject("NetworkRunner (Session)");
+        runnerObject.transform.SetParent(transform, false);
+
+        runner = runnerObject.AddComponent<NetworkRunner>();
+        runner.ProvideInput = true; // Shared 모드에서도 입력 콜백을 받기 위해
+        runner.AddCallbacks(this);
+    }
+
     public void CancelMatchmaking()
     {
         if (!isMatching)
             return;
 
         isMatching = false;
+        startGameRequested = false;
         SetStatus("매칭 취소됨");
-        _ = runner.Shutdown();
+
+        // 러너는 전용 자식 오브젝트에 있으므로 기본 Shutdown 으로 그 오브젝트만 파괴된다.
+        // (NetworkLauncher 는 유지 → 다음 매칭 때 PrepareRunner 가 새 러너를 만든다.)
+        if (runner != null && !runner.IsShutdown)
+            _ = runner.Shutdown();
     }
 
     // ---------------- 매칭(세션) 처리 ----------------
@@ -119,14 +156,14 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         if (open != null)
         {
             joinedViaList = true;
-            SetStatus("방 입장 중...");
+            SetStatus("상대 찾는 중...");
             await StartShared(open.Name);
         }
         else
         {
             // 빈 방이 없으면 새 방을 만든다 (고유한 이름).
             joinedViaList = false;
-            SetStatus("방 생성 중...");
+            SetStatus("상대 찾는 중...");
             await StartShared("game-" + Guid.NewGuid().ToString("N").Substring(0, 8));
         }
     }
@@ -151,9 +188,10 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkSceneManagerDefault GetOrAddSceneManager()
     {
-        NetworkSceneManagerDefault sceneManager = GetComponent<NetworkSceneManagerDefault>();
+        // 씬 매니저는 러너와 같은 오브젝트에 둔다(러너와 함께 생성/파괴되도록).
+        NetworkSceneManagerDefault sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
         if (sceneManager == null)
-            sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
+            sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
         return sceneManager;
     }
 
@@ -166,7 +204,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnConnectedToServer(NetworkRunner runner)
     {
-        SetStatus("접속됨. 상대 대기 중...");
+        SetStatus("상대 찾는 중...");
     }
 
     private void TryStartGameScene(NetworkRunner runner)

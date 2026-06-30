@@ -66,6 +66,13 @@ public abstract class CharacterBase : NetworkBehaviour
     /// <summary>네트워크 세션에 스폰되어 동기화 중인가. false 면 로비(로컬) 모드.</summary>
     protected bool IsNetworked => isNetworked;
 
+    // 로비(로컬) 조작 잠금. 매칭 패널이 떠 있는 동안 이동/입력을 막는다.
+    // 로컬 모드에서만 검사하므로 게임 씬의 네트워크 캐릭터에는 영향이 없다.
+    private static bool lobbyControlLocked;
+
+    /// <summary>로비 캐릭터의 조작을 잠그거나 푼다. (매칭 시작/취소 시 호출)</summary>
+    public static void SetLobbyControlLocked(bool locked) => lobbyControlLocked = locked;
+
     private CharacterInputHandler input;
     private CharacterCooldownHandler cooldown;
     private bool ready;
@@ -127,6 +134,10 @@ public abstract class CharacterBase : NetworkBehaviour
     {
         if (!isNetworked)
         {
+            // 매칭 중(조작 잠금): 입력/조준을 받지 않는다.
+            if (lobbyControlLocked)
+                return;
+
             // 로컬(로비) 모드: 전투/쿨다운 없이 입력 읽기 + 마우스 조준만.
             input.Read();
             OnLocalUpdate();
@@ -150,8 +161,9 @@ public abstract class CharacterBase : NetworkBehaviour
         if (isNetworked)
             return;
 
-        // 로컬(로비) 모드: 일반 물리 틱으로 이동/통통점프를 구동한다.
-        Movement.TickFixed(input.ReadFixed(), Time.fixedDeltaTime);
+        // 매칭 중(조작 잠금): 빈 입력으로 틱을 돌려 가만히 정지시킨다(이동/점프 차단).
+        CharacterInputState localInput = lobbyControlLocked ? default : input.ReadFixed();
+        Movement.TickFixed(localInput, Time.fixedDeltaTime);
         OnSimulationTick(Time.fixedDeltaTime);
     }
 

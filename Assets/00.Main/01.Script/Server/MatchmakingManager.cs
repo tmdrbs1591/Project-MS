@@ -16,13 +16,23 @@ using UnityEngine.UI;
 public class MatchmakingManager : MonoBehaviour
 {
     [Header("UI (선택)")]
+    [Tooltip("매칭 중에 켜질 패널. 평소엔 꺼둠")]
+    [SerializeField] private GameObject matchPanel;
     [SerializeField] private Button matchButton;
+    [Tooltip("패널 안의 매칭 취소 버튼 (선택)")]
+    [SerializeField] private Button cancelButton;
     [SerializeField] private TMP_Text statusText;
 
     private void Start()
     {
         if (matchButton != null)
             matchButton.onClick.AddListener(StartMatching);
+
+        if (cancelButton != null)
+            cancelButton.onClick.AddListener(CancelMatching);
+
+        if (matchPanel != null)
+            matchPanel.SetActive(false);
 
         if (NetworkLauncher.Instance != null)
             NetworkLauncher.Instance.StatusChanged += SetStatus;
@@ -49,6 +59,11 @@ public class MatchmakingManager : MonoBehaviour
         if (matchButton != null)
             matchButton.interactable = false;
 
+        // 매칭 패널을 켜고 로비 캐릭터 조작을 잠근다.
+        if (matchPanel != null)
+            matchPanel.SetActive(true);
+        CharacterBase.SetLobbyControlLocked(true);
+
         NetworkLauncher.Instance.StartMatchmaking();
     }
 
@@ -59,6 +74,11 @@ public class MatchmakingManager : MonoBehaviour
 
         if (matchButton != null)
             matchButton.interactable = true;
+
+        // 매칭 패널을 끄고 로비 캐릭터 조작을 푼다.
+        if (matchPanel != null)
+            matchPanel.SetActive(false);
+        CharacterBase.SetLobbyControlLocked(false);
     }
 
     private void SetStatus(string message)
