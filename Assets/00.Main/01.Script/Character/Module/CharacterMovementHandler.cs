@@ -152,6 +152,11 @@ public class CharacterMovementHandler
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
         rb.AddForce(Vector2.up * data.jumpForce, ForceMode2D.Impulse);
 
+        // 방금 땅을 떠났으므로 즉시 접지 해제한다.
+        // (이 틱 뒤에 도는 자동 통통점프(NetworkHop)가 stale 한 IsGrounded 를 보고
+        //  점프 속도를 0 으로 지워버려 점프가 약해지는 문제를 막는다.)
+        IsGrounded = false;
+
         playerJumping = true;
         jumpBufferTimer = 0f;
         coyoteTimer = 0f;

@@ -73,6 +73,16 @@ public abstract class CharacterBase : NetworkBehaviour
     /// <summary>로비 캐릭터의 조작을 잠그거나 푼다. (매칭 시작/취소 시 호출)</summary>
     public static void SetLobbyControlLocked(bool locked) => lobbyControlLocked = locked;
 
+    // 정적 상태는 플레이 시작마다 초기화한다.
+    // (에디터에서 Domain Reload 가 꺼져 있거나 매칭 성공 후 잠금이 남아, 다음 플레이에서
+    //  로비 캐릭터가 안 움직이는 문제를 막는다.)
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        lobbyControlLocked = false;
+        All.Clear();
+    }
+
     private CharacterInputHandler input;
     private CharacterCooldownHandler cooldown;
     private bool ready;

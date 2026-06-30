@@ -34,6 +34,9 @@ public class MatchmakingManager : MonoBehaviour
         if (matchPanel != null)
             matchPanel.SetActive(false);
 
+        // 로비 진입 시 조작 잠금을 확실히 해제한다(이전 세션의 잠금 잔존 방지).
+        CharacterBase.SetLobbyControlLocked(false);
+
         if (NetworkLauncher.Instance != null)
             NetworkLauncher.Instance.StatusChanged += SetStatus;
 

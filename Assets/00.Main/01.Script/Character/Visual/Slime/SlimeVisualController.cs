@@ -139,6 +139,10 @@ public class SlimeVisualController : MonoBehaviour
 
     private void UpdateSquash(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity, int bodyDirection)
     {
+        // 스프링이 프레임 튐(로딩/렉으로 dt 급증)에서 폭주하지 않도록 dt 를 제한한다.
+        // (explicit Euler + 높은 stiffness 는 큰 dt 에서 불안정해져 몸통이 무한히 늘어날 수 있다.)
+        deltaTime = Mathf.Min(deltaTime, 0.0333f);
+
         float airStretch = 0f;
         if (!isGrounded)
             airStretch = Mathf.Clamp(velocity.y * airStretchFactor, -0.25f, 0.5f);
@@ -146,6 +150,10 @@ public class SlimeVisualController : MonoBehaviour
         float force = -squashStiffness * stretch - squashDamping * stretchVelocity;
         stretchVelocity += force * deltaTime;
         stretch += stretchVelocity * deltaTime;
+
+        // 발산 방지용 안전 클램프.
+        stretchVelocity = Mathf.Clamp(stretchVelocity, -50f, 50f);
+        stretch = Mathf.Clamp(stretch, -0.6f, 0.8f);
 
         float wobble = 0f;
         bool idle = isGrounded && Mathf.Abs(moveInput) < 0.01f;
