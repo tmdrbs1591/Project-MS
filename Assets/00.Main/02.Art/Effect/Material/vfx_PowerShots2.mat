@@ -7,11 +7,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: vfx_Basic_grenade_00 1
+  m_Name: vfx_PowerShots2
   m_Shader: {fileID: 4800000, guid: fe945ff95459d6147beacd73bf356745, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _DEFORM_USE_ON
+  - _DISSOLVE_USE_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -23,19 +25,31 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _DeformTex:
+    - _AlphaTex:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DeformTex:
+        m_Texture: {fileID: 2800000, guid: a013497f694952d4680f8f10adee29b7, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DissolveTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: a013497f694952d4680f8f10adee29b7, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
+        m_Texture: {fileID: 2800000, guid: ebfb664149767ce49a1218901804496c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -61,12 +75,12 @@ Material:
     - _DeformType: 0
     - _Deform_Mask_Rotate: 0
     - _Deform_Mask_Smooth: 0
-    - _Deform_Pan_ParticleCustom2Y: 1
+    - _Deform_Pan_ParticleCustom2Y: 0
     - _Deform_Radial: 0
     - _Deform_Rotate: 0
-    - _Deform_Str_ParticleCustom2X: 1
-    - _Deform_Strength: 0
-    - _Deform_Use: 0
+    - _Deform_Str_ParticleCustom2X: 0
+    - _Deform_Strength: 0.55
+    - _Deform_Use: 1
     - _DissolveMask_BlendType: 0
     - _DissolveMask_Type: 0
     - _DissolveTex_Reverse: 0
@@ -79,11 +93,12 @@ Material:
     - _Dissolve_Progress: 1
     - _Dissolve_Radial: 0
     - _Dissolve_Rotate: 0
-    - _Dissolve_Use: 0
-    - _Dissolve_smooth: 0
+    - _Dissolve_Use: 1
+    - _Dissolve_smooth: 1
     - _ERRORTOGGLE: 0
-    - _Emission: 18.12
+    - _Emission: 5.59
     - _Emission_Mode: 0
+    - _EnableExternalAlpha: 0
     - _FixedTiling: 0
     - _Fresnel_AlphaClip: 0
     - _Fresnel_AlphaClipPixelate: 4
@@ -112,9 +127,11 @@ Material:
     - _UVSwitch: 0
     - _Use_Dissolve_Edge: 0
     - _Value: 1
+    - _ZWrite: 0
     m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
-    - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}
+    - _Deform_Panning: {r: 0.4, g: 0, b: 0, a: 0}
     - _Deform_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
     - _Dissolve_Edge_Color: {r: 4, g: 0.9547434, b: 0.2641504, a: 1}
     - _Dissolve_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
@@ -125,6 +142,7 @@ Material:
     - _Main_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Main_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
     - _OriginalSize: {r: 0, g: 0, b: 0, a: 0}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpriteBorder: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

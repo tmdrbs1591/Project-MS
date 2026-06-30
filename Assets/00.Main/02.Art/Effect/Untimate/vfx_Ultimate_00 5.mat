@@ -7,11 +7,12 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: vfx_Basic_grenade_00 1
+  m_Name: vfx_Ultimate_00 5
   m_Shader: {fileID: 4800000, guid: fe945ff95459d6147beacd73bf356745, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _DISSOLVE_USE_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -23,19 +24,31 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _DeformTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DissolveTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: a013497f694952d4680f8f10adee29b7, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
+        m_Texture: {fileID: 2800000, guid: c394dccf484e60c439e1ff4e06961ca3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -79,11 +92,12 @@ Material:
     - _Dissolve_Progress: 1
     - _Dissolve_Radial: 0
     - _Dissolve_Rotate: 0
-    - _Dissolve_Use: 0
-    - _Dissolve_smooth: 0
+    - _Dissolve_Use: 1
+    - _Dissolve_smooth: 1
     - _ERRORTOGGLE: 0
-    - _Emission: 18.12
+    - _Emission: 3
     - _Emission_Mode: 0
+    - _EnableExternalAlpha: 0
     - _FixedTiling: 0
     - _Fresnel_AlphaClip: 0
     - _Fresnel_AlphaClipPixelate: 4
@@ -93,7 +107,7 @@ Material:
     - _Hue: 0
     - _MainTex_ColorMode: 0
     - _Main_Alpha_Ch: 0
-    - _Main_Pan_ParticleCustom1Z: 1
+    - _Main_Pan_ParticleCustom1Z: 0
     - _Main_Radial: 0
     - _Main_Rotate: 0
     - _Mask_Alpha_Ch: 1
@@ -106,13 +120,15 @@ Material:
     - _Mask_Strength: 1
     - _Mask_Strength_Mode: 0
     - _Mask_Use: 0
-    - _Pixelate: 0
+    - _Pixelate: 0.3
     - _Saturation: 1
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
     - _Use_Dissolve_Edge: 0
     - _Value: 1
+    - _ZWrite: 0
     m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
@@ -123,8 +139,9 @@ Material:
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
     - _Main_Color: {r: 1, g: 1, b: 1, a: 1}
     - _Main_Panning: {r: 0, g: 0, b: 0, a: 0}
-    - _Main_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
+    - _Main_Radial_Tiling: {r: 0, g: 0, b: 0, a: 0}
     - _OriginalSize: {r: 0, g: 0, b: 0, a: 0}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpriteBorder: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
