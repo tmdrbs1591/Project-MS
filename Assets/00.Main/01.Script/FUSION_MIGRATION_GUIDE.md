@@ -50,15 +50,18 @@
 
 > NetworkLauncher 는 `DontDestroyOnLoad` 로 씬 전환에도 유지됩니다(자동).
 
-### 로비의 플레이어 이동 — `LobbyPlayerController` 사용
-네트워크 `CharacterBase` 는 **세션에 스폰된 뒤에만** 움직입니다. 그래서 로비용
-로컬 이동 컨트롤러 `LobbyPlayerController` 를 제공합니다.
+### 로비의 플레이어 이동 — 같은 `SlimeCharacter` 프리팹 그대로 사용
+별도 로비 스크립트는 더 이상 없습니다. `CharacterBase` 가 **세션에 스폰되기 전**(로비)에는
+자동으로 **로컬 모드**로 동작해, 네트워크 없이 일반 `Update/FixedUpdate/LateUpdate` 로
+이동·비주얼만 구동합니다. 스폰되는 순간 네트워크 모드로 전환됩니다.
 
-- 로비 플레이어 프리팹에는 `SlimeCharacter`(CharacterBase) **대신** `LobbyPlayerController` 를 붙입니다.
-  - NetworkObject **불필요** (로비 플레이어는 네트워크 객체가 아님)
-  - Rigidbody2D + Collider2D 필요, `SlimeVisualController` / `SlimeMouseArmController` 있으면 자동 연동
-  - Key Setting / Movement 값은 게임용과 동일하게 맞추면 됩니다
-- 게임 씬으로 넘어가면 이 로비 플레이어는 (씬 전환으로) 사라지고, `PlayerSpawner` 가
+- 로비 씬에는 게임용과 **동일한 `SlimeCharacter` 프리팹**을 그대로 하나 놓으면 됩니다.
+  - 로비에서는 이동/점프/마우스 팔 조준/통통점프만 동작하고, 전투·쿨다운·발사체·체력 동기화는
+    돌지 않습니다(`[Networked]` 미접근).
+  - 스폰되지 않은 상태의 `NetworkObject` / `NetworkRigidbody2D` 는 비활성(시뮬레이션 콜백 미호출)
+    이라 로컬 이동을 방해하지 않습니다. 만약 로비에서 슬라임이 안 움직이면 `NetworkRigidbody2D`
+    가 Rigidbody2D 를 Kinematic 으로 잡고 있는지 확인하세요(드물게 그럴 수 있음).
+- 게임 씬으로 넘어가면 이 로비 인스턴스는 (씬 전환으로) 사라지고, `PlayerSpawner` 가
   네트워크 캐릭터를 새로 스폰합니다.
 
 ---

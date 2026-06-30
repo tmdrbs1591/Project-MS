@@ -212,6 +212,43 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortalInteractor
   keyUICanvas: {fileID: 1449615640}
+--- !u!114 &467392805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2505354913061263864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60926b845666f1b4fabd4bff3b5d238f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LobbyPlayerController
+  keySetting:
+    moveLeft: 15
+    moveRight: 18
+    jump: 1
+    basicAttack: 0
+    skillQ: 31
+    skillE: 19
+    dash: 51
+    ultimate: 32
+  movementData:
+    moveSpeed: 7
+    jumpForce: 14
+    groundAcceleration: 60
+    airAcceleration: 25
+    fallGravityMultiplier: 2.2
+    lowJumpMultiplier: 2.5
+    jumpBufferTime: 0.15
+    coyoteTime: 0.12
+    maxSpeed: 18
+    defaultDashPower: 18
+    defaultDashDuration: 0.12
+    groundLayer:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    groundCheckDistance: 0.08
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2410,8 +2447,9 @@ GameObject:
   - component: {fileID: 3476769614600020165}
   - component: {fileID: 5949830469509058701}
   - component: {fileID: 5951356064770235110}
+  - component: {fileID: 467392805}
   m_Layer: 0
-  m_Name: Player
+  m_Name: Lobby Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

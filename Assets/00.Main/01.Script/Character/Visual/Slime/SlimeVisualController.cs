@@ -5,7 +5,7 @@ using UnityEngine;
 ///
 /// [Fusion 이전 메모]
 ///   - 물리에 영향을 주는 통통점프(AddForce)는 네트워크 틱에서만 실행돼야 하므로
-///     SlimeCharacter.OnNetworkTick → NetworkHop() 으로 호출된다(권한자에서만).
+///     SlimeCharacter.OnSimulationTick → NetworkHop() 으로 호출된다(권한자/로컬 공통).
 ///   - 시각(스쿼시/먼지)은 모든 클라가 동기화된 상태로 재현하므로 TickVisual() 은
 ///     CharacterBase.Render → OnCharacterVisualTick 에서 모두 호출된다.
 ///   - 따라서 이 스크립트는 더 이상 PhotonView/IsMine 을 직접 다루지 않는다.

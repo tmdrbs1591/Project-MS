@@ -13,6 +13,13 @@ using UnityEngine;
 ///   - 현재 체력은 [Networked] 단일 진실 소스이며, 데미지/힐은 그 캐릭터의
 ///     StateAuthority 에서만 RPC 로 적용된다 → 호스트/클라가 다를 수 없다.
 ///
+/// [로컬(로비) 모드]
+///   - 같은 캐릭터를 로비(매칭 전)에서도 그대로 쓸 수 있다.
+///   - 아직 Fusion 세션에 스폰되지 않았으면(=Spawned 미호출) "로컬 모드" 로 동작한다:
+///     네트워크 없이 일반 Update/FixedUpdate/LateUpdate 로 이동·비주얼만 구동하고,
+///     [Networked] 프로퍼티는 일절 건드리지 않으며 전투/쿨다운도 돌지 않는다.
+///   - 스폰되면 자동으로 네트워크 모드로 전환된다. (별도 로비 전용 스크립트 불필요)
+///
 /// [필요 컴포넌트 (프리팹)]
 ///   - NetworkObject (Fusion 이 자동 추가)
 ///   - Rigidbody2D + Collider2D
@@ -56,9 +63,14 @@ public abstract class CharacterBase : NetworkBehaviour
     /// <summary>이 캐릭터를 내가 조종하는가(= StateAuthority).</summary>
     protected bool IsMine => Object != null && Object.HasStateAuthority;
 
+    /// <summary>네트워크 세션에 스폰되어 동기화 중인가. false 면 로비(로컬) 모드.</summary>
+    protected bool IsNetworked => isNetworked;
+
     private CharacterInputHandler input;
     private CharacterCooldownHandler cooldown;
     private bool ready;
+    private bool isNetworked;   // Spawned() 가 호출되면 true (= Fusion 시뮬레이션의 일부)
+    private float localHealth;  // 로컬 모드의 체력 백킹 스토어 ([Networked] 대용)
     private ChangeDetector changeDetector;
 
     protected virtual void Awake()
@@ -70,8 +82,11 @@ public abstract class CharacterBase : NetworkBehaviour
         cooldown = new CharacterCooldownHandler(cooldownData);
         Stat = new CharacterStat(statData);
 
-        // 현재 체력은 네트워크 프로퍼티(NetHealth)를 백킹 스토어로 사용한다.
-        Health = new CharacterHealth(Stat, () => NetHealth, v => NetHealth = v);
+        // 현재 체력 백킹 스토어: 네트워크 모드면 [Networked] NetHealth, 로컬 모드면 localHealth.
+        // (NetHealth 는 스폰 전 접근하면 예외가 나므로 isNetworked 가 true 일 때만 읽고 쓴다.)
+        Health = new CharacterHealth(Stat,
+            () => isNetworked ? NetHealth : localHealth,
+            v => { if (isNetworked) NetHealth = v; else localHealth = v; });
         Health.Died += OnDead;
 
         Movement = new CharacterMovementHandler(Rb, Col, transform, movementData);
@@ -80,6 +95,9 @@ public abstract class CharacterBase : NetworkBehaviour
 
     public override void Spawned()
     {
+        // 스폰됨 → 네트워크 모드로 전환. (이 시점부터 [Networked] 프로퍼티 접근 가능)
+        isNetworked = true;
+
         if (!All.Contains(this))
             All.Add(this);
 
@@ -107,6 +125,14 @@ public abstract class CharacterBase : NetworkBehaviour
 
     private void Update()
     {
+        if (!isNetworked)
+        {
+            // 로컬(로비) 모드: 전투/쿨다운 없이 입력 읽기 + 마우스 조준만.
+            input.Read();
+            OnLocalUpdate();
+            return;
+        }
+
         if (!ready || !IsMine)
             return;
 
@@ -118,6 +144,17 @@ public abstract class CharacterBase : NetworkBehaviour
         OnLocalUpdate();
     }
 
+    private void FixedUpdate()
+    {
+        // 네트워크 모드에서는 FixedUpdateNetwork 가 물리를 담당하므로 여기선 건너뛴다.
+        if (isNetworked)
+            return;
+
+        // 로컬(로비) 모드: 일반 물리 틱으로 이동/통통점프를 구동한다.
+        Movement.TickFixed(input.ReadFixed(), Time.fixedDeltaTime);
+        OnSimulationTick(Time.fixedDeltaTime);
+    }
+
     public override void FixedUpdateNetwork()
     {
         if (!IsMine)
@@ -125,7 +162,7 @@ public abstract class CharacterBase : NetworkBehaviour
 
         // 내 캐릭터만 시뮬레이션. dt 는 네트워크 틱 간격.
         Movement.TickFixed(input.ReadFixed(), Runner.DeltaTime);
-        OnNetworkTick(Runner.DeltaTime);
+        OnSimulationTick(Runner.DeltaTime);
 
         // 원격 클라가 시각을 재현할 수 있도록 시각용 상태를 동기화.
         NetFacing = Movement.FacingDirection;
@@ -149,6 +186,16 @@ public abstract class CharacterBase : NetworkBehaviour
             Movement.ApplyNetworkVisualState(NetFacing, NetMoveInput, NetGrounded, NetVelocity);
         }
 
+        OnCharacterVisualTick(Time.deltaTime, Movement.IsGrounded, Movement.MoveInput, Movement.CurrentVelocity);
+    }
+
+    private void LateUpdate()
+    {
+        // 네트워크 모드의 시각 갱신은 Render() 가 담당한다.
+        if (isNetworked)
+            return;
+
+        // 로컬(로비) 모드: 스쿼시/먼지 등 시각 갱신.
         OnCharacterVisualTick(Time.deltaTime, Movement.IsGrounded, Movement.MoveInput, Movement.CurrentVelocity);
     }
 
@@ -239,8 +286,12 @@ public abstract class CharacterBase : NetworkBehaviour
     /// <summary>매 프레임(내 캐릭터, 권한자) 호출. 마우스 조준 등 프레임 단위 로컬 처리용.</summary>
     protected virtual void OnLocalUpdate() { }
 
-    /// <summary>네트워크 틱마다(권한자) 호출. 슬라임 통통점프 등 물리 영향 로직용.</summary>
-    protected virtual void OnNetworkTick(float deltaTime) { }
+    /// <summary>
+    /// 물리 틱마다 호출되는 시뮬레이션 훅. 슬라임 통통점프 등 물리 영향 로직용.
+    /// 네트워크 모드면 FixedUpdateNetwork(권한자)에서, 로컬 모드면 FixedUpdate 에서 호출된다.
+    /// 구현부에서 [Networked] 프로퍼티를 쓸 때는 반드시 IsNetworked 로 가드해야 한다.
+    /// </summary>
+    protected virtual void OnSimulationTick(float deltaTime) { }
 
     protected virtual void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity) { }
 

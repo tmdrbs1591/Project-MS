@@ -48,7 +48,7 @@ public class SlimeCharacter : CharacterBase
 
     protected override void BasicAttack()
     {
-        // 실제 스폰은 다음 네트워크 틱에서(OnNetworkTick) 처리해 틱과 정렬한다.
+        // 실제 스폰은 다음 물리 틱에서(OnSimulationTick) 처리해 틱과 정렬한다.
         firePending = true;
         pendingFireAction = CharacterActionType.BasicAttack;
     }
@@ -88,20 +88,20 @@ public class SlimeCharacter : CharacterBase
             mouseArmController.AimAtMouse();
     }
 
-    protected override void OnNetworkTick(float deltaTime)
+    protected override void OnSimulationTick(float deltaTime)
     {
-        // 통통점프 물리는 네트워크 틱에서(권한자) 적용.
+        // 통통점프 물리는 매 물리 틱에 적용(네트워크/로컬 공통, 안전).
         if (visualController != null)
             visualController.NetworkHop(deltaTime, Movement.IsGrounded, Movement.MoveInput);
 
-        // 팔 조준 값을 동기화(원격이 재현).
-        if (mouseArmController != null)
+        // 팔 조준 값 동기화는 네트워크 모드에서만(원격이 재현). 로컬 모드면 건너뛴다.
+        if (IsNetworked && mouseArmController != null)
         {
             NetAimAngle = mouseArmController.CurrentAngle;
             NetArmDirection = mouseArmController.ArmDirection;
         }
 
-        // 틱 정렬된 발사체 스폰.
+        // 틱 정렬된 발사체 스폰. (로비에서는 발사 입력이 없으므로 firePending 도 항상 false)
         if (firePending)
         {
             firePending = false;
@@ -115,7 +115,8 @@ public class SlimeCharacter : CharacterBase
             visualController.TickVisual(deltaTime, isGrounded, moveInput, velocity, Movement.FacingDirection);
 
         // 원격 캐릭터의 팔은 동기화된 조준 값으로 재현한다(내 마우스가 아니라).
-        if (!IsMine && mouseArmController != null)
+        // 로컬 모드에선 내가 직접 AimAtMouse 로 조준하므로 여기선 적용하지 않는다.
+        if (IsNetworked && !IsMine && mouseArmController != null)
             mouseArmController.ApplyAim(NetArmDirection, NetAimAngle);
     }
 
