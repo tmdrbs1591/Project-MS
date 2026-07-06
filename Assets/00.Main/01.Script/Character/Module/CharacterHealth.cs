@@ -61,14 +61,13 @@ public class CharacterHealth
         HealthChanged?.Invoke(next, stat.MaxHealth);
     }
 
+    /// <summary>percent: 0~100 스케일 (50을 넘기면 최대체력의 50%를 회복).</summary>
     public void HealByMaxHealthPercent(float percent)
     {
         if (IsDead || percent <= 0f)
             return;
 
-        // 기존 로직 유지: percent 가 0~1 비율이 아니라 "퍼센트 값" 으로 들어오는 호출부(50)를
-        //   고려해 Max(percent,1) 형태를 그대로 둔다. (호출부와의 호환 유지)
-        float healAmount = stat.MaxHealth * Mathf.Max(percent, 1f);
+        float healAmount = stat.MaxHealth * (percent / 100f);
         Heal(healAmount);
     }
 

@@ -49,4 +49,10 @@ public class CharacterCooldownHandler
     {
         return timers.TryGetValue(actionType, out float remainingTime) ? remainingTime : 0f;
     }
+
+    /// <summary>해당 행동의 전체 쿨타임(초). UI에서 진행률(fillAmount) 계산에 사용한다.</summary>
+    public float GetTotalDuration(CharacterActionType actionType)
+    {
+        return data.GetCooldown(actionType);
+    }
 }

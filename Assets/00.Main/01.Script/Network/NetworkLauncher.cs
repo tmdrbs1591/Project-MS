@@ -11,8 +11,10 @@ using UnityEngine.SceneManagement;
 ///
 /// [역할]
 ///   - NetworkRunner 를 만들고 Shared 모드로 세션에 접속한다.
-///   - "빠른 매칭": 세션 로비에 들어가 빈 방이 있으면 들어가고, 없으면 새로 만든다
-///     (PUN 의 JoinRandomOrCreateRoom 대체).
+///   - "빠른 매칭": "quickmatch-0", "quickmatch-1" ... 정해진 이름의 세션에 순서대로
+///     StartGame 을 시도한다. 이름이 있는 세션에 대한 StartGame 은 서버가 "있으면 참가,
+///     없으면 생성"을 원자적으로 처리하므로, 목록을 조회해 클라이언트가 직접 판단하는
+///     방식과 달리 두 클라가 동시에 접속해도 경쟁 조건이 생기지 않는다.
 ///   - 정원(playerCount)이 차면 Shared 모드 마스터가 게임 씬을 로드한다.
 ///   - 게임 씬이 준비되면 각 클라가 PlayerSpawner 를 통해 "자기" 캐릭터를 스폰한다.
 ///
@@ -41,7 +43,6 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkRunner runner;
     private bool isMatching;
-    private bool joinedViaList;            // 로비 세션 목록에서 빈 방을 찾아 들어갔는지
     private bool playerSpawnedInGameScene; // 게임 씬에서 내 캐릭터를 이미 스폰했는지
 
     private void Awake()
@@ -60,33 +61,22 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     /// <summary>매칭 시작. (포탈/버튼에서 호출)</summary>
-    public async void StartMatchmaking()
+    public void StartMatchmaking()
     {
         if (isMatching)
             return;
 
         isMatching = true;
-        // 재매칭을 위해 직전 세션의 상태 플래그를 초기화한다.
-        startGameRequested = false;
-        joinedViaList = false;
         playerSpawnedInGameScene = false;
 
         SetStatus("상대 찾는 중...");
 
-        // 종료됐던 러너는 재사용할 수 없으므로, 필요하면 새 러너로 교체한다.
-        PrepareRunner();
-
-        // 1) 세션 로비에 들어가 현재 열려있는 방 목록을 받는다 (OnSessionListUpdated).
-        StartGameResult lobbyResult = await runner.JoinSessionLobby(SessionLobby.Shared);
-        if (!lobbyResult.Ok)
-        {
-            SetStatus($"로비 접속 실패: {lobbyResult.ShutdownReason}");
-            isMatching = false;
-            return;
-        }
-
-        SetStatus("상대 찾는 중...");
-        // 이후 OnSessionListUpdated 에서 빈 방을 찾으면 그 방으로, 없으면 새 방으로 접속한다.
+        // "quickmatch-0" 부터 순서대로 참가/생성을 시도한다. 방 목록을 조회해서
+        // 클라이언트가 직접 판단하지 않고, 정해진 이름으로 StartGame 을 바로 호출해
+        // 서버가 "있으면 참가, 없으면 생성"을 원자적으로 처리하게 한다.
+        // (목록 조회 후 판단하는 방식은 두 클라가 동시에 접속하면 서로 다른 방을
+        //  각자 만들어버리는 경쟁 조건이 있어서 제거했다.)
+        _ = TryJoinQuickMatchSlot(0);
     }
 
     /// <summary>
@@ -122,7 +112,6 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
             return;
 
         isMatching = false;
-        startGameRequested = false;
         SetStatus("매칭 취소됨");
 
         // 러너는 전용 자식 오브젝트에 있으므로 기본 Shutdown 으로 그 오브젝트만 파괴된다.
@@ -133,43 +122,28 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
     // ---------------- 매칭(세션) 처리 ----------------
 
-    private bool startGameRequested;
+    // 동시에 여러 쌍이 매칭할 수 있도록 "quickmatch-0", "quickmatch-1" ... 여러 슬롯을 둔다.
+    // 앞 슬롯부터 순서대로 StartGame 을 시도해서, 비어있으면 참가하고 꽉 차있으면
+    // 다음 슬롯으로 넘어간다. 이름이 정해져 있는 방에 대한 StartGame 은 서버가
+    // "있으면 참가, 없으면 생성"을 원자적으로 처리하므로 클라이언트끼리 경쟁할 여지가 없다.
+    private const int MaxQuickMatchSlots = 30;
 
-    public async void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+    private async Task TryJoinQuickMatchSlot(int slotIndex)
     {
-        if (!isMatching || startGameRequested)
+        if (!isMatching)
             return;
 
-        // 들어갈 수 있는(열려있고 정원이 안 찬) 방을 찾는다.
-        SessionInfo open = null;
-        foreach (SessionInfo s in sessionList)
+        if (slotIndex >= MaxQuickMatchSlots)
         {
-            if (s.IsOpen && s.IsVisible && s.PlayerCount < s.MaxPlayers)
-            {
-                open = s;
-                break;
-            }
+            SetStatus("매칭 가능한 방을 찾지 못했습니다.");
+            isMatching = false;
+            return;
         }
 
-        startGameRequested = true;
+        // 종료됐던 러너는 재사용할 수 없으므로, 매 시도마다 확인해서 필요하면 새로 만든다.
+        PrepareRunner();
 
-        if (open != null)
-        {
-            joinedViaList = true;
-            SetStatus("상대 찾는 중...");
-            await StartShared(open.Name);
-        }
-        else
-        {
-            // 빈 방이 없으면 새 방을 만든다 (고유한 이름).
-            joinedViaList = false;
-            SetStatus("상대 찾는 중...");
-            await StartShared("game-" + Guid.NewGuid().ToString("N").Substring(0, 8));
-        }
-    }
-
-    private async Task StartShared(string sessionName)
-    {
+        string sessionName = "quickmatch-" + slotIndex;
         StartGameResult result = await runner.StartGame(new StartGameArgs
         {
             GameMode = GameMode.Shared,
@@ -178,12 +152,24 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
             SceneManager = GetOrAddSceneManager()
         });
 
-        if (!result.Ok)
+        if (!isMatching)
+            return;
+
+        if (result.Ok)
         {
-            SetStatus($"접속 실패: {result.ShutdownReason}");
-            isMatching = false;
-            startGameRequested = false;
+            SetStatus("상대 찾는 중...");
+            return;
         }
+
+        // 그 슬롯이 이미 꽉 찼거나(GameIsFull) 닫혀있으면(GameClosed) 다음 슬롯을 시도한다.
+        if (result.ShutdownReason == ShutdownReason.GameIsFull || result.ShutdownReason == ShutdownReason.GameClosed)
+        {
+            await TryJoinQuickMatchSlot(slotIndex + 1);
+            return;
+        }
+
+        SetStatus($"접속 실패: {result.ShutdownReason}");
+        isMatching = false;
     }
 
     private NetworkSceneManagerDefault GetOrAddSceneManager()
@@ -292,10 +278,10 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
         isMatching = false;
-        startGameRequested = false;
         playerSpawnedInGameScene = false;
         SetStatus($"세션 종료: {shutdownReason}");
     }
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
         SetStatus($"연결 끊김: {reason}");

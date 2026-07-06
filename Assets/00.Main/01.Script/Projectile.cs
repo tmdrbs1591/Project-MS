@@ -35,6 +35,13 @@ public class Projectile : NetworkBehaviour
     // 원격 클라의 비주얼 전용 타이머. Spawned() 시점부터 실제 경과 시간을 잰다.
     private float localSpawnTime = -1f;
 
+    // OnTriggerEnter2D 같은 물리 콜백 시점은 Fusion 이 [Networked] 값 읽기를 허용하는
+    // 구간이 아니어서, 이미 스폰된 오브젝트여도 그 순간엔 Dir 을 읽으면 예외가 날 수 있다.
+    // 그래서 Dir 은 절대 안 바뀌는 값이니 Spawned() 시점(안전한 구간)에 일반 필드로
+    // 캐싱해두고, 외부(TravelDirection)에는 이 캐시만 노출한다.
+    private bool spawned;
+    private Vector2 cachedDir;
+
     /// <summary>스폰 직전(onBeforeSpawned)에 발사자가 호출. 네트워크 초기 상태를 세팅한다.</summary>
     public void Initialize(NetworkRunner runner, Vector3 startPos, Vector2 shootDirection,
                            float projectileDamage, LayerMask projectileTargetLayer)
@@ -53,6 +60,9 @@ public class Projectile : NetworkBehaviour
 
     public override void Spawned()
     {
+        spawned = true;
+        cachedDir = Dir;
+
         // 방향에 맞춰 회전(모든 클라). Dir 은 네트워크로 동기화되어 있다.
         float angle = Mathf.Atan2(Dir.y, Dir.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
@@ -96,10 +106,16 @@ public class Projectile : NetworkBehaviour
         transform.position = StartPosition + Dir * (Speed * elapsed);
     }
 
+    /// <summary>총알의 진행 방향. 구조물이 맞았을 때 밀려나는 방향 계산 등 외부에서 참조한다.
+    /// Networked 값을 물리 콜백에서 직접 읽지 않도록 Spawned() 시점에 캐싱해둔 값을 반환한다.</summary>
+    public Vector2 TravelDirection => cachedDir;
+
     private void OnTriggerEnter2D(Collider2D other)
     {
+        Debug.Log($"[Projectile] OnTriggerEnter2D with {other.name} (layer={other.gameObject.layer}), spawned={spawned}, myAuthority={Object != null && Object.HasStateAuthority}, layerMaskOk={(((1 << other.gameObject.layer) & targetLayer.value) != 0)}");
+
         // 충돌 판정과 데미지는 발사자(권한)에서만.
-        if (Object == null || !Object.HasStateAuthority)
+        if (!spawned || Object == null || !Object.HasStateAuthority)
             return;
 
         if (((1 << other.gameObject.layer) & targetLayer.value) == 0)
@@ -107,7 +123,13 @@ public class Projectile : NetworkBehaviour
 
         CharacterBase target = other.GetComponentInParent<CharacterBase>();
         if (target != null)
+        {
+            // 쏜 사람 본인은 맞지 않는다. 발사체는 스폰 시 발사자의 InputAuthority를 그대로 물려받는다.
+            if (target.Object != null && target.Object.InputAuthority == Object.InputAuthority)
+                return;
+
             target.TakeDamage(damage);
+        }
 
         Runner.Despawn(Object);
     }

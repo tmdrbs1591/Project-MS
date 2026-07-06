@@ -55,6 +55,12 @@ public abstract class CharacterBase : NetworkBehaviour
 
     public CharacterHealth Health { get; private set; }
 
+    /// <summary>쿨타임 UI가 남은 시간/전체 시간을 읽어가기 위한 공개 접근자.</summary>
+    public CharacterCooldownHandler Cooldown => cooldown;
+
+    /// <summary>이 캐릭터가 내(로컬 클라이언트)가 조종하는 캐릭터인가. 쿨타임 HUD를 붙일 대상 판별용.</summary>
+    public bool IsLocalPlayer => IsMine;
+
     protected Rigidbody2D Rb { get; private set; }
     protected Collider2D Col { get; private set; }
     protected CharacterStat Stat { get; private set; }
@@ -124,12 +130,19 @@ public abstract class CharacterBase : NetworkBehaviour
         if (Object.HasStateAuthority)
             Health.Initialize();
 
+        // 로컬 플레이어 캐릭터만 화면의 쿨타임 HUD에 연결한다(상대 쿨타임은 표시하지 않음).
+        if (IsLocalPlayer)
+            CooldownHUD.Instance?.Bind(this);
+
         ready = true;
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         All.Remove(this);
+
+        if (IsLocalPlayer)
+            CooldownHUD.Instance?.Unbind();
     }
 
     protected virtual void OnDestroy()
