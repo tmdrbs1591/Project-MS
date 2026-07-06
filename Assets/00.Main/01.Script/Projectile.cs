@@ -22,6 +22,9 @@ public class Projectile : NetworkBehaviour
     [SerializeField] private float speed = 12f;
     [SerializeField] private float lifeTime = 3f;
 
+    [Header("Hit")]
+    [SerializeField] private GameObject hitVfxPrefab;
+
     [Networked] private Vector2 StartPosition { get; set; }
     [Networked] private Vector2 Dir { get; set; }
     [Networked] private float Speed { get; set; }
@@ -112,8 +115,6 @@ public class Projectile : NetworkBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log($"[Projectile] OnTriggerEnter2D with {other.name} (layer={other.gameObject.layer}), spawned={spawned}, myAuthority={Object != null && Object.HasStateAuthority}, layerMaskOk={(((1 << other.gameObject.layer) & targetLayer.value) != 0)}");
-
         // 충돌 판정과 데미지는 발사자(권한)에서만.
         if (!spawned || Object == null || !Object.HasStateAuthority)
             return;
@@ -131,6 +132,24 @@ public class Projectile : NetworkBehaviour
             target.TakeDamage(damage);
         }
 
+        // transform.position은 Auto Sync Transforms가 꺼져있어 실제 물리 판정 시점과
+        // 어긋날 수 있으므로, 맞은 콜라이더 표면에서 가장 가까운 점을 이펙트 위치로 쓴다.
+        Vector2 hitPosition = other.ClosestPoint(transform.position);
+        Rpc_PlayHitVfx(hitPosition, cachedDir);
         Runner.Despawn(Object);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void Rpc_PlayHitVfx(Vector2 position, Vector2 travelDirection)
+    {
+        if (hitVfxPrefab == null)
+            return;
+
+        // 날아온 방향의 반대쪽(튕겨나가는 방향)을 보도록 회전시킨다.
+        Vector2 bounceDirection = -travelDirection;
+        float angle = Mathf.Atan2(bounceDirection.y, bounceDirection.x) * Mathf.Rad2Deg;
+
+        GameObject vfx = Instantiate(hitVfxPrefab, position, Quaternion.Euler(0f, 0f, angle));
+        Destroy(vfx, 2f);
     }
 }

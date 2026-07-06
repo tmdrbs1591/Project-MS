@@ -9,6 +9,7 @@ public class CharacterStatData
     public float bonusAttackDamage;
     public float moveSpeed;
     public int magazineCount;
+    public int grenadeCount = 1;
 
     [Header("Skill Damage")]
     public float basicAttackDamage;

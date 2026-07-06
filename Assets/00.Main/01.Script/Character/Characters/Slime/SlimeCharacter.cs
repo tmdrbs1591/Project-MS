@@ -24,6 +24,17 @@ public class SlimeCharacter : CharacterBase
     [SerializeField] private Projectile projectilePrefab;
     [SerializeField] private LayerMask projectileTargetLayer;
 
+    [Header("Skill Q (관통 파워샷)")]
+    [SerializeField] private float qRange = 10f;
+    [Tooltip("판정 폭. 0에 가까울수록 완전히 얇은 직선이라 살짝만 빗나가도 안 맞는다.")]
+    [SerializeField] private float qBeamWidth = 0.8f;
+    [SerializeField] private GameObject qCastVfxPrefab;
+
+    [Header("Skill E (수류탄)")]
+    [SerializeField] private Grenade grenadePrefab;
+    [SerializeField] private float grenadeThrowSpeed = 10f;
+    [SerializeField] private float grenadeSpreadAngle = 8f;
+
     // 팔 조준 동기화: 권한자가 마우스로 계산한 방향/각도를 원격이 그대로 재현한다.
     [Networked] private float NetAimAngle { get; set; }
     [Networked] private int NetArmDirection { get; set; }
@@ -31,9 +42,10 @@ public class SlimeCharacter : CharacterBase
     private SlimeVisualController visualController;
     private SlimeMouseArmController mouseArmController;
 
-    // 발사 입력은 프레임에서 받고, 스폰은 네트워크 틱에서 처리(지연/지터 감소).
+    // 발사/투척 입력은 프레임에서 받고, 스폰은 네트워크 틱에서 처리(지연/지터 감소).
     private bool firePending;
     private CharacterActionType pendingFireAction;
+    private bool grenadeThrowPending;
 
     protected override void Awake()
     {
@@ -55,12 +67,34 @@ public class SlimeCharacter : CharacterBase
 
     protected override void SkillQ()
     {
-        HitTargets(Stat.GetAttackDamage(CharacterActionType.SkillQ));
+        Transform firePoint = ResolveFirePoint();
+        if (firePoint == null)
+            return;
+
+        Vector2 direction = mouseArmController != null
+            ? mouseArmController.GetAimDirection(Camera.main, firePoint)
+            : (Movement.FacingDirection > 0 ? Vector2.right : Vector2.left);
+
+        float damage = Stat.GetAttackDamage(CharacterActionType.SkillQ);
+
+        // 관통: 사거리 안의 모든 대상을 한 번에 판정(막히지 않고 다 맞음).
+        // 두께 0인 Raycast는 살짝만 빗나가도 안 맞으므로, 폭이 있는 CircleCast로 판정한다.
+        RaycastHit2D[] hits = Physics2D.CircleCastAll(firePoint.position, qBeamWidth * 0.5f, direction, qRange, targetLayer);
+        foreach (RaycastHit2D hit in hits)
+        {
+            CharacterBase target = hit.collider.GetComponentInParent<CharacterBase>();
+            if (target != null && target != this)
+                target.TakeDamage(damage);
+        }
+
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        Rpc_PlayQCastVfx(firePoint.position, angle);
     }
 
     protected override void SkillE()
     {
-        HitTargets(Stat.GetAttackDamage(CharacterActionType.SkillE));
+        // 실제 스폰은 다음 물리 틱에서(OnSimulationTick) 처리해 틱과 정렬한다.
+        grenadeThrowPending = true;
     }
 
     protected override void Dash()
@@ -107,6 +141,12 @@ public class SlimeCharacter : CharacterBase
             firePending = false;
             FireProjectile(pendingFireAction);
         }
+
+        if (grenadeThrowPending)
+        {
+            grenadeThrowPending = false;
+            ThrowGrenades();
+        }
     }
 
     protected override void OnCharacterVisualTick(float deltaTime, bool isGrounded, float moveInput, Vector2 velocity)
@@ -120,6 +160,18 @@ public class SlimeCharacter : CharacterBase
             mouseArmController.ApplyAim(NetArmDirection, NetAimAngle);
     }
 
+    private Transform ResolveFirePoint()
+    {
+        Transform firePoint = mouseArmController != null && mouseArmController.FirePoint != null
+            ? mouseArmController.FirePoint
+            : attackPoint;
+
+        if (firePoint == null)
+            Debug.LogWarning("[SlimeCharacter] 발사 위치가 없습니다. Attack Point 또는 Fire Point 를 연결하세요.");
+
+        return firePoint;
+    }
+
     private void FireProjectile(CharacterActionType actionType)
     {
         if (projectilePrefab == null)
@@ -128,15 +180,9 @@ public class SlimeCharacter : CharacterBase
             return;
         }
 
-        Transform firePoint = mouseArmController != null && mouseArmController.FirePoint != null
-            ? mouseArmController.FirePoint
-            : attackPoint;
-
+        Transform firePoint = ResolveFirePoint();
         if (firePoint == null)
-        {
-            Debug.LogWarning("[SlimeCharacter] 발사 위치가 없습니다. Attack Point 또는 Fire Point 를 연결하세요.");
             return;
-        }
 
         Vector2 direction = mouseArmController != null
             ? mouseArmController.GetAimDirection(Camera.main, firePoint)
@@ -157,6 +203,63 @@ public class SlimeCharacter : CharacterBase
                 if (p != null)
                     p.Initialize(runner, spawnPos, direction, damage, projectileTargetLayer);
             });
+    }
+
+    private void ThrowGrenades()
+    {
+        if (grenadePrefab == null)
+        {
+            Debug.LogWarning("[SlimeCharacter] Grenade Prefab 이 연결되지 않았습니다.");
+            return;
+        }
+
+        Transform firePoint = ResolveFirePoint();
+        if (firePoint == null)
+            return;
+
+        Vector2 baseDirection = mouseArmController != null
+            ? mouseArmController.GetAimDirection(Camera.main, firePoint)
+            : (Movement.FacingDirection > 0 ? Vector2.right : Vector2.left);
+
+        float damage = Stat.GetAttackDamage(CharacterActionType.SkillE);
+        int count = Mathf.Max(Stat.GrenadeCount, 1);
+        Vector3 spawnPos = firePoint.position;
+
+        for (int i = 0; i < count; i++)
+        {
+            float angleOffset = (i - (count - 1) * 0.5f) * grenadeSpreadAngle;
+            Vector2 velocity = Rotate(baseDirection, angleOffset) * grenadeThrowSpeed;
+
+            Runner.Spawn(
+                grenadePrefab,
+                spawnPos,
+                Quaternion.identity,
+                Object.InputAuthority,
+                (runner, obj) =>
+                {
+                    Grenade g = obj.GetComponent<Grenade>();
+                    if (g != null)
+                        g.Initialize(runner, velocity, damage, projectileTargetLayer);
+                });
+        }
+    }
+
+    private static Vector2 Rotate(Vector2 v, float degrees)
+    {
+        float rad = degrees * Mathf.Deg2Rad;
+        float cos = Mathf.Cos(rad);
+        float sin = Mathf.Sin(rad);
+        return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void Rpc_PlayQCastVfx(Vector2 position, float angle)
+    {
+        if (qCastVfxPrefab == null)
+            return;
+
+        GameObject vfx = Instantiate(qCastVfxPrefab, position, Quaternion.Euler(0f, 0f, angle));
+        Destroy(vfx, 2f);
     }
 
     private void HitTargets(float damage)

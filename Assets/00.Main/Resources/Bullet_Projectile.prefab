@@ -5154,6 +5154,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
   speed: 20
   lifeTime: 3
+  hitVfxPrefab: {fileID: 7908749483598085019, guid: 9bef78cc6a871fc49a95e810ffba50bc, type: 3}
 --- !u!114 &675724910726322961
 MonoBehaviour:
   m_ObjectHideFlags: 0

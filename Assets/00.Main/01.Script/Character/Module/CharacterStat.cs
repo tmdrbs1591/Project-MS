@@ -5,6 +5,7 @@ public class CharacterStat
     public float BonusAttackDamage { get; private set; }
     public float MoveSpeed { get; private set; }
     public int MagazineCount { get; private set; }
+    public int GrenadeCount { get; private set; }
 
     private float basicAttackDamage;
     private float skillQDamage;
@@ -18,6 +19,7 @@ public class CharacterStat
         BonusAttackDamage = data.bonusAttackDamage;
         MoveSpeed = data.moveSpeed;
         MagazineCount = data.magazineCount;
+        GrenadeCount = data.grenadeCount;
 
         basicAttackDamage = data.basicAttackDamage;
         skillQDamage = data.skillQDamage;
@@ -48,6 +50,11 @@ public class CharacterStat
     public void AddMagazineCount(int value)
     {
         MagazineCount += value;
+    }
+
+    public void AddGrenadeCount(int value)
+    {
+        GrenadeCount += value;
     }
 
     public float GetAttackDamage(CharacterActionType actionType)

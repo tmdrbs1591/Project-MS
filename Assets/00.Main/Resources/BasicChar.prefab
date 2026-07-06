@@ -5956,6 +5956,7 @@ MonoBehaviour:
     bonusAttackDamage: 5
     moveSpeed: 5
     magazineCount: 5
+    grenadeCount: 1
     basicAttackDamage: 5
     skillQDamage: 5
     skillEDamage: 5
@@ -6000,6 +6001,12 @@ MonoBehaviour:
   projectileTargetLayer:
     serializedVersion: 2
     m_Bits: 192
+  qRange: 5
+  qBeamWidth: 0.8
+  qCastVfxPrefab: {fileID: 2455015542458836580, guid: ba30652d76a525442ab3de5e70d2c131, type: 3}
+  grenadePrefab: {fileID: 1036566172643605739, guid: 3c1d379c1ea8cc24dadc206c735e2283, type: 3}
+  grenadeThrowSpeed: 10
+  grenadeSpreadAngle: 8
 --- !u!114 &6449380891761742645
 MonoBehaviour:
   m_ObjectHideFlags: 0
