@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -43,7 +44,15 @@ public class SlimeVisualController : MonoBehaviour
     [Header("Effect")]
     [SerializeField] private ParticleSystem dustEffect;
 
+    [Header("Hit Reaction")]
+    [SerializeField] private Color hitFlashColor = new Color(1f, 0.4f, 0.4f, 1f);
+    [SerializeField] private float hitFlashDuration = 0.12f;
+    [SerializeField] private float hitRecoilStretch = 0.25f;
+
     private Rigidbody2D rb;
+    private SpriteRenderer spriteRenderer;
+    private Color spriteBaseColor;
+    private Coroutine hitFlashRoutine;
 
     private bool wasGrounded;
     private bool hasVisualState;
@@ -64,9 +73,12 @@ public class SlimeVisualController : MonoBehaviour
         bodyBaseLocalPosition = bodyTransform.localPosition;
         bodyBaseLocalScale = bodyTransform.localScale;
 
-        SpriteRenderer spriteRenderer = bodyTransform.GetComponentInChildren<SpriteRenderer>();
+        spriteRenderer = bodyTransform.GetComponentInChildren<SpriteRenderer>();
         if (spriteRenderer != null)
+        {
             halfHeight = spriteRenderer.sprite != null ? spriteRenderer.sprite.bounds.extents.y : spriteRenderer.bounds.extents.y;
+            spriteBaseColor = spriteRenderer.color;
+        }
 
         if (dustEffect != null)
         {
@@ -79,6 +91,27 @@ public class SlimeVisualController : MonoBehaviour
     public void PlayJumpStretch()
     {
         stretchVelocity += jumpStretch * 60f;
+    }
+
+    /// <summary>피격 시(모든 클라) 호출. 몸통을 살짝 찌그러뜨리고 스프라이트를 잠깐 붉게 물들인다.</summary>
+    public void PlayHitReaction()
+    {
+        stretchVelocity -= hitRecoilStretch * 60f;
+
+        if (spriteRenderer == null)
+            return;
+
+        if (hitFlashRoutine != null)
+            StopCoroutine(hitFlashRoutine);
+        hitFlashRoutine = StartCoroutine(HitFlashRoutine());
+    }
+
+    private IEnumerator HitFlashRoutine()
+    {
+        spriteRenderer.color = hitFlashColor;
+        yield return new WaitForSeconds(hitFlashDuration);
+        spriteRenderer.color = spriteBaseColor;
+        hitFlashRoutine = null;
     }
 
     /// <summary>네트워크 틱마다(권한자) 호출. 통통점프 물리 적용.</summary>

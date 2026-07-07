@@ -691,7 +691,7 @@ Transform:
   m_GameObject: {fileID: 5494806255316453972}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.829, y: 0.193, z: 0}
+  m_LocalPosition: {x: 1.464, y: 0.271, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6001,6 +6001,9 @@ MonoBehaviour:
   projectileTargetLayer:
     serializedVersion: 2
     m_Bits: 192
+  muzzleVfxPrefab: {fileID: 5035416787743679547, guid: 50dbaedb05fcb4e4eb1840a0f34f9d34, type: 3}
+  muzzleVfxAngleOffset: 0
+  muzzleVfxForwardOffset: 0.3
   qRange: 5
   qBeamWidth: 0.8
   qCastVfxPrefab: {fileID: 2455015542458836580, guid: ba30652d76a525442ab3de5e70d2c131, type: 3}

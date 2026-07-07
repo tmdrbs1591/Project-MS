@@ -23,6 +23,11 @@ public class SlimeCharacter : CharacterBase
     [Header("Projectile")]
     [SerializeField] private Projectile projectilePrefab;
     [SerializeField] private LayerMask projectileTargetLayer;
+    [SerializeField] private GameObject muzzleVfxPrefab;
+    [Tooltip("이펙트 프리팹의 회전 0도가 향하는 기본 방향에 대한 보정각.")]
+    [SerializeField] private float muzzleVfxAngleOffset = 0f;
+    [Tooltip("이펙트 생성 위치를 파이어포인트에서 발사 방향으로 밀어내는 거리.")]
+    [SerializeField] private float muzzleVfxForwardOffset = 10f;
 
     [Header("Skill Q (관통 파워샷)")]
     [SerializeField] private float qRange = 10f;
@@ -115,6 +120,12 @@ public class SlimeCharacter : CharacterBase
             visualController.PlayJumpStretch();
     }
 
+    protected override void OnDamagedVisual()
+    {
+        if (visualController != null)
+            visualController.PlayHitReaction();
+    }
+
     protected override void OnLocalUpdate()
     {
         // 내 캐릭터만 로컬 마우스로 팔을 조준한다.
@@ -191,6 +202,10 @@ public class SlimeCharacter : CharacterBase
         float damage = Stat.GetAttackDamage(actionType);
         Vector3 spawnPos = firePoint.position;
 
+        Vector2 muzzleVfxPos = (Vector2)spawnPos + direction * muzzleVfxForwardOffset;
+        float muzzleAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        Rpc_PlayMuzzleVfx(muzzleVfxPos, muzzleAngle);
+
         // 네트워크 스폰: 발사자가 StateAuthority 가 되며, onBeforeSpawned 에서 방향/데미지 주입.
         Runner.Spawn(
             projectilePrefab,
@@ -259,6 +274,29 @@ public class SlimeCharacter : CharacterBase
             return;
 
         GameObject vfx = Instantiate(qCastVfxPrefab, position, Quaternion.Euler(0f, 0f, angle));
+        Destroy(vfx, 2f);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void Rpc_PlayMuzzleVfx(Vector2 position, float angle)
+    {
+        if (muzzleVfxPrefab == null)
+            return;
+
+        float finalAngle = angle + muzzleVfxAngleOffset;
+        GameObject vfx = Instantiate(muzzleVfxPrefab, position, Quaternion.Euler(0f, 0f, finalAngle));
+
+        // 이 프리팹의 파티클은 빌보드(View) 정렬이라 오브젝트의 transform 회전을 무시하고
+        // 항상 카메라를 향해 그려진다. 화면상 회전(Roll)은 파티클 자체의 시작 회전값으로
+        // 직접 지정해야 반영된다. 파티클 startRotation은 화면 좌표계(Y축 반전) 기준이라
+        // 좌우(Y=0)는 그대로 맞지만 상하는 뒤집혀 보이므로 부호를 반전시켜 보정한다.
+        float rotationRad = -finalAngle * Mathf.Deg2Rad;
+        foreach (ParticleSystem ps in vfx.GetComponentsInChildren<ParticleSystem>())
+        {
+            ParticleSystem.MainModule main = ps.main;
+            main.startRotation = rotationRad;
+        }
+
         Destroy(vfx, 2f);
     }
 

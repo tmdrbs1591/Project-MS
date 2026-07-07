@@ -24,6 +24,11 @@ public class Projectile : NetworkBehaviour
 
     [Header("Hit")]
     [SerializeField] private GameObject hitVfxPrefab;
+    [Tooltip("이펙트 프리팹의 회전 0도가 향하는 기본 방향에 대한 보정각. " +
+             "예: 프리팹이 회전 0도일 때 위쪽(+Y)을 향해 터지도록 만들어졌다면 -90.")]
+    [SerializeField] private float hitVfxAngleOffset = -90f;
+    [Tooltip("이펙트 생성 위치를 충돌 지점에서 총알이 날아온 방향(플레이어 쪽)으로 당기는 거리.")]
+    [SerializeField] private float hitVfxPositionPullback = 1f;
 
     [Networked] private Vector2 StartPosition { get; set; }
     [Networked] private Vector2 Dir { get; set; }
@@ -44,6 +49,7 @@ public class Projectile : NetworkBehaviour
     // 캐싱해두고, 외부(TravelDirection)에는 이 캐시만 노출한다.
     private bool spawned;
     private Vector2 cachedDir;
+    private float cachedSpeed;
 
     /// <summary>스폰 직전(onBeforeSpawned)에 발사자가 호출. 네트워크 초기 상태를 세팅한다.</summary>
     public void Initialize(NetworkRunner runner, Vector3 startPos, Vector2 shootDirection,
@@ -65,6 +71,7 @@ public class Projectile : NetworkBehaviour
     {
         spawned = true;
         cachedDir = Dir;
+        cachedSpeed = Speed;
 
         // 방향에 맞춰 회전(모든 클라). Dir 은 네트워크로 동기화되어 있다.
         float angle = Mathf.Atan2(Dir.y, Dir.x) * Mathf.Rad2Deg;
@@ -132,22 +139,38 @@ public class Projectile : NetworkBehaviour
             target.TakeDamage(damage);
         }
 
-        // transform.position은 Auto Sync Transforms가 꺼져있어 실제 물리 판정 시점과
-        // 어긋날 수 있으므로, 맞은 콜라이더 표면에서 가장 가까운 점을 이펙트 위치로 쓴다.
-        Vector2 hitPosition = other.ClosestPoint(transform.position);
-        Rpc_PlayHitVfx(hitPosition, cachedDir);
+        (Vector2 hitPosition, Vector2 hitNormal) = ResolveHitSurface(other);
+        hitPosition -= cachedDir * hitVfxPositionPullback;
+        Rpc_PlayHitVfx(hitPosition, hitNormal);
         Runner.Despawn(Object);
     }
 
+    /// <summary>맞은 지점의 정확한 좌표와 그 지점의 표면 노멀을 구한다.
+    /// transform.position은 Auto Sync Transforms가 꺼져있어 실제 충돌 시점엔 이미
+    /// 콜라이더 안쪽까지 들어와 있을 수 있으므로, 이번 프레임 이동분만큼 뒤로 물러난
+    /// 지점에서 진행 방향으로 레이캐스트해 실제 충돌면을 찾는다.</summary>
+    private (Vector2 position, Vector2 normal) ResolveHitSurface(Collider2D other)
+    {
+        float probeDistance = Mathf.Max(cachedSpeed * Runner.DeltaTime, 0.1f) * 2f;
+        Vector2 origin = (Vector2)transform.position - cachedDir * probeDistance;
+
+        RaycastHit2D hit = Physics2D.Raycast(origin, cachedDir, probeDistance * 2f, targetLayer);
+        if (hit.collider == other)
+            return (hit.point, hit.normal);
+
+        // 콜라이더가 너무 작거나 겹쳐 있어 레이가 빗나간 경우의 폴백.
+        Vector2 closestPoint = other.ClosestPoint(transform.position);
+        return (closestPoint, -cachedDir);
+    }
+
     [Rpc(RpcSources.All, RpcTargets.All)]
-    private void Rpc_PlayHitVfx(Vector2 position, Vector2 travelDirection)
+    private void Rpc_PlayHitVfx(Vector2 position, Vector2 surfaceNormal)
     {
         if (hitVfxPrefab == null)
             return;
 
-        // 날아온 방향의 반대쪽(튕겨나가는 방향)을 보도록 회전시킨다.
-        Vector2 bounceDirection = -travelDirection;
-        float angle = Mathf.Atan2(bounceDirection.y, bounceDirection.x) * Mathf.Rad2Deg;
+        // 충돌면의 노멀 방향을 보도록 회전시킨다. 프리팹 기본 방향 보정(hitVfxAngleOffset) 포함.
+        float angle = Mathf.Atan2(surfaceNormal.y, surfaceNormal.x) * Mathf.Rad2Deg + hitVfxAngleOffset;
 
         GameObject vfx = Instantiate(hitVfxPrefab, position, Quaternion.Euler(0f, 0f, angle));
         Destroy(vfx, 2f);

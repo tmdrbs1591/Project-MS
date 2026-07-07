@@ -124,7 +124,9 @@ public abstract class CharacterBase : NetworkBehaviour
         if (!All.Contains(this))
             All.Add(this);
 
-        changeDetector = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
+        // SnapshotFrom(보간 지연된 이전 스냅샷) 대신 SnapshotTo(더 최신 스냅샷)를 써서
+        // 피격/사망처럼 즉각적이어야 하는 이벤트의 감지 지연을 줄인다.
+        changeDetector = GetChangeDetector(ChangeDetector.Source.SnapshotTo);
 
         // StateAuthority(내 캐릭터)만 체력을 초기화한다.
         if (Object.HasStateAuthority)
@@ -239,10 +241,19 @@ public abstract class CharacterBase : NetworkBehaviour
         if (changeDetector == null)
             return;
 
-        foreach (string change in changeDetector.DetectChanges(this))
+        foreach (string change in changeDetector.DetectChanges(this, out NetworkBehaviourBuffer previousBuffer, out NetworkBehaviourBuffer currentBuffer))
         {
             if (change == nameof(NetIsDead) && NetIsDead)
+            {
                 OnDeadVisual();
+            }
+            else if (change == nameof(NetHealth))
+            {
+                PropertyReader<float> reader = GetPropertyReader<float>(nameof(NetHealth));
+                (float previous, float current) = reader.Read(previousBuffer, currentBuffer);
+                if (current < previous)
+                    OnDamagedVisual();
+            }
         }
     }
 
@@ -338,6 +349,9 @@ public abstract class CharacterBase : NetworkBehaviour
 
     /// <summary>모든 클라에서 사망이 동기화됐을 때(연출용).</summary>
     protected virtual void OnDeadVisual() { }
+
+    /// <summary>모든 클라에서 체력 감소(피격)가 동기화됐을 때(연출용). 힐로 늘어날 때는 호출되지 않는다.</summary>
+    protected virtual void OnDamagedVisual() { }
 
     protected abstract void BasicAttack();
     protected abstract void SkillQ();
