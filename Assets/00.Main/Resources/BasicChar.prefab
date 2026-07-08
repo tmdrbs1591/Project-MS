@@ -434,7 +434,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 0, b: 0, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -5800,7 +5800,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -6010,6 +6010,7 @@ MonoBehaviour:
   grenadePrefab: {fileID: 1036566172643605739, guid: 3c1d379c1ea8cc24dadc206c735e2283, type: 3}
   grenadeThrowSpeed: 10
   grenadeSpreadAngle: 8
+  grenadeBurstInterval: 0.15
 --- !u!114 &6449380891761742645
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6037,6 +6038,9 @@ MonoBehaviour:
   idleWobbleAmount: 0.04
   idleWobbleSpeed: 6
   dustEffect: {fileID: 361476220340871056}
+  hitFlashColor: {r: 1, g: 0.4, b: 0.4, a: 1}
+  hitFlashDuration: 0.12
+  hitRecoilStretch: 0.25
 --- !u!114 &8301249575261119417
 MonoBehaviour:
   m_ObjectHideFlags: 0

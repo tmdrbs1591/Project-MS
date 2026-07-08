@@ -39,6 +39,8 @@ public class SlimeCharacter : CharacterBase
     [SerializeField] private Grenade grenadePrefab;
     [SerializeField] private float grenadeThrowSpeed = 10f;
     [SerializeField] private float grenadeSpreadAngle = 8f;
+    [Tooltip("증강 'ESkillTripleThrow' 적용 시 추가 투척 사이의 간격(초). '뿅뿅뿅' 타이밍.")]
+    [SerializeField] private float grenadeBurstInterval = 0.15f;
 
     // 팔 조준 동기화: 권한자가 마우스로 계산한 방향/각도를 원격이 그대로 재현한다.
     [Networked] private float NetAimAngle { get; set; }
@@ -51,6 +53,10 @@ public class SlimeCharacter : CharacterBase
     private bool firePending;
     private CharacterActionType pendingFireAction;
     private bool grenadeThrowPending;
+
+    // ESkillTripleThrow 증강의 추가 투척 예약(뿅뿅뿅).
+    private int pendingGrenadeBurstsRemaining;
+    private float grenadeBurstTimer;
 
     protected override void Awake()
     {
@@ -76,15 +82,32 @@ public class SlimeCharacter : CharacterBase
         if (firePoint == null)
             return;
 
-        Vector2 direction = mouseArmController != null
-            ? mouseArmController.GetAimDirection(Camera.main, firePoint)
-            : (Movement.FacingDirection > 0 ? Vector2.right : Vector2.left);
-
         float damage = Stat.GetAttackDamage(CharacterActionType.SkillQ);
 
+        if (HasAugment(AugmentType.QSkillOctoDirection))
+        {
+            // 증강: 조준 방향 대신 8방향으로 동시에 발사.
+            for (int i = 0; i < 8; i++)
+            {
+                Vector2 direction = Rotate(Vector2.right, i * 45f);
+                FireQBeam(firePoint.position, direction, damage);
+            }
+        }
+        else
+        {
+            Vector2 direction = mouseArmController != null
+                ? mouseArmController.GetAimDirection(Camera.main, firePoint)
+                : (Movement.FacingDirection > 0 ? Vector2.right : Vector2.left);
+
+            FireQBeam(firePoint.position, direction, damage);
+        }
+    }
+
+    private void FireQBeam(Vector2 origin, Vector2 direction, float damage)
+    {
         // 관통: 사거리 안의 모든 대상을 한 번에 판정(막히지 않고 다 맞음).
         // 두께 0인 Raycast는 살짝만 빗나가도 안 맞으므로, 폭이 있는 CircleCast로 판정한다.
-        RaycastHit2D[] hits = Physics2D.CircleCastAll(firePoint.position, qBeamWidth * 0.5f, direction, qRange, targetLayer);
+        RaycastHit2D[] hits = Physics2D.CircleCastAll(origin, qBeamWidth * 0.5f, direction, qRange, targetLayer);
         foreach (RaycastHit2D hit in hits)
         {
             CharacterBase target = hit.collider.GetComponentInParent<CharacterBase>();
@@ -93,7 +116,7 @@ public class SlimeCharacter : CharacterBase
         }
 
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        Rpc_PlayQCastVfx(firePoint.position, angle);
+        Rpc_PlayQCastVfx(origin, angle);
     }
 
     protected override void SkillE()
@@ -157,6 +180,20 @@ public class SlimeCharacter : CharacterBase
         {
             grenadeThrowPending = false;
             ThrowGrenades();
+
+            // 증강: 첫 투척 후 추가로 2번 더(총 3연발, "뿅뿅뿅").
+            pendingGrenadeBurstsRemaining = HasAugment(AugmentType.ESkillTripleThrow) ? 2 : 0;
+            grenadeBurstTimer = grenadeBurstInterval;
+        }
+        else if (pendingGrenadeBurstsRemaining > 0)
+        {
+            grenadeBurstTimer -= deltaTime;
+            if (grenadeBurstTimer <= 0f)
+            {
+                ThrowGrenades();
+                pendingGrenadeBurstsRemaining--;
+                grenadeBurstTimer = grenadeBurstInterval;
+            }
         }
     }
 

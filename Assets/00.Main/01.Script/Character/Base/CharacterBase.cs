@@ -45,6 +45,20 @@ public abstract class CharacterBase : NetworkBehaviour
     /// <summary>현재 씬의 모든 캐릭터(카메라 등에서 사용).</summary>
     public static readonly List<CharacterBase> All = new List<CharacterBase>();
 
+    /// <summary>내(로컬 클라이언트)가 조종하는 캐릭터. 못 찾으면 null(아직 스폰 전 등).</summary>
+    public static CharacterBase LocalPlayer
+    {
+        get
+        {
+            foreach (CharacterBase character in All)
+            {
+                if (character.IsLocalPlayer)
+                    return character;
+            }
+            return null;
+        }
+    }
+
     // ---- 네트워크 동기화 상태 ----
     [Networked] private float NetHealth { get; set; }
     [Networked] private int NetFacing { get; set; }
@@ -52,6 +66,7 @@ public abstract class CharacterBase : NetworkBehaviour
     [Networked] private Vector2 NetVelocity { get; set; }
     [Networked] private NetworkBool NetGrounded { get; set; }
     [Networked] private NetworkBool NetIsDead { get; set; }
+    [Networked] private int NetAugmentFlags { get; set; }
 
     public CharacterHealth Health { get; private set; }
 
@@ -71,6 +86,9 @@ public abstract class CharacterBase : NetworkBehaviour
 
     /// <summary>네트워크 세션에 스폰되어 동기화 중인가. false 면 로비(로컬) 모드.</summary>
     protected bool IsNetworked => isNetworked;
+
+    /// <summary>사망했거나 매치가 전투 단계가 아니면 조작을 막는다(라운드 종료 연출 중 정지).</summary>
+    private bool IsMatchLocked => isNetworked && (Health.IsDead || (MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting));
 
     // 로비(로컬) 조작 잠금. 매칭 패널이 떠 있는 동안 이동/입력을 막는다.
     // 로컬 모드에서만 검사하므로 게임 씬의 네트워크 캐릭터에는 영향이 없다.
@@ -174,9 +192,14 @@ public abstract class CharacterBase : NetworkBehaviour
 
         // 입력(엣지 감지)은 프레임 기준으로 읽는다. 점프는 다음 네트워크 틱에서 소비.
         CharacterInputState inputState = input.Read();
-        HandleActionInput(inputState);
+
+        // 사망/라운드 종료 중에는 행동 입력을 받지 않는다(쿨타임은 계속 흘러도 무해).
+        if (!IsMatchLocked)
+        {
+            HandleActionInput(inputState);
+            Passive();
+        }
         cooldown.Tick(Time.deltaTime);
-        Passive();
         OnLocalUpdate();
     }
 
@@ -197,8 +220,11 @@ public abstract class CharacterBase : NetworkBehaviour
         if (!IsMine)
             return;
 
+        // 사망/라운드 종료 중에는 빈 입력으로 틱을 돌려 제자리에 멈춘다.
+        CharacterInputState fixedInput = IsMatchLocked ? default : input.ReadFixed();
+
         // 내 캐릭터만 시뮬레이션. dt 는 네트워크 틱 간격.
-        Movement.TickFixed(input.ReadFixed(), Runner.DeltaTime);
+        Movement.TickFixed(fixedInput, Runner.DeltaTime);
         OnSimulationTick(Runner.DeltaTime);
 
         // 원격 클라가 시각을 재현할 수 있도록 시각용 상태를 동기화.
@@ -243,9 +269,12 @@ public abstract class CharacterBase : NetworkBehaviour
 
         foreach (string change in changeDetector.DetectChanges(this, out NetworkBehaviourBuffer previousBuffer, out NetworkBehaviourBuffer currentBuffer))
         {
-            if (change == nameof(NetIsDead) && NetIsDead)
+            if (change == nameof(NetIsDead))
             {
-                OnDeadVisual();
+                if (NetIsDead)
+                    OnDeadVisual();
+                else
+                    OnRevivedVisual();
             }
             else if (change == nameof(NetHealth))
             {
@@ -325,6 +354,55 @@ public abstract class CharacterBase : NetworkBehaviour
             NetIsDead = true;
     }
 
+    /// <summary>MatchManager 가 다음 라운드 시작 전 호출. 어디서든 호출 가능(대상의 StateAuthority에서 적용).</summary>
+    public void RequestRoundReset(Vector3 spawnPosition)
+    {
+        if (Object == null)
+            return;
+
+        if (Object.HasStateAuthority)
+            ApplyRoundReset(spawnPosition);
+        else
+            Rpc_RoundReset(spawnPosition);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void Rpc_RoundReset(Vector3 spawnPosition)
+    {
+        ApplyRoundReset(spawnPosition);
+    }
+
+    private void ApplyRoundReset(Vector3 spawnPosition)
+    {
+        NetIsDead = false;
+        Health.FullHeal();
+        cooldown.ResetAll();
+
+        Rb.position = spawnPosition;
+        Rb.linearVelocity = Vector2.zero;
+    }
+
+    // ---------------- 증강(Augment) ----------------
+    // 증강은 라운드 리셋으로 지워지지 않고 매치 내내 누적된다. 선택은 항상 본인 캐릭터에
+    // 대해서만(로컬 UI에서) 일어나므로 StateAuthority가 아니면 조용히 무시한다.
+
+    public bool HasAugment(AugmentType type)
+    {
+        // NetAugmentFlags 는 스폰 전(로비/로컬 모드)엔 접근할 수 없다.
+        if (!isNetworked)
+            return false;
+
+        return (NetAugmentFlags & (1 << (int)type)) != 0;
+    }
+
+    public void GrantAugment(AugmentType type)
+    {
+        if (Object == null || !Object.HasStateAuthority)
+            return;
+
+        NetAugmentFlags |= 1 << (int)type;
+    }
+
     // ---------------- 가상 메서드 ----------------
 
     protected virtual void OnCharacterJump() { }
@@ -349,6 +427,9 @@ public abstract class CharacterBase : NetworkBehaviour
 
     /// <summary>모든 클라에서 사망이 동기화됐을 때(연출용).</summary>
     protected virtual void OnDeadVisual() { }
+
+    /// <summary>모든 클라에서 라운드 리셋으로 부활이 동기화됐을 때(연출용). OnDeadVisual에서 바꾼 상태를 되돌리는 용도.</summary>
+    protected virtual void OnRevivedVisual() { }
 
     /// <summary>모든 클라에서 체력 감소(피격)가 동기화됐을 때(연출용). 힐로 늘어날 때는 호출되지 않는다.</summary>
     protected virtual void OnDamagedVisual() { }

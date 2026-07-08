@@ -23,6 +23,10 @@ public class PlayerSpawner : MonoBehaviour
     [Tooltip("스폰 위치들. 비워두면 PlayerId 로 좌우로 자동 분배")]
     [SerializeField] private Transform[] spawnPoints;
 
+    [Header("매치")]
+    [Tooltip("라운드/승패를 관리하는 MatchManager 프리팹. NetworkObject 가 붙어 있어야 한다.")]
+    [SerializeField] private MatchManager matchManagerPrefab;
+
     public void SpawnLocalPlayer(NetworkRunner runner)
     {
         if (playerPrefab == null)
@@ -37,9 +41,24 @@ public class PlayerSpawner : MonoBehaviour
         runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, runner.LocalPlayer);
 
         Debug.Log($"[PlayerSpawner] 캐릭터 스폰 @ {spawnPos} (Player {runner.LocalPlayer.PlayerId})");
+
+        SpawnMatchManagerIfNeeded(runner);
     }
 
-    private Vector3 GetSpawnPosition(int playerId)
+    private void SpawnMatchManagerIfNeeded(NetworkRunner runner)
+    {
+        if (matchManagerPrefab == null || MatchManager.Instance != null)
+            return;
+
+        // 마스터 클라만 스폰해서 딱 하나만 생기게 한다(그 클라가 StateAuthority가 됨).
+        if (!runner.IsSharedModeMasterClient)
+            return;
+
+        runner.Spawn(matchManagerPrefab, Vector3.zero, Quaternion.identity);
+    }
+
+    /// <summary>PlayerId 에 대응하는 스폰 위치. MatchManager 가 라운드 리셋 시 재사용한다.</summary>
+    public Vector3 GetSpawnPosition(int playerId)
     {
         if (spawnPoints != null && spawnPoints.Length > 0)
         {

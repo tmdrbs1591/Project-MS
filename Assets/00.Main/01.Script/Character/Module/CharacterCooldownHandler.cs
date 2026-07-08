@@ -55,4 +55,10 @@ public class CharacterCooldownHandler
     {
         return data.GetCooldown(actionType);
     }
+
+    /// <summary>모든 쿨타임을 즉시 초기화한다. (라운드 리셋 등)</summary>
+    public void ResetAll()
+    {
+        timers.Clear();
+    }
 }

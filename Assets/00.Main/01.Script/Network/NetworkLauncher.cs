@@ -38,6 +38,9 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     [Tooltip("게임 씬 이름 (Build Settings 에 등록되어 있어야 함)")]
     [SerializeField] private string gameSceneName = "SampleScene 1";
 
+    [Tooltip("매치 종료 후 돌아갈 로비 씬 이름 (Build Settings 에 등록되어 있어야 함)")]
+    [SerializeField] private string lobbySceneName = "Lobby";
+
     /// <summary>매칭 상태 메시지(연결/대기/성공/실패)를 외부 UI 로 전달한다.</summary>
     public event Action<string> StatusChanged;
 
@@ -118,6 +121,19 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         // (NetworkLauncher 는 유지 → 다음 매칭 때 PrepareRunner 가 새 러너를 만든다.)
         if (runner != null && !runner.IsShutdown)
             _ = runner.Shutdown();
+    }
+
+    /// <summary>매치 결과 화면의 "로비로" 버튼에서 호출. 나만 세션에서 나가 로비 씬으로 돌아간다
+    /// (상대는 자기가 따로 눌러야 나간다 — 서로 강제로 끌고 나가지 않음).</summary>
+    public async void ReturnToLobby()
+    {
+        isMatching = false;
+        playerSpawnedInGameScene = false;
+
+        if (runner != null && !runner.IsShutdown)
+            await runner.Shutdown();
+
+        SceneManager.LoadScene(lobbySceneName);
     }
 
     // ---------------- 매칭(세션) 처리 ----------------
