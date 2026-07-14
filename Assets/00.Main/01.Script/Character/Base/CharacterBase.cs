@@ -67,6 +67,7 @@ public abstract class CharacterBase : NetworkBehaviour
     [Networked] private NetworkBool NetGrounded { get; set; }
     [Networked] private NetworkBool NetIsDead { get; set; }
     [Networked] private int NetAugmentFlags { get; set; }
+    [Networked] private int NetAugmentPickedRound { get; set; }
 
     public CharacterHealth Health { get; private set; }
 
@@ -401,6 +402,16 @@ public abstract class CharacterBase : NetworkBehaviour
             return;
 
         NetAugmentFlags |= 1 << (int)type;
+        NetAugmentPickedRound = MatchManager.Instance != null ? MatchManager.Instance.RoundNumber : NetAugmentPickedRound;
+    }
+
+    /// <summary>이번 라운드의 증강 선택 구간에서 이미 골랐는지. MatchManager 가 양쪽 다 골랐는지 확인할 때 쓴다.</summary>
+    public bool HasPickedAugmentForRound(int roundNumber)
+    {
+        if (!isNetworked)
+            return false;
+
+        return NetAugmentPickedRound == roundNumber;
     }
 
     // ---------------- 가상 메서드 ----------------

@@ -29,7 +29,8 @@ public class MatchManager : NetworkBehaviour
 
     [Header("타이밍")]
     [SerializeField] private float roundEndDisplayDuration = 3f;
-    // TODO: 증강 선택 시스템이 들어오면 고정 대기시간 대신 "양쪽 다 선택 완료" 신호로 다음 단계로 넘어가게 교체한다.
+    [Tooltip("증강 선택 최대 대기시간. 양쪽 다 고르면 이 시간이 남았어도 즉시 다음 라운드로 넘어간다. " +
+             "한쪽이 고르지 않고 버틸 때(자리비움/연결끊김 등)의 안전장치용 상한선일 뿐이다.")]
     [SerializeField] private float augmentSelectDuration = 5f;
     [Tooltip("라운드 리셋 직후 사망 판정을 잠깐 쉬는 시간. 상대 클라의 부활 RPC가 도착하기 전에 " +
              "'아직 죽어있음'으로 오판해 곧바로 다음 라운드가 끝나버리는 것을 막는다.")]
@@ -84,8 +85,7 @@ public class MatchManager : NetworkBehaviour
                 break;
 
             case MatchPhase.AugmentSelect:
-                if (PhaseTimer.Expired(Runner))
-                    OnAugmentSelectExpired();
+                TickAugmentSelect();
                 break;
 
             case MatchPhase.MatchEnd:
@@ -105,6 +105,15 @@ public class MatchManager : NetworkBehaviour
         if (p2.Object.InputAuthority == player)
             return Player2Wins;
         return 0;
+    }
+
+    /// <summary>player 가 Player1(스폰 기준 왼쪽)인지 여부. UI에서 좌우 표시 순서를 맞추는 데 쓴다.</summary>
+    public bool IsPlayer1(PlayerRef player)
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out _))
+            return true;
+
+        return p1.Object.InputAuthority == player;
     }
 
     private void TickFighting()
@@ -143,6 +152,20 @@ public class MatchManager : NetworkBehaviour
 
         Phase = MatchPhase.AugmentSelect;
         PhaseTimer = TickTimer.CreateFromSeconds(Runner, augmentSelectDuration);
+    }
+
+    /// <summary>양쪽 다 증강을 고르면 즉시 다음 라운드로 넘어간다. augmentSelectDuration 은
+    /// 상대가 고르지 않고 버티는 경우(자리비움/연결끊김 등)를 위한 최대 대기시간일 뿐이다.</summary>
+    private void TickAugmentSelect()
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return;
+
+        bool bothPicked = p1.HasPickedAugmentForRound(RoundNumber) && p2.HasPickedAugmentForRound(RoundNumber);
+        bool timedOut = PhaseTimer.Expired(Runner);
+
+        if (bothPicked || timedOut)
+            OnAugmentSelectExpired();
     }
 
     private void OnAugmentSelectExpired()
