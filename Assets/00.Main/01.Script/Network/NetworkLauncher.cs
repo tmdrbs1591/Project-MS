@@ -47,6 +47,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     private NetworkRunner runner;
     private bool isMatching;
     private bool playerSpawnedInGameScene; // 게임 씬에서 내 캐릭터를 이미 스폰했는지
+    private bool isReturningToLobby; // 버튼 클릭과 OnPlayerLeft 가 동시에 겹쳐 중복 실행되는 것을 막는 가드
 
     private void Awake()
     {
@@ -124,9 +125,14 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     /// <summary>매치 결과 화면의 "로비로" 버튼에서 호출. 나만 세션에서 나가 로비 씬으로 돌아간다
-    /// (상대는 자기가 따로 눌러야 나간다 — 서로 강제로 끌고 나가지 않음).</summary>
+    /// (상대는 자기가 따로 눌러야 나간다 — 서로 강제로 끌고 나가지 않음).
+    /// 대전 도중 상대가 먼저 나가버린 경우(OnPlayerLeft)에도 동일한 경로로 호출된다.</summary>
     public async void ReturnToLobby()
     {
+        if (isReturningToLobby)
+            return;
+        isReturningToLobby = true;
+
         isMatching = false;
         playerSpawnedInGameScene = false;
 
@@ -134,6 +140,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
             await runner.Shutdown();
 
         SceneManager.LoadScene(lobbySceneName);
+        isReturningToLobby = false;
     }
 
     // ---------------- 매칭(세션) 처리 ----------------
@@ -290,7 +297,19 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+    // 대전 도중(게임 씬) 상대가 나가면 나도 로비로 돌아간다. 매칭 대기 중(로비 씬)에
+    // 상대가 취소하는 경우는 게임 씬이 아니므로 영향받지 않는다.
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+        if (player == runner.LocalPlayer)
+            return;
+
+        if (SceneManager.GetActiveScene().name != gameSceneName)
+            return;
+
+        SetStatus("상대방이 나갔습니다. 로비로 돌아갑니다.");
+        ReturnToLobby();
+    }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
         isMatching = false;
