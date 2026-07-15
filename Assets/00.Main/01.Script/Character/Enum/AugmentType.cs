@@ -7,6 +7,10 @@
 /// </summary>
 public enum AugmentType
 {
+    ATK,
+    DEF,
+    SPD,
+
     /// <summary>Q스킬이 조준 방향 대신 8방향으로 동시에 나간다.</summary>
     QSkillOctoDirection,
 

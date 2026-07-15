@@ -28,6 +28,8 @@ public class MatchManager : NetworkBehaviour
     public const int WinsRequired = 2;
 
     [Header("타이밍")]
+    [Tooltip("매치 시작 직후 증강 팩 선택 제한시간.")]
+    [SerializeField] private float packSelectDuration = 45f;
     [SerializeField] private float roundEndDisplayDuration = 3f;
     [Tooltip("증강 선택 최대 대기시간. 양쪽 다 고르면 이 시간이 남았어도 즉시 다음 라운드로 넘어간다. " +
              "한쪽이 고르지 않고 버틸 때(자리비움/연결끊김 등)의 안전장치용 상한선일 뿐이다.")]
@@ -54,11 +56,11 @@ public class MatchManager : NetworkBehaviour
 
         if (Object.HasStateAuthority)
         {
-            Phase = MatchPhase.Fighting;
+            Phase = MatchPhase.PackSelect;
             Player1Wins = 0;
             Player2Wins = 0;
             RoundNumber = 1;
-            PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
+            PhaseTimer = TickTimer.CreateFromSeconds(Runner, packSelectDuration);
         }
     }
 
@@ -75,6 +77,10 @@ public class MatchManager : NetworkBehaviour
 
         switch (Phase)
         {
+            case MatchPhase.PackSelect:
+                TickPackSelect();
+                break;
+
             case MatchPhase.Fighting:
                 TickFighting();
                 break;
@@ -114,6 +120,51 @@ public class MatchManager : NetworkBehaviour
             return true;
 
         return p1.Object.InputAuthority == player;
+    }
+
+    /// <summary>현재 페이즈(PackSelect/AugmentSelect 등)의 남은 시간(초). 선택 UI 타이머 표시용 공용 접근자.</summary>
+    public float GetPhaseTimeRemaining() => PhaseTimer.RemainingTime(Runner) ?? 0f;
+
+    /// <summary>현재 페이즈의 전체 제한시간(초). Fill Image 타이머처럼 비율(남은시간/전체시간)이
+    /// 필요한 UI에서 GetPhaseTimeRemaining()과 함께 쓴다. 해당 없는 페이즈면 0.</summary>
+    public float GetPhaseTotalDuration()
+    {
+        switch (Phase)
+        {
+            case MatchPhase.PackSelect:
+                return packSelectDuration;
+            case MatchPhase.AugmentSelect:
+                return augmentSelectDuration;
+            default:
+                return 0f;
+        }
+    }
+
+    /// <summary>양쪽 다 팩 선택을 확정하면 즉시 전투로 넘어간다. packSelectDuration 은 상대가
+    /// 고르지 않고 버티는 경우(자리비움/연결끊김 등)를 위한 최대 대기시간이며,
+    /// 시간 초과 시 아직 안 고른 쪽은 해금된 팩 중 무작위로 자동 확정된다.</summary>
+    private void TickPackSelect()
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return;
+
+        bool bothFinalized = p1.HasFinalizedPackSelection && p2.HasFinalizedPackSelection;
+        bool timedOut = PhaseTimer.Expired(Runner);
+
+        if (!bothFinalized && !timedOut)
+            return;
+
+        if (timedOut)
+        {
+            if (!p1.HasFinalizedPackSelection)
+                p1.AutoFinalizePackSelection();
+            if (!p2.HasFinalizedPackSelection)
+                p2.AutoFinalizePackSelection();
+        }
+
+        Debug.Log($"[MatchManager] PackSelect → Fighting 전환 (timedOut={timedOut})");
+        Phase = MatchPhase.Fighting;
+        PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
     }
 
     private void TickFighting()

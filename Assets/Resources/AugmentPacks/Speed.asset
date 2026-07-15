@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6786f983173331f48b4e35ae0fb1a43f, type: 3}
+  m_Name: Speed
+  m_EditorClassIdentifier: Assembly-CSharp::AugmentPackData
+  packIndex: 2
+  displayName: "\uAE30\uB3D9 \uCE74\uB4DC\uD329"
+  description: "\uB300\uC2DC\uC640 \uC810\uD504\uB97C \uD655\uC7A5\uD558\uB294 \uC774\uB3D9\uD615
+    \uC99D\uAC15 \uBAA8\uC74C"
+  icon: {fileID: -8828807840729176151, guid: 0bea4780d88fdf041bf228c20c58ac06, type: 3}
+  augments:
+  - {fileID: 11400000, guid: 15ba5e3c8e7c2a340b5f1bd3fe943698, type: 2}
+  - {fileID: 11400000, guid: 15ba5e3c8e7c2a340b5f1bd3fe943698, type: 2}
+  - {fileID: 11400000, guid: 15ba5e3c8e7c2a340b5f1bd3fe943698, type: 2}

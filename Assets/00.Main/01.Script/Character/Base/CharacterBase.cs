@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Fusion;
 using UnityEngine;
 
@@ -412,6 +413,89 @@ public abstract class CharacterBase : NetworkBehaviour
             return false;
 
         return NetAugmentPickedRound == roundNumber;
+    }
+
+    // ---------------- 증강 팩(Augment Pack) ----------------
+    // 매치 시작 시(MatchPhase.PackSelect) 고른 팩들은 라운드 리셋과 무관하게 매치 내내 유지된다.
+    // 팩 선택도 증강처럼 항상 본인 캐릭터에 대해서만(StateAuthority) 적용된다.
+
+    [Networked] private int NetSelectedPackFlags { get; set; }
+    [Networked] private NetworkBool NetPackSelectionFinalized { get; set; }
+
+    private const int MaxSelectedPacks = 5;
+
+    /// <summary>이번 매치에 쓸 팩 선택을 이미 확정했는가. MatchManager 가 양쪽 다 확정했는지 확인할 때 쓴다.</summary>
+    public bool HasFinalizedPackSelection => isNetworked && NetPackSelectionFinalized;
+
+    public bool HasSelectedPack(AugmentPackData pack)
+    {
+        if (!isNetworked || pack == null)
+            return false;
+
+        return (NetSelectedPackFlags & (1 << pack.packIndex)) != 0;
+    }
+
+    /// <summary>플레이어가 직접 고른 팩(최대 5개)으로 선택을 확정한다.</summary>
+    public void FinalizePackSelection(IReadOnlyList<AugmentPackData> chosenPacks)
+    {
+        if (Object == null || !Object.HasStateAuthority || NetPackSelectionFinalized)
+            return;
+
+        int flags = 0;
+        int count = 0;
+        foreach (AugmentPackData pack in chosenPacks)
+        {
+            if (pack == null)
+                continue;
+            if (count >= MaxSelectedPacks)
+                break;
+
+            flags |= 1 << pack.packIndex;
+            count++;
+        }
+
+        NetSelectedPackFlags = flags;
+        NetPackSelectionFinalized = true;
+
+        Debug.Log($"[CharacterBase] 팩 선택 확정 (PlayerId={Object.InputAuthority.PlayerId}, {count}개)");
+    }
+
+    /// <summary>시간 초과로 아직 고르지 않은 플레이어를 위한 안전장치. 해금된 팩 중 무작위로 최대 5개를 자동 확정한다.</summary>
+    public void AutoFinalizePackSelection()
+    {
+        if (Object == null || !Object.HasStateAuthority || NetPackSelectionFinalized)
+            return;
+
+        List<AugmentPackData> unlocked = AugmentPackManager.AllPacks
+            .Where(AugmentPackManager.IsUnlocked)
+            .OrderBy(_ => Random.value)
+            .ToList();
+
+        FinalizePackSelection(unlocked);
+    }
+
+    /// <summary>선택한 팩들의 증강을 (증강, 출처 팩) 쌍으로 모아 반환한다.
+    /// 같은 증강이 여러 팩에 있으면 먼저 발견한 팩을 출처로 삼는다.</summary>
+    public List<AugmentPoolEntry> GetAugmentPool()
+    {
+        List<AugmentPoolEntry> pool = new List<AugmentPoolEntry>();
+        if (!isNetworked)
+            return pool;
+
+        HashSet<AugmentType> seen = new HashSet<AugmentType>();
+        foreach (AugmentPackData pack in AugmentPackManager.AllPacks)
+        {
+            if (!HasSelectedPack(pack))
+                continue;
+
+            foreach (AugmentData augment in pack.augments)
+            {
+                if (augment != null && seen.Add(augment.type))
+                    pool.Add(new AugmentPoolEntry(augment, pack));
+            }
+        }
+
+        return pool;
     }
 
     // ---------------- 가상 메서드 ----------------

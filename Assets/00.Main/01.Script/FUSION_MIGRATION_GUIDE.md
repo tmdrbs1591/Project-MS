@@ -77,7 +77,7 @@
 | `Fusion.Addons.Physics.NetworkRigidbody2D` | **물리 위치 동기화** (애드온, 0-1 필요) |
 | `SlimeCharacter` (CharacterBase) | 그대로 |
 | `SlimeVisualController` / `SlimeMouseArmController` | 그대로 |
-| `PortalInteractor` | 로비에서 쓸 경우 |
+| `InteractionDetector` (구 `PortalInteractor`) | 로비에서 쓸 경우 |
 
 - 프리팹은 **Resources 폴더에 둘 필요 없음** (Fusion 은 NetworkProjectConfig 의
   Prefab 목록으로 관리. 프리팹 저장 시 자동 등록됨)

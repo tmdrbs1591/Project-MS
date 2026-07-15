@@ -9,7 +9,7 @@ using UnityEngine;
 ///     그 상태에서 F 를 누르면 PortalInteractor 가 이 포탈의 Interact() 를 호출한다.
 /// </summary>
 [RequireComponent(typeof(Collider2D))]
-public class Portal : MonoBehaviour
+public class Portal : MonoBehaviour, IInteractable
 {
     [Header("연결")]
     [Tooltip("매칭 UI 래퍼. 비워두면 씬에서 자동으로 찾는다.")]
