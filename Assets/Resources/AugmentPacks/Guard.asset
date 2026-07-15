@@ -19,3 +19,4 @@ MonoBehaviour:
   icon: {fileID: -1399833449047196894, guid: 0bea4780d88fdf041bf228c20c58ac06, type: 3}
   augments:
   - {fileID: 11400000, guid: 22478d3d5cbc26d44ab7814517d49f0e, type: 2}
+  - {fileID: 11400000, guid: 305082dc7b268ef4684d3176a3520da3, type: 2}

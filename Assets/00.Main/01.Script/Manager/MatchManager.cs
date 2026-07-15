@@ -33,7 +33,7 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] private float roundEndDisplayDuration = 3f;
     [Tooltip("증강 선택 최대 대기시간. 양쪽 다 고르면 이 시간이 남았어도 즉시 다음 라운드로 넘어간다. " +
              "한쪽이 고르지 않고 버틸 때(자리비움/연결끊김 등)의 안전장치용 상한선일 뿐이다.")]
-    [SerializeField] private float augmentSelectDuration = 5f;
+    [SerializeField] private float augmentSelectDuration = 20f;
     [Tooltip("라운드 리셋 직후 사망 판정을 잠깐 쉬는 시간. 상대 클라의 부활 RPC가 도착하기 전에 " +
              "'아직 죽어있음'으로 오판해 곧바로 다음 라운드가 끝나버리는 것을 막는다.")]
     [SerializeField] private float roundStartGraceDuration = 1f;

@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aa664b5bf0bc6ec4a85cfa9354e351a3, type: 3}
-  m_Name: SPDT
+  m_Name: DEFT 1
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
-  type: 5
-  title: "\uAE30\uB3D9\uD615 \uD14C\uC2A4\uD2B8"
-  description: "\uAE30\uB3D9\uD615 \uC99D\uAC15 \uC124\uBA85"
-  icon: {fileID: -8828807840729176151, guid: 0bea4780d88fdf041bf228c20c58ac06, type: 3}
+  type: 4
+  title: "\uBC29\uC5B4\uD615 \uD14C\uC2A4\uD2B82"
+  description: "\uBC29\uC5B4\uD615 \uC99D\uAC15 \uC124\uBA85"
+  icon: {fileID: -1399833449047196894, guid: 0bea4780d88fdf041bf228c20c58ac06, type: 3}

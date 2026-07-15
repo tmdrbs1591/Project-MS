@@ -19,7 +19,5 @@ MonoBehaviour:
   icon: {fileID: 7281008091942748761, guid: 0bea4780d88fdf041bf228c20c58ac06, type: 3}
   augments:
   - {fileID: 11400000, guid: d537023fcd2f3d44ba510081ad34b0fb, type: 2}
-  - {fileID: 11400000, guid: d537023fcd2f3d44ba510081ad34b0fb, type: 2}
-  - {fileID: 11400000, guid: d537023fcd2f3d44ba510081ad34b0fb, type: 2}
-  - {fileID: 11400000, guid: d537023fcd2f3d44ba510081ad34b0fb, type: 2}
-  - {fileID: 11400000, guid: d537023fcd2f3d44ba510081ad34b0fb, type: 2}
+  - {fileID: 11400000, guid: 9515e2acd898bd641915bf9ac4d2c14a, type: 2}
+  - {fileID: 11400000, guid: 71643f79dc222da488e5a4c2ab9138ff, type: 2}

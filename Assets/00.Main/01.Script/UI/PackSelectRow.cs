@@ -11,6 +11,9 @@ public class PackSelectRow : MonoBehaviour
 {
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private Toggle selectToggle;
+    [Tooltip("선택됐을 때만 켜지는 체크 표시 오브젝트(이미지 등).")]
+    [SerializeField] private GameObject checkmark;
+    [SerializeField] private Image packImage;
 
     public AugmentPackData Pack { get; private set; }
 
@@ -24,6 +27,9 @@ public class PackSelectRow : MonoBehaviour
         if (nameText != null)
             nameText.text = pack.displayName;
 
+        if (packImage != null)
+            packImage.sprite = pack.icon;
+
         if (selectToggle != null)
         {
             selectToggle.onValueChanged.RemoveAllListeners();
@@ -31,12 +37,16 @@ public class PackSelectRow : MonoBehaviour
             selectToggle.interactable = true;
             selectToggle.onValueChanged.AddListener(OnValueChanged);
         }
+
+        SetCheckmarkActive(false);
     }
 
     public void SetOnWithoutNotify(bool isOn)
     {
         if (selectToggle != null)
             selectToggle.SetIsOnWithoutNotify(isOn);
+
+        SetCheckmarkActive(isOn);
     }
 
     public void SetInteractable(bool interactable)
@@ -47,6 +57,13 @@ public class PackSelectRow : MonoBehaviour
 
     private void OnValueChanged(bool isOn)
     {
+        SetCheckmarkActive(isOn);
         onToggleChanged?.Invoke(Pack, isOn);
+    }
+
+    private void SetCheckmarkActive(bool active)
+    {
+        if (checkmark != null)
+            checkmark.SetActive(active);
     }
 }
