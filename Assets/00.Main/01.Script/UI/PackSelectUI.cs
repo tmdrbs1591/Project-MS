@@ -7,13 +7,16 @@ using UnityEngine.UI;
 /// 매치 시작 직후(MatchPhase.PackSelect) 뜨는 팩 선택 UI. 해금된 팩 중 최대 5개를 골라
 /// 확인 버튼을 누르면 그 선택으로 로컬 캐릭터의 팩 선택이 확정된다(CharacterBase.FinalizePackSelection).
 /// 제한시간(기본 45초) 안에 확정하지 않으면 MatchManager 가 무작위로 자동 확정한다.
+/// 내가 먼저 확정해도 패널이 바로 닫히지 않고, 상대도 확정할 때까지(=Phase가 PackSelect를
+/// 벗어날 때까지) waitingIndicator로 대기 상태를 보여준다.
 ///
 /// [씬 설정]
 ///   - 게임 씬의 Canvas 하위에 패널을 만들고 이 스크립트를 붙인다.
-///   - panel: 평소엔 꺼져 있다가 PackSelect 구간에만 켜지는 패널.
+///   - panel: 평소엔 꺼져 있다가 PackSelect 구간(선택 중 + 대기 중) 동안 켜지는 패널.
 ///   - timerText: 남은 시간(초) 표시.
-///   - rowContainer / rowPrefab: 해금된 팩마다 하나씩 생성되는 선택 행.
-///   - confirmButton: 선택을 확정하는 버튼.
+///   - rowContainer / rowPrefab: 해금된 팩마다 하나씩 생성되는 선택 행. 내가 확정하면 숨겨진다.
+///   - confirmButton: 선택을 확정하는 버튼. 내가 확정하면 숨겨진다.
+///   - waitingIndicator: "상대 기다리는 중..." 같은 문구를 담은 오브젝트. 내가 확정한 뒤에만 켜진다.
 ///   - 씬에는 하나만 존재해야 한다(AugmentSelectUI와 마찬가지로 static 불필요).
 /// </summary>
 public class PackSelectUI : MonoBehaviour
@@ -25,6 +28,7 @@ public class PackSelectUI : MonoBehaviour
     [SerializeField] private Transform rowContainer;
     [SerializeField] private PackSelectRow rowPrefab;
     [SerializeField] private Button confirmButton;
+    [SerializeField] private GameObject waitingIndicator;
 
     private readonly List<AugmentPackData> chosenPacks = new List<AugmentPackData>();
     private readonly List<PackSelectRow> spawnedRows = new List<PackSelectRow>();
@@ -34,6 +38,7 @@ public class PackSelectUI : MonoBehaviour
     private void Awake()
     {
         SetPanelActive(false);
+        SetWaitingState(false);
 
         if (confirmButton != null)
             confirmButton.onClick.AddListener(OnConfirm);
@@ -54,10 +59,23 @@ public class PackSelectUI : MonoBehaviour
         if (!built)
             BuildRows();
 
-        SetPanelActive(!finalized);
+        SetPanelActive(true);
+        SetWaitingState(finalized);
 
         if (timerText != null)
             timerText.text = Mathf.CeilToInt(Mathf.Max(0f, match.GetPhaseTimeRemaining())) + "초";
+    }
+
+    private void SetWaitingState(bool waiting)
+    {
+        if (rowContainer != null)
+            rowContainer.gameObject.SetActive(!waiting);
+
+        if (confirmButton != null)
+            confirmButton.gameObject.SetActive(!waiting);
+
+        if (waitingIndicator != null)
+            waitingIndicator.SetActive(waiting);
     }
 
     private void BuildRows()
