@@ -4,9 +4,11 @@ Shader "Custom/UIWaterWobble"
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
-        _Strength ("Wobble Strength", Range(0, 0.08)) = 0.02
-        _Scale ("Wobble Scale", Range(0.5, 10)) = 3
-        _Speed ("Speed", Range(0, 5)) = 1
+        [NoScaleOffset] _NoiseTex ("Deform Noise", 2D) = "gray" {}
+        _NoiseScale ("Deform Tiling", Range(0.1, 20)) = 5
+        _FlowDir ("Flow Direction (XY)", Vector) = (1, 0.3, 0, 0)
+        _Strength ("Deform Strength", Range(0, 0.08)) = 0.012
+        _Speed ("Flow Speed", Range(0, 5)) = 1
 
         [Header(Water Sparkle)]
         [HDR] _SparkleColor ("Sparkle Color", Color) = (1,1,1,1)
@@ -87,8 +89,10 @@ Shader "Custom/UIWaterWobble"
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+            sampler2D _NoiseTex;
+            float _NoiseScale;
+            float4 _FlowDir;
             float _Strength;
-            float _Scale;
             float _Speed;
             fixed4 _SparkleColor;
             float _SparkleStrength;
@@ -124,12 +128,13 @@ Shader "Custom/UIWaterWobble"
 
             fixed4 frag(v2f IN) : SV_Target
             {
-                // 반사 텍스처(RT)의 UV를 부드러운 노이즈로 흔든다 → 반사가 제자리에서 일렁임
+                // 디폼 노이즈 텍스처를 흐름 방향으로 스크롤 → 물 흐를 때처럼 반사가 일그러짐
                 float t = _Time.y * _Speed;
-                float2 nUV = IN.texcoord * _Scale + float2(t, t * 0.5);
-                float nx = noise(nUV);
-                float ny = noise(nUV + 100.0);
-                float2 uv = IN.texcoord + (float2(nx, ny) - 0.5) * _Strength;
+                float2 flow = _FlowDir.xy * t;
+                float2 dUV = IN.texcoord * _NoiseScale + flow;
+                float dx = tex2D(_NoiseTex, dUV).r;
+                float dy = tex2D(_NoiseTex, dUV + float2(0.37, 0.53)).r; // 다른 위치 → x/y 다른 변위
+                float2 uv = IN.texcoord + (float2(dx, dy) - 0.5) * _Strength;
 
                 half4 color = (tex2D(_MainTex, uv) + _TextureSampleAdd) * IN.color;
 

@@ -61,30 +61,30 @@ Material:
     - _AlphaCutoff: 0.5
     - _ColorMask: 15
     - _EnableExternalAlpha: 0
-    - _NoiseScale: 5.87
+    - _NoiseScale: 5.2
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Scale: 4.53
     - _SparkleScale: 31.2
     - _SparkleSpeed: 4.57
-    - _SparkleStrength: 0.73
+    - _SparkleStrength: 1.42
     - _SparkleThreshold: 0.778
-    - _Speed: 3.44
+    - _Speed: 0.89
     - _Stencil: 0
     - _StencilComp: 8
     - _StencilOp: 0
     - _StencilReadMask: 255
     - _StencilWriteMask: 255
-    - _Strength: 0.0122
+    - _Strength: 0.0058
     - _TintStrength: 0.556
     - _UseUIAlphaClip: 0
     - _WaveFreq: 2.46
     - _ZWrite: 0
     m_Colors:
-    - _Color: {r: 0.82075465, g: 1, b: 0.9322351, a: 1}
+    - _Color: {r: 0.65391, g: 0.67295593, b: 0.66660726, a: 1}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
-    - _FlowDir: {r: 1, g: 1, b: 0, a: 0}
+    - _FlowDir: {r: -1, g: -0.26, b: 0, a: 0}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _SparkleColor: {r: 159.4461, g: 159.4461, b: 159.4461, a: 1}
     - _Tint: {r: 0.827044, g: 0.9146451, b: 1, a: 1}
