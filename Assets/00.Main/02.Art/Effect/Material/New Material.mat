@@ -34,10 +34,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _DissolveTex:
         m_Texture: {fileID: 2800000, guid: 45456c4ebe97dc3498037bb3e0217aad, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 0.4, y: 0.4}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: f1d251d5cf68309458f28b1672b053ec, type: 3}
+        m_Texture: {fileID: 2800000, guid: e89d1a49ed48aa146a4415971406d05e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskTex:
