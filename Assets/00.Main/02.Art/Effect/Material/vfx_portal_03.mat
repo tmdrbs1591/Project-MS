@@ -89,11 +89,11 @@ Material:
     - _Dissolve_Mask_Smooth: 0
     - _Dissolve_Panning_Type: 0
     - _Dissolve_Prog_ParticleCustom2W: 0
-    - _Dissolve_Progress: 0.576
+    - _Dissolve_Progress: 0
     - _Dissolve_Radial: 0
     - _Dissolve_Rotate: 0
     - _Dissolve_Use: 0
-    - _Dissolve_smooth: 0.176
+    - _Dissolve_smooth: 0
     - _ERRORTOGGLE: 0
     - _Emission: 47.2
     - _Emission_Mode: 0
