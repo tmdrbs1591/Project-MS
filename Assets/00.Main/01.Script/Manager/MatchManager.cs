@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Fusion;
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 /// <summary>
@@ -56,11 +57,11 @@ public class MatchManager : NetworkBehaviour
 
         if (Object.HasStateAuthority)
         {
-            Phase = MatchPhase.PackSelect;
             Player1Wins = 0;
             Player2Wins = 0;
             RoundNumber = 1;
-            PhaseTimer = TickTimer.CreateFromSeconds(Runner, packSelectDuration);
+            Phase = MatchPhase.Fighting;
+            PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
         }
     }
 
@@ -140,32 +141,8 @@ public class MatchManager : NetworkBehaviour
         }
     }
 
-    /// <summary>양쪽 다 팩 선택을 확정하면 즉시 전투로 넘어간다. packSelectDuration 은 상대가
-    /// 고르지 않고 버티는 경우(자리비움/연결끊김 등)를 위한 최대 대기시간이며,
-    /// 시간 초과 시 아직 안 고른 쪽은 해금된 팩 중 무작위로 자동 확정된다.</summary>
-    private void TickPackSelect()
-    {
-        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
-            return;
-
-        bool bothFinalized = p1.HasFinalizedPackSelection && p2.HasFinalizedPackSelection;
-        bool timedOut = PhaseTimer.Expired(Runner);
-
-        if (!bothFinalized && !timedOut)
-            return;
-
-        if (timedOut)
-        {
-            if (!p1.HasFinalizedPackSelection)
-                p1.AutoFinalizePackSelection();
-            if (!p2.HasFinalizedPackSelection)
-                p2.AutoFinalizePackSelection();
-        }
-
-        Debug.Log($"[MatchManager] PackSelect → Fighting 전환 (timedOut={timedOut})");
-        Phase = MatchPhase.Fighting;
-        PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
-    }
+    // 카드팩 기능 비활성화 — CharacterBase 관련 코드 제거됨
+    private void TickPackSelect() { }
 
     private void TickFighting()
     {
@@ -177,7 +154,7 @@ public class MatchManager : NetworkBehaviour
             return;
 
         // 동시 사망(더블 KO)은 드문 경우라 p1 을 패자로 처리한다(무승부 처리는 하지 않음).
-        CharacterBase loser = p1.Health.IsDead ? p1 : (p2.Health.IsDead ? p2 : null);
+        CharacterBase loser = p1.IsDead ? p1 : (p2.IsDead ? p2 : null);
         if (loser == null)
             return;
 
@@ -201,23 +178,15 @@ public class MatchManager : NetworkBehaviour
             return;
         }
 
-        Phase = MatchPhase.AugmentSelect;
-        PhaseTimer = TickTimer.CreateFromSeconds(Runner, augmentSelectDuration);
+        // PackSelect / AugmentSelect 플로우 임시 비활성화 — 로직은 보존
+        ResetRoundCharacters();
+        RoundNumber++;
+        Phase = MatchPhase.Fighting;
+        PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
     }
 
-    /// <summary>양쪽 다 증강을 고르면 즉시 다음 라운드로 넘어간다. augmentSelectDuration 은
-    /// 상대가 고르지 않고 버티는 경우(자리비움/연결끊김 등)를 위한 최대 대기시간일 뿐이다.</summary>
-    private void TickAugmentSelect()
-    {
-        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
-            return;
-
-        bool bothPicked = p1.HasPickedAugmentForRound(RoundNumber) && p2.HasPickedAugmentForRound(RoundNumber);
-        bool timedOut = PhaseTimer.Expired(Runner);
-
-        if (bothPicked || timedOut)
-            OnAugmentSelectExpired();
-    }
+    // 카드팩 기능 비활성화 — CharacterBase 관련 코드 제거됨
+    private void TickAugmentSelect() { }
 
     private void OnAugmentSelectExpired()
     {
@@ -232,11 +201,30 @@ public class MatchManager : NetworkBehaviour
         if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
             return;
 
-        p1.RequestRoundReset(GetSpawnPosition(p1));
-        p2.RequestRoundReset(GetSpawnPosition(p2));
+        Vector2 pos1 = GetSpawnPosition(p1);
+        Vector2 pos2 = GetSpawnPosition(p2);
+
+        // StateAuthority → All 브로드캐스트: 각 클라이언트가 자기 캐릭터를 직접 리셋한다.
+        // CharacterBase 쪽 RPC(StateAuthority 라우팅)보다 Shared 모드에서 안정적이다.
+        Rpc_BroadcastReset(p1.Object.InputAuthority, pos1, p2.Object.InputAuthority, pos2);
     }
 
-    private Vector3 GetSpawnPosition(CharacterBase character)
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_BroadcastReset(PlayerRef owner1, Vector2 pos1, PlayerRef owner2, Vector2 pos2)
+    {
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (!ch.Object.HasStateAuthority)
+                continue;
+
+            if (ch.Object.InputAuthority == owner1)
+                ch.ResetCharacter(pos1);
+            else if (ch.Object.InputAuthority == owner2)
+                ch.ResetCharacter(pos2);
+        }
+    }
+
+    private Vector2 GetSpawnPosition(CharacterBase character)
     {
         if (playerSpawner != null)
             return playerSpawner.GetSpawnPosition(character.Object.InputAuthority.PlayerId);

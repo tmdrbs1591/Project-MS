@@ -1,3 +1,4 @@
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 /// <summary>
@@ -49,8 +50,8 @@ public class CooldownHUD : MonoBehaviour
 
         foreach (CooldownSlotUI slot in slots)
         {
-            float remaining = character.Cooldown.GetRemainingTime(slot.ActionType);
-            float total = character.Cooldown.GetTotalDuration(slot.ActionType);
+            float remaining = character.Cooldown.GetRemaining(slot.ActionType);
+            float total = character.Cooldown.GetDuration(slot.ActionType);
             slot.UpdateCooldown(remaining, total);
         }
     }

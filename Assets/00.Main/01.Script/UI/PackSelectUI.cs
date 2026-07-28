@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ProjectMS.CharacterSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -156,7 +157,7 @@ public class PackSelectUI : MonoBehaviour
         if (local == null)
             return;
 
-        local.FinalizePackSelection(chosenPacks);
+        //local.FinalizePackSelection(chosenPacks);
         finalized = true;
     }
 

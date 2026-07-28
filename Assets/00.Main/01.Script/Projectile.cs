@@ -1,4 +1,5 @@
 using Fusion;
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 /// <summary>
@@ -136,7 +137,7 @@ public class Projectile : NetworkBehaviour
             if (target.Object != null && target.Object.InputAuthority == Object.InputAuthority)
                 return;
 
-            target.TakeDamage(damage);
+            target.RequestDamage(damage, Object.InputAuthority);
         }
 
         (Vector2 hitPosition, Vector2 hitNormal) = ResolveHitSurface(other);

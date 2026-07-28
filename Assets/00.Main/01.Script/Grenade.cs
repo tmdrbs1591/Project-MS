@@ -1,4 +1,5 @@
 using Fusion;
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 /// <summary>
@@ -103,7 +104,7 @@ public class Grenade : NetworkBehaviour
             if (target.Object != null && target.Object.InputAuthority == Object.InputAuthority)
                 continue;
 
-            target.TakeDamage(damage);
+            target.RequestDamage(damage, Object.InputAuthority);
         }
 
         Rpc_PlayExplosionVfx(transform.position);

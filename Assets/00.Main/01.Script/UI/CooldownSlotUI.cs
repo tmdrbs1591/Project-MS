@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using ProjectMS.CharacterSystem;
 
 /// <summary>
 /// 스킬 하나(평타/Q/E/대시/궁)의 쿨타임을 보여주는 슬롯 UI다.

@@ -35,6 +35,10 @@ public class PlayerSpawner : MonoBehaviour
             return;
         }
 
+        // 로비 매칭 대기 중 걸었던 조작 잠금을 게임 씬 진입 시 해제한다.
+        ProjectMS.CharacterSystem.CharacterBase.SetLobbyControlLocked(false);
+        LobbyCharacterController.SetLocked(false);
+
         Vector3 spawnPos = GetSpawnPosition(runner.LocalPlayer.PlayerId);
 
         // Shared 모드: 스폰한 클라가 StateAuthority + InputAuthority 를 가진다.

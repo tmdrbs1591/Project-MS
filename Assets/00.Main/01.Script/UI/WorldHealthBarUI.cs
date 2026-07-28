@@ -1,3 +1,4 @@
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,7 +30,7 @@ public class WorldHealthBarUI : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (character == null || character.Health == null || fillImage == null)
+        if (character == null || character.Object == null || character.Health == null || fillImage == null)
             return;
 
         float max = character.Health.MaxHealth;

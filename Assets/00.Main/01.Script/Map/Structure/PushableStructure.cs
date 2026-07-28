@@ -1,4 +1,5 @@
 using Fusion;
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 /// <summary>
@@ -75,7 +76,7 @@ public class PushableStructure : NetworkBehaviour
 
             CharacterBase player = collision.collider.GetComponentInParent<CharacterBase>();
             if (player != null)
-                player.TakeDamage(fallDamage); // 피격자 권한에서 적용됨
+                player.RequestDamage(fallDamage, PlayerRef.None); // 피격자 권한에서 적용됨
             break;
         }
     }

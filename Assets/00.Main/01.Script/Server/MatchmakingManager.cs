@@ -1,3 +1,4 @@
+using ProjectMS.CharacterSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -66,6 +67,7 @@ public class MatchmakingManager : MonoBehaviour
         if (matchPanel != null)
             matchPanel.SetActive(true);
         CharacterBase.SetLobbyControlLocked(true);
+        LobbyCharacterController.SetLocked(true);
 
         NetworkLauncher.Instance.StartMatchmaking();
     }
@@ -82,6 +84,7 @@ public class MatchmakingManager : MonoBehaviour
         if (matchPanel != null)
             matchPanel.SetActive(false);
         CharacterBase.SetLobbyControlLocked(false);
+        LobbyCharacterController.SetLocked(false);
     }
 
     private void SetStatus(string message)

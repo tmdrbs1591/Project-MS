@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -70,7 +71,7 @@ public class AugmentSelectUI : MonoBehaviour
     private void RollNewChoices()
     {
         CharacterBase local = CharacterBase.LocalPlayer;
-        pool = local != null ? local.GetAugmentPool() : new List<AugmentPoolEntry>();
+        //pool = local != null ? local.GetAugmentPool() : new List<AugmentPoolEntry>();
         shownTypesThisRound.Clear();
 
         if (slots == null)
@@ -151,7 +152,7 @@ public class AugmentSelectUI : MonoBehaviour
         if (local == null)
             return;
 
-        local.GrantAugment(slot.CurrentType);
+        //local.GrantAugment(slot.CurrentType);
         pickedThisRound = true;
     }
 

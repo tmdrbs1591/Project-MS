@@ -38,7 +38,6 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetJumpSequence { get; set; }
         [Networked] private int NetLandSequence { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
-
         private Rigidbody2D rigidbody2D;
         private Collider2D collider2D;
         private CharacterInputHandler input;
@@ -53,6 +52,16 @@ namespace ProjectMS.CharacterSystem
         private bool lastRenderedDead;
         private CharacterInputSnapshot lastInput;
 
+        public static readonly List<CharacterBase> All = new List<CharacterBase>();
+        public static CharacterBase LocalPlayer
+        {
+            get { foreach (CharacterBase c in All) if (c.IsLocalPlayer) return c; return null; }
+        }
+        private static bool lobbyControlLocked;
+        public static void SetLobbyControlLocked(bool locked) => lobbyControlLocked = locked;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { lobbyControlLocked = false; All.Clear(); }
+
         public CharacterDefinition Definition => definition;
         public CharacterVisualController Visual => visual;
         public float CurrentHealth => NetHealth;
@@ -61,7 +70,8 @@ namespace ProjectMS.CharacterSystem
         public bool IsDead => NetDead;
         public bool IsLocalPlayer => Object != null && Object.HasInputAuthority;
         public CharacterCooldownHandler Cooldowns => cooldowns;
-
+        public CharacterHealth Health => health;
+        public CharacterCooldownHandler Cooldown => cooldowns;
         protected Rigidbody2D Rigidbody => rigidbody2D;
         protected CharacterMovementHandler Movement => movement;
         protected Vector2 AimDirection => DirectionFromAngle(NetAimAngle);
@@ -98,6 +108,9 @@ namespace ProjectMS.CharacterSystem
 
         public override void Spawned()
         {
+            if (!All.Contains(this))
+                All.Add(this);
+
             if (Object.HasStateAuthority)
             {
                 health.Initialize();
@@ -112,6 +125,16 @@ namespace ProjectMS.CharacterSystem
             lastRenderedDamageSequence = NetDamageSequence;
             lastRenderedDead = NetDead;
             OnCharacterSpawned();
+
+            if (IsLocalPlayer)
+                CooldownHUD.Instance?.Bind(this);
+        }
+
+        public override void Despawned(NetworkRunner runner, bool hasState)
+        {
+            All.Remove(this);
+            if (IsLocalPlayer)
+                CooldownHUD.Instance?.Unbind();
         }
 
         protected virtual void OnDestroy()
@@ -128,6 +151,9 @@ namespace ProjectMS.CharacterSystem
             if (Object == null || !Object.HasInputAuthority || input == null)
                 return;
 
+            if (lobbyControlLocked)
+                return;
+
             Camera cameraToUse = inputCamera != null ? inputCamera : Camera.main;
             input.CaptureFrame(cameraToUse, transform.position);
         }
@@ -140,9 +166,10 @@ namespace ProjectMS.CharacterSystem
             lastInput = input.ConsumeTick();
             UpdateAim(lastInput.AimWorldPosition);
 
-            CharacterInputSnapshot movementInput = NetDead || NetGameplayLocked
-                ? default
-                : lastInput;
+            bool matchLocked = NetDead || NetGameplayLocked ||
+                (MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting);
+
+            CharacterInputSnapshot movementInput = matchLocked ? default : lastInput;
 
             movement.Tick(movementInput, Runner.DeltaTime);
             cooldowns.Tick(Runner.DeltaTime);
@@ -152,7 +179,7 @@ namespace ProjectMS.CharacterSystem
             NetGrounded = movement.IsGrounded;
             NetVelocity = rigidbody2D.linearVelocity;
 
-            if (!NetDead && !NetGameplayLocked)
+            if (!matchLocked)
             {
                 HandleActionInputs(lastInput);
                 OnPassiveTick(Runner.DeltaTime);
@@ -459,6 +486,26 @@ namespace ProjectMS.CharacterSystem
         {
             float radians = angle * Mathf.Deg2Rad;
             return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
+        }
+
+        public void RequestHealByMaxHealthPercent(float percent)
+        {
+            RequestHeal(MaxHealth * percent * 0.01f);
+        }
+
+        public void RequestRoundReset(Vector3 position)
+        {
+            if (Object == null) return;
+            if (Object.HasStateAuthority)
+                ResetCharacter((Vector2)position);
+            else
+                Rpc_RequestRoundReset((Vector2)position);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void Rpc_RequestRoundReset(Vector2 position)
+        {
+            ResetCharacter(position);
         }
 
         protected virtual bool OnBasicAttack(CharacterActionContext context) => false;

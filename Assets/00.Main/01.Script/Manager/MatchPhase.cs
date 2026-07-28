@@ -3,11 +3,11 @@
 /// </summary>
 public enum MatchPhase
 {
-    /// <summary>매치 시작 직후, 첫 라운드 전투가 시작되기 전 증강 팩 선택 구간.</summary>
-    PackSelect,
-
     /// <summary>전투 중.</summary>
     Fighting,
+
+    /// <summary>매치 시작 직후, 첫 라운드 전투가 시작되기 전 증강 팩 선택 구간.</summary>
+    PackSelect,
 
     /// <summary>한쪽이 죽어 라운드가 막 끝난 직후. 결과 배너를 보여주는 동안의 대기 구간.</summary>
     RoundEnd,

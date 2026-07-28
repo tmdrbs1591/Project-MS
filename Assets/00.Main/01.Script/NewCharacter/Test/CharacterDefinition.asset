@@ -26,12 +26,12 @@ MonoBehaviour:
   moveSpeed: 5
   groundAcceleration: 45
   airAcceleration: 28
-  jumpForce: 8
+  jumpForce: 20
   maxSpeed: 18
   groundCheckDistance: 0.08
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   coyoteTime: 0.1
   jumpBufferTime: 0.12
   fallGravityMultiplier: 2.2
