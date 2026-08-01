@@ -1,6 +1,10 @@
+<<<<<<< Updated upstream
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+=======
+using Fusion;
+>>>>>>> Stashed changes
 using ProjectMS.CharacterSystem;
 <<<<<<< HEAD
 =======
@@ -27,13 +31,20 @@ namespace ProjectMS.CharacterSystem.Examples
 =======
         [Header("Basic Attack")]
         [SerializeField] private CharacterProjectile projectilePrefab;
-        [Min(0f)][SerializeField] private float projectileSpeed = 14f;
+        [Min(0f)][SerializeField] private float projectileSpeed = 20f;
         [SerializeField] private LayerMask targetLayer;
 
+<<<<<<< Updated upstream
         [Header("Skill Q - Piercing Beam")]
         [Min(0f)][SerializeField] private float beamRange = 10f;
         [Min(0f)][SerializeField] private float beamWidth = 0.8f;
 >>>>>>> 9593566aeba523fac7560d03eaa84369e69e74a2
+=======
+        [Header("Skill Q - ElectricNode")]
+        [SerializeField] private GameObject electricNodePrefab = null;
+        [Min(0f)][SerializeField] private float throwSpeed = 10f;
+        private int plantedQCount = 0;
+>>>>>>> Stashed changes
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -54,18 +65,27 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnSkillQ(CharacterActionContext context)
         {
-            foreach (CharacterBase target in FindEnemiesInLine(
-                         context.Origin,
-                         context.AimDirection,
-                         beamRange,
-                         beamWidth,
-                         targetLayer))
-            {
-                DealDamage(target, context.Damage);
-            }
+            if (electricNodePrefab == null)
+                return false;
 
-            PlayActionEffect(context.Action, context.Origin, context.AimAngle);
-            return true;
+            NetworkObject netObject = Runner.Spawn(
+                electricNodePrefab,
+                ProjectileOrigin.position,
+                Quaternion.identity,
+                Object.InputAuthority
+            );
+
+            Rigidbody2D rb = netObject.GetComponent<Rigidbody2D>();
+            rb.linearVelocity = context.AimDirection.normalized * throwSpeed;
+
+            plantedQCount++;
+
+            if (plantedQCount == 2)
+            {
+                plantedQCount = 0;
+                return true;
+            }
+            return false;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
