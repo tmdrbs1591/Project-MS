@@ -33,6 +33,10 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float lineDamagePerSecond = 20f;
         private List<NetworkObject> plantedElectricNodes = new List<NetworkObject>();
 
+        [SerializeField] private float lineTickInterval = 0.5f; // 데미지 주기 (0.5초)
+        [SerializeField] private float lineTickDamage = 20f;
+        private float lineDamageTimer = 0f;
+
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
             if (projectilePrefab == null)
@@ -79,7 +83,7 @@ namespace ProjectMS.CharacterSystem.Examples
             }
             return false;
         }
-        private void ElectricNodeDamage(float deltaTime)
+        private void UpdateElectricLine(float deltaTime)
         {
             // 노드가 2개 이상 설치되어 있는지 확인
             if (plantedElectricNodes != null && plantedElectricNodes.Count >= 2)
@@ -91,22 +95,53 @@ namespace ProjectMS.CharacterSystem.Examples
                 Vector2 posA = plantedElectricNodes[0].transform.position;
                 Vector2 posB = plantedElectricNodes[1].transform.position;
 
-                if (lineRenderer != null)
+                lineDamageTimer += deltaTime;
+                if (lineDamageTimer >= lineTickInterval)
                 {
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, posA);
-                    lineRenderer.SetPosition(1, posB);
-                }
+                    lineDamageTimer = 0f;
 
-                Vector2 direction = (posB - posA).normalized;
-                float distance = Vector2.Distance(posA, posB);
-                // 선 범위 내 적 감지
-                List<CharacterBase> enemies = FindEnemiesInLine(posA, direction, distance, electricLineWidth, targetLayer);
-                // 초당 지속 데미지(lineDamagePerSecond * deltaTime) 적용
-                foreach (CharacterBase enemy in enemies)
-                {
-                    DealDamage(enemy, lineDamagePerSecond * deltaTime);
+                    Vector2 direction = (posB - posA).normalized;
+                    float distance = Vector2.Distance(posA, posB);
+                    // 선 범위 내 적 감지
+                    List<CharacterBase> enemies = FindEnemiesInLine(posA, direction, distance, electricLineWidth, targetLayer);
+                    // 0.5초마다 lineTickDamage 적용
+                    foreach (CharacterBase enemy in enemies)
+                    {
+                        DealDamage(enemy, lineTickDamage);
+                    }
+
                 }
+            }
+        }
+        public override void Render()
+        {
+            base.Render();
+
+            UpdateLineVisual();
+        }
+
+        private void UpdateLineVisual()
+        {
+            if (lineRenderer == null || Runner == null) return;
+            // 포톤(Runner)을 통해 씬에서 내가 생성한 SPARK_Q 노드 2개 찾아오기 (상대방 컴퓨터 포함)
+            List<Transform> myNodes = new List<Transform>();
+            foreach (var netObj in Runner.GetAllNetworkObjects())
+            {
+                if (netObj != null && netObj.InputAuthority == Object.InputAuthority && netObj.name.Contains("SPARK_Q"))
+                {
+                    myNodes.Add(netObj.transform);
+                }
+            }
+            // Q 노드가 2개 있으면 상대방 화면을 포함해 모두 라인 표시
+            if (myNodes.Count >= 2)
+            {
+                lineRenderer.enabled = true;
+                lineRenderer.SetPosition(0, myNodes[0].position);
+                lineRenderer.SetPosition(1, myNodes[1].position);
+            }
+            else
+            {
+                lineRenderer.enabled = false;
             }
         }
 
@@ -155,7 +190,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnPassiveTick(float deltaTime)
         {
-            ElectricNodeDamage(deltaTime);
+            UpdateElectricLine(deltaTime);
         }
 
         // Q스킬 연동 전까지 위치를 제공해주는 헬퍼 메서드
