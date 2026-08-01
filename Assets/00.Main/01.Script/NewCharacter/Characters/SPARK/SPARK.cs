@@ -16,14 +16,14 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float overloadRadius = 3.5f; // 노드 중심 폭발 범위 반지름
 
         [Header("궁극기 (테슬라 필드)")]
-        [SerializeField] private float teslaRadius = 5f;       // 전자기장 범위 반지름
-        [SerializeField] private float teslaDuration = 3f;     // 전자기장 지속 시간 (초)
-        [SerializeField] private float tickInterval = 0.5f;    // 데미지 주기 (초)
+        [SerializeField] private float teslaRadius = 5f; // 전자기장 범위 반지름
+        [SerializeField] private float teslaDuration = 3f; // 전자기장 지속 시간 (초)
+        [SerializeField] private float tickInterval = 0.5f; // 데미지 주기 (초)
 
         [Header("Basic Attack")]
         [SerializeField] private CharacterProjectile projectilePrefab;
         [Min(0f)][SerializeField] private float projectileSpeed = 20f;
-        [SerializeField] private LayerMask targetLayer;      // 피격 대상 레이어
+        [SerializeField] private LayerMask targetLayer; // 피격 대상 레이어
         private float bonusDamage = 0;
         private bool useSkill = false;
 
@@ -38,6 +38,13 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float lineTickInterval = 0.5f; // 데미지 주기 (0.5초)
         [SerializeField] private float lineTickDamage = 20f;
         private float lineDamageTimer = 0f;
+
+        [Networked] private TickTimer TeslaTimer { get; set; }
+        [Networked] private TickTimer TeslaNextTickTimer { get; set; }
+        [Networked] private float TeslaDamagePerTick { get; set; }
+
+        [Networked] private int TeslaTickCounter { get; set; }
+        private int lastRenderedTickCount = -1;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -73,7 +80,10 @@ namespace ProjectMS.CharacterSystem.Examples
                 Object.InputAuthority
             );
 
-            node.GetComponent<Rigidbody2D>().linearVelocity = context.AimDirection.normalized * throwSpeed;
+            if (node != null && node.TryGetComponent<Rigidbody2D>(out var rb))
+            {
+                rb.linearVelocity = context.AimDirection.normalized * throwSpeed;
+            }
 
             plantedElectricNodes.Add(node);
 
@@ -83,20 +93,29 @@ namespace ProjectMS.CharacterSystem.Examples
             }
             else if (plantedElectricNodes.Count >= 3)
             {
-                Runner.Despawn(plantedElectricNodes[0]);
+                if (plantedElectricNodes[0] != null && plantedElectricNodes[0].IsValid)
+                {
+                    Runner.Despawn(plantedElectricNodes[0]);
+                }
                 plantedElectricNodes.RemoveAt(0);
                 return true;
             }
             return false;
         }
+
         private void UpdateElectricLine(float deltaTime)
         {
+            plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
+
             // 노드가 2개 이상 설치되어 있는지 확인
             if (plantedElectricNodes != null && plantedElectricNodes.Count >= 2)
             {
+                if (!HasStateAuthority) return;
+
                 // 파괴되거나 despawn된 노드가 없는지 예외 체크
                 if (plantedElectricNodes[0] == null || plantedElectricNodes[1] == null)
                     return;
+
                 // 두 노드의 실시간 위치 받아오기
                 Vector2 posA = plantedElectricNodes[0].transform.position;
                 Vector2 posB = plantedElectricNodes[1].transform.position;
@@ -108,42 +127,41 @@ namespace ProjectMS.CharacterSystem.Examples
 
                     Vector2 direction = (posB - posA).normalized;
                     float distance = Vector2.Distance(posA, posB);
+
                     // 선 범위 내 적 감지
                     List<CharacterBase> enemies = FindEnemiesInLine(posA, direction, distance, electricLineWidth, targetLayer);
+
                     // 0.5초마다 lineTickDamage 적용
                     foreach (CharacterBase enemy in enemies)
                     {
                         DealDamage(enemy, lineTickDamage);
                     }
-
                 }
             }
         }
+
         public override void Render()
         {
             base.Render();
 
+            if (Runner == null || !Object.IsValid) return;
+
             UpdateLineVisual();
+            UpdateTeslaVisual();
         }
 
         private void UpdateLineVisual()
         {
-            if (lineRenderer == null || Runner == null) return;
-            // 포톤(Runner)을 통해 씬에서 내가 생성한 SPARK_Q 노드 2개 찾아오기 (상대방 컴퓨터 포함)
-            List<Transform> myNodes = new List<Transform>();
-            foreach (var netObj in Runner.GetAllNetworkObjects())
-            {
-                if (netObj != null && netObj.InputAuthority == Object.InputAuthority && netObj.name.Contains("SPARK_Q"))
-                {
-                    myNodes.Add(netObj.transform);
-                }
-            }
+            if (lineRenderer == null) return;
+
+            plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
+
             // Q 노드가 2개 있으면 상대방 화면을 포함해 모두 라인 표시
-            if (myNodes.Count >= 2)
+            if (plantedElectricNodes.Count >= 2)
             {
                 lineRenderer.enabled = true;
-                lineRenderer.SetPosition(0, myNodes[0].position);
-                lineRenderer.SetPosition(1, myNodes[1].position);
+                lineRenderer.SetPosition(0, plantedElectricNodes[0].transform.position);
+                lineRenderer.SetPosition(1, plantedElectricNodes[1].transform.position);
             }
             else
             {
@@ -151,8 +169,25 @@ namespace ProjectMS.CharacterSystem.Examples
             }
         }
 
+        private void UpdateTeslaVisual()
+        {
+            if (TeslaTimer.IsRunning && !TeslaTimer.Expired(Runner))
+            {
+                if (TeslaTickCounter > lastRenderedTickCount)
+                {
+                    lastRenderedTickCount = TeslaTickCounter;
+                    PlayActionEffect(CharacterActionType.Ultimate, transform.position, 0f);
+                }
+            }
+        }
+
         protected override bool OnSkillE(CharacterActionContext context)
         {
+            plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
+
+            if (plantedElectricNodes.Count == 0)
+                return false;
+
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
 
             // 필드에 있는 모든 전류 노드의 위치 목록을 가져옴
@@ -161,10 +196,15 @@ namespace ProjectMS.CharacterSystem.Examples
             // 각 노드의 위치 중심으로 폭발 범위 판정 및 데미지 적용
             foreach (Vector3 nodePos in nodePositions)
             {
-                foreach (CharacterBase enemy in FindEnemiesInCircle(nodePos, overloadRadius, targetLayer))
+                if (HasStateAuthority)
                 {
-                    DealDamage(enemy, context.Damage);
+                    foreach (CharacterBase enemy in FindEnemiesInCircle(nodePos, overloadRadius, targetLayer))
+                    {
+                        DealDamage(enemy, context.Damage);
+                    }
                 }
+
+                PlayActionEffect(context.Action, nodePos, context.AimAngle);
             }
 
             return true;
@@ -172,26 +212,49 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnUltimate(CharacterActionContext context)
         {
+            TeslaDamagePerTick = context.Damage;
+            TeslaTimer = TickTimer.CreateFromSeconds(Runner, teslaDuration);
+            TeslaNextTickTimer = TickTimer.CreateFromSeconds(Runner, tickInterval);
+
+            TeslaTickCounter = 0;
+            lastRenderedTickCount = -1;
+
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
-            StartCoroutine(TeslaFieldRoutine(context.Damage));
 
             return true;
         }
 
-        private IEnumerator TeslaFieldRoutine(float damagePerTick)
+        protected override void OnPassiveTick(float deltaTime)
         {
-            float elapsed = 0f;
+            UpdateElectricLine(deltaTime);
+            UpdateTeslaFieldLogic();
+        }
 
-            while (elapsed < teslaDuration)
+        private void UpdateTeslaFieldLogic()
+        {
+            if (!HasStateAuthority || Runner.IsResimulation) return;
+
+            if (TeslaTimer.IsRunning && !TeslaTimer.Expired(Runner))
             {
-                foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
+                if (TeslaNextTickTimer.Expired(Runner))
                 {
-                    DealDamage(enemy, damagePerTick);
-                }
+                    TeslaNextTickTimer = TickTimer.CreateFromSeconds(Runner, tickInterval);
+                    TeslaTickCounter++;
 
-                yield return new WaitForSeconds(tickInterval);
-                elapsed += tickInterval;
+                    foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
+                    {
+                        DealDamage(enemy, TeslaDamagePerTick);
+                    }
+                }
             }
+        }
+
+        public void StopUltimate()
+        {
+            TeslaTimer = TickTimer.None;
+            TeslaNextTickTimer = TickTimer.None;
+            TeslaTickCounter = 0;
+            lastRenderedTickCount = -1;
         }
 
         protected override void OnSkillExecuted(CharacterActionType actionType)
@@ -200,15 +263,18 @@ namespace ProjectMS.CharacterSystem.Examples
             useSkill = true;
         }
 
-        protected override void OnPassiveTick(float deltaTime)
-        {
-            UpdateElectricLine(deltaTime);
-        }
-
         // Q스킬 연동 전까지 위치를 제공해주는 헬퍼 메서드
         private IReadOnlyList<Vector3> GetActiveNodePositions()
         {
-            return System.Array.Empty<Vector3>();
+            plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
+            List<Vector3> positions = new List<Vector3>();
+
+            foreach (var node in plantedElectricNodes)
+            {
+                positions.Add(node.transform.position);
+            }
+
+            return positions;
         }
     }
 }
