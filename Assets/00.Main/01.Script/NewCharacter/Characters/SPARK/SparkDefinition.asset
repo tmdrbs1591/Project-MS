@@ -13,17 +13,22 @@ MonoBehaviour:
   m_Name: SparkDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
   displayName: SPARK
+<<<<<<< HEAD:Assets/00.Main/01.Script/NewCharacter/Characters/SPARK/SparkDefinition.asset
   maxHealth: 100
   basicAttackDamage: 10
+=======
+  maxHealth: 900
+  basicAttackDamage: 40
+>>>>>>> 9593566aeba523fac7560d03eaa84369e69e74a2:Assets/00.Main/01.Script/NewCharacter/Characters/SPARK/CharacterDefinition.asset
   skillQDamage: 20
-  skillEDamage: 20
-  ultimateDamage: 50
+  skillEDamage: 120
+  ultimateDamage: 20
   basicAttackCooldown: 0.3
-  skillQCooldown: 5
-  skillECooldown: 7
+  skillQCooldown: 100
+  skillECooldown: 150
   dashCooldown: 3
   ultimateCooldown: 30
-  moveSpeed: 5
+  moveSpeed: 10
   groundAcceleration: 45
   airAcceleration: 28
   jumpForce: 8

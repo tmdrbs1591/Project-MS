@@ -164,7 +164,7 @@ MonoBehaviour:
   definition: {fileID: 11400000, guid: 9543f979a5bfb6f4da584aa0465f4b0b, type: 2}
   visual: {fileID: 5855201591818793765}
   sockets:
-    attackOrigin: {fileID: 6085412018715476326}
+    attackOrigin: {fileID: 0}
     projectileOrigin: {fileID: 6085412018715476326}
     weaponRoot: {fileID: 8892872073989034078}
     effectOrigin: {fileID: 0}

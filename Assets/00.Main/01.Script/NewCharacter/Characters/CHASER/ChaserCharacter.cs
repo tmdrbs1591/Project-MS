@@ -112,7 +112,6 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool OnSkillE(CharacterActionContext context)
         {
             if (isSniping) return false;
-            if (!Movement.IsGrounded) return false;
             
             if (isFirstTechJump)
             {
@@ -134,11 +133,13 @@ namespace ProjectMS.CharacterSystem.Examples
                 finalDamage,
                 targetLayer);
 
-            // 빗변 길이 1 기준 연산
-            float dashDirectionX = -Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
-            float dashDirectionY = -Mathf.Sin(techJumpAngle * Mathf.Deg2Rad);
-            Vector2 dashDirection = new Vector2(dashDirectionX, dashDirectionY).normalized;
-            StartDash(dashDirection, techJumpPower, techJumpDuration);
+            // 빗변 길이 1 기준 연산 - FacingDirection은 1 혹은 1 * -1로 반전용
+            float jumpDirectionX = -Movement.FacingDirection * Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
+            float jumpDirectionY = Mathf.Sin(techJumpAngle * Mathf.Deg2Rad);
+            
+            Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
+
+            Movement.StartDash(jumpDirection, techJumpPower, techJumpDuration);
 
             // 섬광탄이 터지며 범위 내 슬로우(CharacterProjectile 수정 필요)
 
@@ -160,7 +161,28 @@ namespace ProjectMS.CharacterSystem.Examples
 
             return true;
         }
-        
+
+        // 후에 1:1이 아니게 된다면 데미지를 입히기 직전 데미지를 줄 대상, 데미지가 매개변수로 호출되는 메서드가 필요함
+        private float GetPassiveAppliedDamage(float damage)
+        {
+            if (isFirstGetPassiveAppliedDamage)
+            {
+                isFirstGetPassiveAppliedDamage = false;
+                SettingPassive();
+            }
+
+            // 만약 좀 더 직관적으로 단순히 앞뒤 구분이 필요하다면 y 값을 0으로 설정 (x축으로만 비교)
+            // 대신 이 경우 캐릭터의 뒤 기준을 정하는 각도는 쓰이지 않게 됨 (변수 삭제 필요)
+            Vector2 directionTargetToThis = (transform.position - target.transform.position).normalized;
+            Vector2 targetFacing = target.transform.right;
+
+            float angleTargetToThis = Vector2.Dot(targetFacing, directionTargetToThis);
+
+            bool isThisOnTargetBack = angleTargetToThis <= backAngleDecimal;
+
+            return isThisOnTargetBack ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
+        }
+
         private void SettingPassive()
         {
             if (carnivalBackAttackCriterionAngle > 360)
@@ -182,7 +204,6 @@ namespace ProjectMS.CharacterSystem.Examples
                 target = c;
             }
         }
-
 
         // TODO : 저격 모드에 따라 바뀌는 것들 바꾸기
         /* 
@@ -230,28 +251,6 @@ namespace ProjectMS.CharacterSystem.Examples
             return false;
         }
         */
-
-        // 후에 1:1이 아니게 된다면 데미지를 입히기 직전 데미지를 줄 대상, 데미지가 매개변수로 호출되는 메서드가 필요함
-        private float GetPassiveAppliedDamage(float damage)
-        {
-            if (isFirstGetPassiveAppliedDamage)
-            {
-                isFirstGetPassiveAppliedDamage = false;
-                SettingPassive();
-            }
-
-            // 만약 좀 더 직관적으로 단순히 앞뒤 구분이 필요하다면 y 값을 0으로 설정 (x축으로만 비교)
-            // 대신 이 경우 캐릭터의 뒤 기준을 정하는 각도는 쓰이지 않게 됨 (변수 삭제 필요)
-            Vector2 directionTargetToThis = (transform.position - target.transform.position).normalized;
-            Vector2 targetFacing = target.transform.right;
-
-            float angleTargetToThis = Vector2.Dot(targetFacing, directionTargetToThis);
-
-            bool isThisOnTargetBack = angleTargetToThis <= backAngleDecimal;
-
-            return isThisOnTargetBack ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
-        }
-
 
         /*
         private CharacterProjectile ResolveDualRevolverPrefab(CharacterProjectile fallback)

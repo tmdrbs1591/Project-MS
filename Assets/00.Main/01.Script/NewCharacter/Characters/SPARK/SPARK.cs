@@ -2,6 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using ProjectMS.CharacterSystem;
+<<<<<<< HEAD
+=======
+using UnityEngine;
+
+>>>>>>> 9593566aeba523fac7560d03eaa84369e69e74a2
 namespace ProjectMS.CharacterSystem.Examples
 {
     /// <summary>
@@ -10,6 +15,7 @@ namespace ProjectMS.CharacterSystem.Examples
     /// </summary>
     public class SPARK : CharacterBase
     {
+<<<<<<< HEAD
         [Header("E 스킬 (과부하)")]
         [SerializeField] private float overloadRadius = 3.5f; // 노드 중심 폭발 범위 반지름
         [SerializeField] private LayerMask targetLayer;      // 피격 대상 레이어
@@ -18,16 +24,48 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float teslaRadius = 5f;       // 전자기장 범위 반지름
         [SerializeField] private float teslaDuration = 3f;     // 전자기장 지속 시간 (초)
         [SerializeField] private float tickInterval = 0.5f;    // 데미지 주기 (초)
+=======
+        [Header("Basic Attack")]
+        [SerializeField] private CharacterProjectile projectilePrefab;
+        [Min(0f)][SerializeField] private float projectileSpeed = 14f;
+        [SerializeField] private LayerMask targetLayer;
+
+        [Header("Skill Q - Piercing Beam")]
+        [Min(0f)][SerializeField] private float beamRange = 10f;
+        [Min(0f)][SerializeField] private float beamWidth = 0.8f;
+>>>>>>> 9593566aeba523fac7560d03eaa84369e69e74a2
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            // 예: FindEnemiesInArc 또는 SpawnProjectile을 사용해 평타를 구현한다.
-            return false;
+            if (projectilePrefab == null)
+                return false;
+
+            SpawnProjectile(
+                projectilePrefab,
+                ProjectileOrigin.position,
+                context.AimDirection,
+                projectileSpeed,
+                context.Damage,
+                targetLayer);
+
+            PlayActionEffect(context.Action, ProjectileOrigin.position, context.AimAngle);
+            return true;
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
         {
-            return false;
+            foreach (CharacterBase target in FindEnemiesInLine(
+                         context.Origin,
+                         context.AimDirection,
+                         beamRange,
+                         beamWidth,
+                         targetLayer))
+            {
+                DealDamage(target, context.Damage);
+            }
+
+            PlayActionEffect(context.Action, context.Origin, context.AimAngle);
+            return true;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
