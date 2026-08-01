@@ -6828,7 +6828,6 @@ MonoBehaviour:
   characterPrefabs:
   - {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
   - {fileID: 1563347596835656311, guid: 93f219e34dd7c4c42bb039eb9401c399, type: 3}
-  - {fileID: 1403295215939554465, guid: 770504900de23194694b3b1acca71855, type: 3}
   playerPrefab: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
   spawnPoints:
   - {fileID: 1446138944}
