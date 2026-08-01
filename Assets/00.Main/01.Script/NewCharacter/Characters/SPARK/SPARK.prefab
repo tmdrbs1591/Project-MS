@@ -187,7 +187,7 @@ MonoBehaviour:
   electricNodePrefab: {fileID: 3595553388960100342, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
   lineRenderer: {fileID: 8668310731192903705}
   throwSpeed: 10
-  electricLineWidth: 0.1
+  electricLineWidth: 0.18
   lineDamagePerSecond: 20
   lineTickInterval: 0.5
   lineTickDamage: 20
