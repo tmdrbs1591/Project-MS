@@ -3358,7 +3358,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2b815ee503c0b3409c882b51dd68968, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeBuilding
-  selectedCharacterIndex: 3
+  selectedCharacterIndex: 2
 --- !u!61 &1139412958
 BoxCollider2D:
   m_ObjectHideFlags: 0

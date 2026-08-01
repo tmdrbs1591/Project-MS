@@ -1,4 +1,5 @@
 using ProjectMS.CharacterSystem;
+using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
 {
@@ -8,15 +9,46 @@ namespace ProjectMS.CharacterSystem.Examples
     /// </summary>
     public class SPARK : CharacterBase
     {
+        [Header("Basic Attack")]
+        [SerializeField] private CharacterProjectile projectilePrefab;
+        [Min(0f)][SerializeField] private float projectileSpeed = 14f;
+        [SerializeField] private LayerMask targetLayer;
+
+        [Header("Skill Q - Piercing Beam")]
+        [Min(0f)][SerializeField] private float beamRange = 10f;
+        [Min(0f)][SerializeField] private float beamWidth = 0.8f;
+
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            // 예: FindEnemiesInArc 또는 SpawnProjectile을 사용해 평타를 구현한다.
-            return false;
+            if (projectilePrefab == null)
+                return false;
+
+            SpawnProjectile(
+                projectilePrefab,
+                ProjectileOrigin.position,
+                context.AimDirection,
+                projectileSpeed,
+                context.Damage,
+                targetLayer);
+
+            PlayActionEffect(context.Action, ProjectileOrigin.position, context.AimAngle);
+            return true;
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
         {
-            return false;
+            foreach (CharacterBase target in FindEnemiesInLine(
+                         context.Origin,
+                         context.AimDirection,
+                         beamRange,
+                         beamWidth,
+                         targetLayer))
+            {
+                DealDamage(target, context.Damage);
+            }
+
+            PlayActionEffect(context.Action, context.Origin, context.AimAngle);
+            return true;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)

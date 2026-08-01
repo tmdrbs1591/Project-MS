@@ -19,14 +19,14 @@ MonoBehaviour:
   skillEDamage: 20
   ultimateDamage: 50
   basicAttackCooldown: 0.3
-  skillQCooldown: 5
-  skillECooldown: 7
+  skillQCooldown: 40
+  skillECooldown: 150
   dashCooldown: 3
   ultimateCooldown: 30
   moveSpeed: 10
   groundAcceleration: 45
   airAcceleration: 28
-  jumpForce: 8
+  jumpForce: 20
   maxSpeed: 18
   groundCheckDistance: 0.08
   groundLayer:

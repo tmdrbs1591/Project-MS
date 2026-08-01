@@ -36,6 +36,10 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.5059524
       objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: aimVisualMode
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5099800003330966633, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_Color.b
       value: 0.8235295
@@ -88,19 +92,32 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7444999895904711700, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: character
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: SortKey
       value: 2280329237
       objectReference: {fileID: 0}
     - target: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: NetworkedBehaviours.Array.size
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: 'NetworkedBehaviours.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1915196037352256035}
+    - target: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: 'NetworkedBehaviours.Array.data[1]'
+      value: 
+      objectReference: {fileID: -4690693064502804097}
     - target: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: 'NetworkedBehaviours.Array.data[2]'
       value: 
       objectReference: {fileID: -4690693064502804097}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 351130389269276740, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -108,6 +125,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: -4690693064502804097}
   m_SourcePrefab: {fileID: 100100000, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+--- !u!114 &1915196037352256035 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6923525658067427975, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+  m_PrefabInstance: {fileID: 8827452473790992548}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8166946445729877182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5e690b5fb1084f5ab1c86457af401d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody2D
 --- !u!114 &6307989572108529139 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
@@ -144,3 +172,10 @@ MonoBehaviour:
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
+  projectilePrefab: {fileID: 4312595785935445242, guid: 2f857482da1f348438f758074b19d733, type: 3}
+  projectileSpeed: 20
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  beamRange: 10
+  beamWidth: 0.8
