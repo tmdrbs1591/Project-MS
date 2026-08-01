@@ -1,6 +1,5 @@
 ﻿using ProjectMS.CharacterSystem;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 namespace ProjectMS.CharacterSystem.Examples
 {
@@ -30,6 +29,15 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float dualRevolverProjectileDamageMultiplier = 1.5f;
         
          */
+        [Header("Basic Attack - Burst")]
+        [SerializeField] private CharacterProjectile burstBulletProjectilePrefab;
+        [Min(0f)] [SerializeField] private float burstBulletProjectileSpeed = 15f;
+        [Min(4)]  [SerializeField] private int burstBulletProjectileFireCount = 4; //총알 개수
+        [Min(0f)] [SerializeField] private float basicAtkAngle = 45f;
+        [Header("Skill Q - Dual Revolver")]
+        [SerializeField] private CharacterProjectile dualRevolverProjectilePrefab; //없으면 기본 burstBulletProjectilePrefab사용
+        [Min(0)][SerializeField] private float dualRevolverProjectileSpeed = 45f;
+
 
         // 현재 코드 구조에서 개발이 어려움
         [Header("Skill E - Technical Jump")]
@@ -73,6 +81,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
+            //----------대드아이 저격탄
             if (isSniping)
             {
                 deadEyeCurrentFireCount++;
@@ -96,17 +105,48 @@ namespace ProjectMS.CharacterSystem.Examples
 
                 return true;
             }
-
-            return false;
+            //=======
+            if(burstBulletProjectilePrefab == null) return false;
+            Vector2 aim = context.AimDirection;
+            float passiveAppliedDamage = GetPassiveAppliedDamage(context.Damage);
+            
+            for (int i = 0; i< burstBulletProjectileFireCount; i++)
+            {
+                //총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
+                //
+                float t = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
+                float offset = -basicAtkAngle * 0.5f + basicAtkAngle * t;
+                Vector2 dir = Rotate(aim, offset);
+                SpawnProjectile(
+                    burstBulletProjectilePrefab,
+                    ProjectileOrigin.position,
+                    dir,
+                    burstBulletProjectileSpeed,
+                    passiveAppliedDamage,
+                    targetLayer);
+            }
+            PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
+            return true;
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
         {
             if (isSniping) return false;
+            
+            CharacterProjectile prefab = ResolveDualRevolverPrefab(burstBulletProjectilePrefab);
+            if(prefab == null) return false;
+            float passiveAppliedDamage = GetPassiveAppliedDamage(context.Damage);
+            SpawnProjectile(
+            prefab,
+            ProjectileOrigin.position,
+            context.AimDirection,
+            dualRevolverProjectileSpeed,
+            passiveAppliedDamage,
+            targetLayer);
 
+            PlayActionEffect(CharacterActionType.SkillQ, EffectOrigin.position, context.AimAngle);
+            return true;
             // Projectile로 ResolveDualRevolverPrefab(basicAttackProjectilePrefab) 쓰세용
-
-            return false;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
@@ -252,12 +292,19 @@ namespace ProjectMS.CharacterSystem.Examples
         }
         */
 
-        /*
+        
         private CharacterProjectile ResolveDualRevolverPrefab(CharacterProjectile fallback)
         {
             return dualRevolverProjectilePrefab != null ? dualRevolverProjectilePrefab : fallback;
         }
 
-        */
+        
+        private Vector2 Rotate(Vector2 v, float degrees)
+        {
+        float rad = degrees * Mathf.Deg2Rad;
+        float cos = Mathf.Cos(rad);
+        float sin = Mathf.Sin(rad);
+        return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+        }
     }
 }
