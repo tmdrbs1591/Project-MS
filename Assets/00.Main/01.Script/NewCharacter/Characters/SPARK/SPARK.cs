@@ -187,6 +187,7 @@ namespace ProjectMS.CharacterSystem.Examples
             List<Transform> myNodes = new List<Transform>();
             foreach (var netObj in Runner.GetAllNetworkObjects())
             {
+                // 자신이 인풋권한을 가지고 있는 SPARK_Q라면
                 if (netObj != null && netObj.InputAuthority == Object.InputAuthority && netObj.name.Contains("SPARK_Q"))
                 {
                     myNodes.Add(netObj.transform);
