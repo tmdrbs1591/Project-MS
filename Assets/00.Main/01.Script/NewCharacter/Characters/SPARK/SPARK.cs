@@ -152,20 +152,25 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void UpdateLineVisual()
         {
-            if (lineRenderer == null) return;
-
-            plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
-
-            // Q 노드가 2개 있으면 상대방 화면을 포함해 모두 라인 표시
-            if (plantedElectricNodes.Count >= 2)
+            if (lineRenderer == null || Runner == null) return;
+            // 포톤(Runner)을 통해 씬에서 내가 생성한 SPARK_Q 노드 2개 찾아오기 (상대방 컴퓨터 포함)
+            List<Transform> myNodes = new List<Transform>();
+            foreach (var netObj in Runner.GetAllNetworkObjects())
             {
-                lineRenderer.enabled = true;
-                lineRenderer.SetPosition(0, plantedElectricNodes[0].transform.position);
-                lineRenderer.SetPosition(1, plantedElectricNodes[1].transform.position);
-            }
-            else
-            {
-                lineRenderer.enabled = false;
+                if (netObj != null && netObj.InputAuthority == Object.InputAuthority && netObj.name.Contains("SPARK_Q"))
+                {
+                    myNodes.Add(netObj.transform);
+                }
+                if (myNodes.Count >= 2)
+                {
+                    lineRenderer.enabled = true;
+                    lineRenderer.SetPosition(0, myNodes[0].position);
+                    lineRenderer.SetPosition(1, myNodes[1].position);
+                }
+                else
+                {
+                    lineRenderer.enabled = false;
+                }
             }
         }
 
