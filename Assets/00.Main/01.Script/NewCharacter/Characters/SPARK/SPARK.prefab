@@ -144,3 +144,10 @@ MonoBehaviour:
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
+  overloadRadius: 3.5
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  teslaRadius: 5
+  teslaDuration: 3
+  tickInterval: 0.5
