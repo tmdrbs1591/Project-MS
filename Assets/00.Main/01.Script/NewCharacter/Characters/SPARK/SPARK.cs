@@ -46,6 +46,42 @@ namespace ProjectMS.CharacterSystem.Examples
         [Networked] private int TeslaTickCounter { get; set; }
         private int lastRenderedTickCount = -1;
 
+        // 지정한 범위(반지름) 크기의 원형으로 퍼져나가는 범위 이펙트 메서드
+        private void PlayRangeEffect(Vector3 position, float radius, Color startColor, float duration = 1.0f)
+        {
+            GameObject particleObj = new GameObject("SkillRangeEffect");
+            particleObj.transform.position = position;
+
+            ParticleSystem ps = particleObj.AddComponent<ParticleSystem>();
+
+            var main = ps.main;
+            main.duration = duration;
+            main.startLifetime = 0.5f;
+            main.startSpeed = 0.1f;
+            main.startSize = 0.5f;
+            main.startColor = startColor;
+            main.maxParticles = 100;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            main.playOnAwake = false;
+
+            var emission = ps.emission;
+            emission.rateOverTime = 0;
+            emission.burstCount = 1;
+            emission.SetBurst(0, new ParticleSystem.Burst(0f, 60));
+
+            // 스킬의 실제 반경(Radius)에 맞춰 원형 테두리 형태로 파티클 생성
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = radius;
+            shape.radiusThickness = 0.1f; // 테두리 선 형태로 선명하게 표시
+
+            var renderer = particleObj.GetComponent<ParticleSystemRenderer>();
+            renderer.material = new Material(Shader.Find("Sprites/Default"));
+
+            ps.Play();
+            Destroy(particleObj, duration + 0.5f);
+        }
+
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
             if (projectilePrefab == null)
@@ -107,16 +143,13 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
 
-            // 노드가 2개 이상 설치되어 있는지 확인
             if (plantedElectricNodes != null && plantedElectricNodes.Count >= 2)
             {
                 if (!HasStateAuthority) return;
 
-                // 파괴되거나 despawn된 노드가 없는지 예외 체크
                 if (plantedElectricNodes[0] == null || plantedElectricNodes[1] == null)
                     return;
 
-                // 두 노드의 실시간 위치 받아오기
                 Vector2 posA = plantedElectricNodes[0].transform.position;
                 Vector2 posB = plantedElectricNodes[1].transform.position;
 
@@ -128,10 +161,8 @@ namespace ProjectMS.CharacterSystem.Examples
                     Vector2 direction = (posB - posA).normalized;
                     float distance = Vector2.Distance(posA, posB);
 
-                    // 선 범위 내 적 감지
                     List<CharacterBase> enemies = FindEnemiesInLine(posA, direction, distance, electricLineWidth, targetLayer);
 
-                    // 0.5초마다 lineTickDamage 적용
                     foreach (CharacterBase enemy in enemies)
                     {
                         DealDamage(enemy, lineTickDamage);
@@ -153,7 +184,6 @@ namespace ProjectMS.CharacterSystem.Examples
         private void UpdateLineVisual()
         {
             if (lineRenderer == null || Runner == null) return;
-            // 포톤(Runner)을 통해 씬에서 내가 생성한 SPARK_Q 노드 2개 찾아오기 (상대방 컴퓨터 포함)
             List<Transform> myNodes = new List<Transform>();
             foreach (var netObj in Runner.GetAllNetworkObjects())
             {
@@ -181,7 +211,10 @@ namespace ProjectMS.CharacterSystem.Examples
                 if (TeslaTickCounter > lastRenderedTickCount)
                 {
                     lastRenderedTickCount = TeslaTickCounter;
-                    PlayActionEffect(CharacterActionType.Ultimate, transform.position, 0f);
+                    PlayActionEffect(CharacterActionType.Ultimate, transform.position, transform.eulerAngles.z);
+
+                    // 💡 궁극기 범위(teslaRadius) 크기에 맞춰 푸른색 원형 자기장 범위 이펙트 출력
+                    PlayRangeEffect(transform.position, teslaRadius, Color.cyan, 0.4f);
                 }
             }
         }
@@ -195,10 +228,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
 
-            // 필드에 있는 모든 전류 노드의 위치 목록을 가져옴
             IReadOnlyList<Vector3> nodePositions = GetActiveNodePositions();
 
-            // 각 노드의 위치 중심으로 폭발 범위 판정 및 데미지 적용
             foreach (Vector3 nodePos in nodePositions)
             {
                 if (HasStateAuthority)
@@ -209,7 +240,10 @@ namespace ProjectMS.CharacterSystem.Examples
                     }
                 }
 
-                PlayActionEffect(context.Action, nodePos, context.AimAngle);
+                PlayActionEffect(context.Action, nodePos, 0f);
+
+                // 💡 E스킬 과부하 범위(overloadRadius) 크기에 맞춰 노란색 폭발 범위 이펙트 출력
+                PlayRangeEffect(nodePos, overloadRadius, Color.yellow, 0.5f);
             }
 
             return true;
@@ -221,10 +255,21 @@ namespace ProjectMS.CharacterSystem.Examples
             TeslaTimer = TickTimer.CreateFromSeconds(Runner, teslaDuration);
             TeslaNextTickTimer = TickTimer.CreateFromSeconds(Runner, tickInterval);
 
-            TeslaTickCounter = 0;
+            TeslaTickCounter = 1;
             lastRenderedTickCount = -1;
 
+            if (HasStateAuthority)
+            {
+                foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
+                {
+                    DealDamage(enemy, TeslaDamagePerTick);
+                }
+            }
+
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
+
+            // 💡 궁극기 최초 시전 시 넓은 범위(teslaRadius)로 퍼지는 테슬라 필드 범위 이펙트 출력
+            PlayRangeEffect(transform.position, teslaRadius, new Color(0f, 0.8f, 1f, 1f), 0.6f);
 
             return true;
         }
@@ -268,7 +313,6 @@ namespace ProjectMS.CharacterSystem.Examples
             useSkill = true;
         }
 
-        // Q스킬 연동 전까지 위치를 제공해주는 헬퍼 메서드
         private IReadOnlyList<Vector3> GetActiveNodePositions()
         {
             plantedElectricNodes.RemoveAll(node => node == null || !node.IsValid);
