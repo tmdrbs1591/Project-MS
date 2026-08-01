@@ -27,8 +27,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Skill Q - ElectricNode")]
         [SerializeField] private GameObject electricNodePrefab = null;
+        [SerializeField] private LineRenderer lineRenderer;
         [Min(0f)][SerializeField] private float throwSpeed = 10f;
-        private int plantedQCount = 0;
+        [SerializeField] private float electricLineWidth = 0.8f;
+        [SerializeField] private float lineDamagePerSecond = 20f;
+        private List<NetworkObject> plantedElectricNodes = new List<NetworkObject>();
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -53,24 +56,58 @@ namespace ProjectMS.CharacterSystem.Examples
             if (electricNodePrefab == null)
                 return false;
 
-            NetworkObject netObject = Runner.Spawn(
+            NetworkObject node = Runner.Spawn(
                 electricNodePrefab,
                 ProjectileOrigin.position,
                 Quaternion.identity,
                 Object.InputAuthority
             );
 
-            Rigidbody2D rb = netObject.GetComponent<Rigidbody2D>();
-            rb.linearVelocity = context.AimDirection.normalized * throwSpeed;
+            node.GetComponent<Rigidbody2D>().linearVelocity = context.AimDirection.normalized * throwSpeed;
 
-            plantedQCount++;
+            plantedElectricNodes.Add(node);
 
-            if (plantedQCount == 2)
+            if (plantedElectricNodes.Count == 2)
             {
-                plantedQCount = 0;
+                return true;
+            }
+            else if (plantedElectricNodes.Count >= 3)
+            {
+                Runner.Despawn(plantedElectricNodes[0]);
+                plantedElectricNodes.RemoveAt(0);
                 return true;
             }
             return false;
+        }
+        private void ElectricNodeDamage(float deltaTime)
+        {
+            // 노드가 2개 이상 설치되어 있는지 확인
+            if (plantedElectricNodes != null && plantedElectricNodes.Count >= 2)
+            {
+                // 파괴되거나 despawn된 노드가 없는지 예외 체크
+                if (plantedElectricNodes[0] == null || plantedElectricNodes[1] == null)
+                    return;
+                // 두 노드의 실시간 위치 받아오기
+                Vector2 posA = plantedElectricNodes[0].transform.position;
+                Vector2 posB = plantedElectricNodes[1].transform.position;
+
+                if (lineRenderer != null)
+                {
+                    lineRenderer.enabled = true;
+                    lineRenderer.SetPosition(0, posA);
+                    lineRenderer.SetPosition(1, posB);
+                }
+
+                Vector2 direction = (posB - posA).normalized;
+                float distance = Vector2.Distance(posA, posB);
+                // 선 범위 내 적 감지
+                List<CharacterBase> enemies = FindEnemiesInLine(posA, direction, distance, electricLineWidth, targetLayer);
+                // 초당 지속 데미지(lineDamagePerSecond * deltaTime) 적용
+                foreach (CharacterBase enemy in enemies)
+                {
+                    DealDamage(enemy, lineDamagePerSecond * deltaTime);
+                }
+            }
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
@@ -118,7 +155,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnPassiveTick(float deltaTime)
         {
-            // 매 네트워크 Simulation 틱에 필요한 패시브만 구현한다.
+            ElectricNodeDamage(deltaTime);
         }
 
         // Q스킬 연동 전까지 위치를 제공해주는 헬퍼 메서드
