@@ -112,7 +112,6 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool OnSkillE(CharacterActionContext context)
         {
             if (isSniping) return false;
-            if (!Movement.IsGrounded) return false;
             
             if (isFirstTechJump)
             {
