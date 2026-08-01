@@ -172,25 +172,14 @@ MonoBehaviour:
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
-<<<<<<< HEAD
   overloadRadius: 3.5
-  targetLayer:
-    serializedVersion: 2
-    m_Bits: 128
   teslaRadius: 5
   teslaDuration: 3
   tickInterval: 0.5
-=======
   projectilePrefab: {fileID: 4312595785935445242, guid: 2f857482da1f348438f758074b19d733, type: 3}
   projectileSpeed: 20
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
-<<<<<<< Updated upstream
-  beamRange: 10
-  beamWidth: 0.8
->>>>>>> 9593566aeba523fac7560d03eaa84369e69e74a2
-=======
   electricNodePrefab: {fileID: 3595553388960100342, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
   throwSpeed: 10
->>>>>>> Stashed changes
