@@ -134,11 +134,13 @@ namespace ProjectMS.CharacterSystem.Examples
                 finalDamage,
                 targetLayer);
 
-            // 빗변 길이 1 기준 연산
-            float dashDirectionX = -Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
-            float dashDirectionY = -Mathf.Sin(techJumpAngle * Mathf.Deg2Rad);
-            Vector2 dashDirection = new Vector2(dashDirectionX, dashDirectionY).normalized;
-            StartDash(dashDirection, techJumpPower, techJumpDuration);
+            // 빗변 길이 1 기준 연산 - FacingDirection은 1 혹은 1 * -1로 반전용
+            float jumpDirectionX = -Movement.FacingDirection * Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
+            float jumpDirectionY = Mathf.Sin(techJumpAngle * Mathf.Deg2Rad);
+            
+            Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
+
+            Movement.StartDash(jumpDirection, techJumpPower, techJumpDuration);
 
             // 섬광탄이 터지며 범위 내 슬로우(CharacterProjectile 수정 필요)
 
