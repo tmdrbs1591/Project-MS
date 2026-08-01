@@ -16,6 +16,9 @@ using UnityEngine;
 /// </summary>
 public class PlayerSpawner : MonoBehaviour
 {
+    [Header("캐릭터 프리팹 목록")]
+    [SerializeField] private NetworkObject[] characterPrefabs;
+
     [Header("스폰")]
     [Tooltip("NetworkObject 가 붙은 Player 프리팹")]
     [SerializeField] private NetworkObject playerPrefab;
@@ -29,6 +32,8 @@ public class PlayerSpawner : MonoBehaviour
 
     public void SpawnLocalPlayer(NetworkRunner runner)
     {
+        PlayerCharacterChange();
+
         if (playerPrefab == null)
         {
             Debug.LogError("[PlayerSpawner] Player Prefab 이 연결되지 않았습니다.");
@@ -47,6 +52,25 @@ public class PlayerSpawner : MonoBehaviour
         Debug.Log($"[PlayerSpawner] 캐릭터 스폰 @ {spawnPos} (Player {runner.LocalPlayer.PlayerId})");
 
         SpawnMatchManagerIfNeeded(runner);
+    }
+
+    private void PlayerCharacterChange()
+    {
+        int selectedCharacterIndex = PlayerPrefs.GetInt("SelectedCharacterIndex", 0);
+
+        if (characterPrefabs == null || characterPrefabs.Length == 0)
+        {
+            Debug.LogError("[PlayerSpawner] 캐릭터 프리팹이 연결되지 않았습니다.");
+            return;
+        }
+
+        if (selectedCharacterIndex < 0 || selectedCharacterIndex >= characterPrefabs.Length)
+        {
+            Debug.LogError("[PlayerSpawner] 선택한 캐릭터 인덱스가 유효하지 않습니다. 0번 캐릭터로 기본 설정합니다.");
+            selectedCharacterIndex = 0;
+        }
+
+        playerPrefab = characterPrefabs[selectedCharacterIndex];
     }
 
     private void SpawnMatchManagerIfNeeded(NetworkRunner runner)

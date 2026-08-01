@@ -6,6 +6,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class CharacterChangeBuilding : MonoBehaviour, IInteractable
 {
+    [SerializeField] private int selectedCharacterIndex = 0;
+
+
     private void Awake()
     {
         var col = GetComponent<Collider2D>();
@@ -15,6 +18,10 @@ public class CharacterChangeBuilding : MonoBehaviour, IInteractable
 
     public void Interact()
     {
-        Debug.Log("[CharacterChangeBuilding] 캐릭터 변경 기능은 준비중입니다.");
+        // SelectedCharacterIndex에 플레이어 프리팹 인덱스 정보 저장
+        PlayerPrefs.SetInt("SelectedCharacterIndex", selectedCharacterIndex);
+        PlayerPrefs.Save();
+
+        Debug.Log($"캐릭터가 변경되었습니다. (인덱스: {selectedCharacterIndex})");
     }
 }
