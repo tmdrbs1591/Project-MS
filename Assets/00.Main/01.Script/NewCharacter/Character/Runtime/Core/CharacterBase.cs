@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
@@ -11,8 +12,9 @@ namespace ProjectMS.CharacterSystem
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Collider2D))]
     [RequireComponent(typeof(NetworkObject))]
-    public abstract class CharacterBase : NetworkBehaviour
+    public abstract partial class CharacterBase : NetworkBehaviour, ICharacterActionStateStore, ICharacterStatusStateStore
     {
+        private const int ActionSlotCount = 6;
         [Header("Required")]
         [SerializeField] private CharacterDefinition definition;
         [SerializeField] private CharacterVisualController visual;
@@ -38,11 +40,28 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetJumpSequence { get; set; }
         [Networked] private int NetLandSequence { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<NetworkBool> NetActionEnabled => default;
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<int> NetActionCharges => default;
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<float> NetCooldownDurationOverrides => default;
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<NetworkBool> NetAutoCooldown => default;
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<TickTimer> NetCooldownTimers => default;
+        [Networked] private NetworkBool NetMovementEnabled { get; set; }
+        [Networked] private float NetSlowRatio { get; set; }
+        [Networked] private TickTimer NetSlowTimer { get; set; }
+
         private Rigidbody2D rigidbody2D;
         private Collider2D collider2D;
         private CharacterInputHandler input;
         private CharacterMovementHandler movement;
         private CharacterCooldownHandler cooldowns;
+        private CharacterActionStateHandler actionState;
+        private CharacterStatusHandler status;
+        private CharacterTimerHandler timers;
         private CharacterHealth health;
 
         private int lastRenderedActionSequence;
@@ -52,16 +71,6 @@ namespace ProjectMS.CharacterSystem
         private bool lastRenderedDead;
         private CharacterInputSnapshot lastInput;
 
-        public static readonly List<CharacterBase> All = new List<CharacterBase>();
-        public static CharacterBase LocalPlayer
-        {
-            get { foreach (CharacterBase c in All) if (c.IsLocalPlayer) return c; return null; }
-        }
-        private static bool lobbyControlLocked;
-        public static void SetLobbyControlLocked(bool locked) => lobbyControlLocked = locked;
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { lobbyControlLocked = false; All.Clear(); }
-
         public CharacterDefinition Definition => definition;
         public CharacterVisualController Visual => visual;
         public float CurrentHealth => NetHealth;
@@ -70,8 +79,12 @@ namespace ProjectMS.CharacterSystem
         public bool IsDead => NetDead;
         public bool IsLocalPlayer => Object != null && Object.HasInputAuthority;
         public CharacterCooldownHandler Cooldowns => cooldowns;
-        public CharacterHealth Health => health;
-        public CharacterCooldownHandler Cooldown => cooldowns;
+        public float SlowRatio => Mathf.Clamp(NetSlowRatio, 0f, 0.99f);
+        public bool IsSlowed => SlowRatio > 0f && IsSlowRunning;
+        public int FacingDirection => NetFacing >= 0 ? 1 : -1;
+        public bool IsFacingRight => FacingDirection > 0;
+        public bool IsFacingLeft => FacingDirection < 0;
+
         protected Rigidbody2D Rigidbody => rigidbody2D;
         protected CharacterMovementHandler Movement => movement;
         protected Vector2 AimDirection => DirectionFromAngle(NetAimAngle);
@@ -81,6 +94,7 @@ namespace ProjectMS.CharacterSystem
         protected Transform ProjectileOrigin => sockets.ResolveProjectileOrigin(transform);
         protected Transform EffectOrigin => sockets.ResolveEffectOrigin(transform);
         protected Transform WeaponRoot => sockets.WeaponRoot;
+        protected bool IsMovementEnabled => NetMovementEnabled;
 
         protected virtual void Awake()
         {
@@ -99,7 +113,10 @@ namespace ProjectMS.CharacterSystem
 
             input = new CharacterInputHandler(definition);
             movement = new CharacterMovementHandler(rigidbody2D, collider2D, definition);
-            cooldowns = new CharacterCooldownHandler(definition);
+            actionState = new CharacterActionStateHandler(this, definition.GetCooldown);
+            cooldowns = new CharacterCooldownHandler(actionState);
+            status = new CharacterStatusHandler(this);
+            timers = new CharacterTimerHandler();
             health = new CharacterHealth(definition.MaxHealth, () => NetHealth, value => NetHealth = value);
 
             movement.Jumped += HandleJumped;
@@ -108,8 +125,7 @@ namespace ProjectMS.CharacterSystem
 
         public override void Spawned()
         {
-            if (!All.Contains(this))
-                All.Add(this);
+            RegisterProjectIntegration();
 
             if (Object.HasStateAuthority)
             {
@@ -117,6 +133,7 @@ namespace ProjectMS.CharacterSystem
                 NetDead = false;
                 NetFacing = 1;
                 NetAimDirection = 1;
+                ResetCommonState();
             }
 
             lastRenderedActionSequence = NetActionSequence;
@@ -125,20 +142,21 @@ namespace ProjectMS.CharacterSystem
             lastRenderedDamageSequence = NetDamageSequence;
             lastRenderedDead = NetDead;
             OnCharacterSpawned();
-
-            if (IsLocalPlayer)
-                CooldownHUD.Instance?.Bind(this);
+            BindProjectHud();
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
-            All.Remove(this);
-            if (IsLocalPlayer)
-                CooldownHUD.Instance?.Unbind();
+            UnregisterProjectIntegration();
         }
 
         protected virtual void OnDestroy()
         {
+            UnregisterProjectIntegration();
+            timers?.CancelAll();
+            if (HasStateAuthority)
+                ResetCommonState();
+
             if (movement == null)
                 return;
 
@@ -151,7 +169,7 @@ namespace ProjectMS.CharacterSystem
             if (Object == null || !Object.HasInputAuthority || input == null)
                 return;
 
-            if (lobbyControlLocked)
+            if (IsProjectInputLocked)
                 return;
 
             Camera cameraToUse = inputCamera != null ? inputCamera : Camera.main;
@@ -165,21 +183,24 @@ namespace ProjectMS.CharacterSystem
 
             lastInput = input.ConsumeTick();
             UpdateAim(lastInput.AimWorldPosition);
+            status.Tick();
+            movement.SetMovementEnabled(NetMovementEnabled);
+            movement.SetMovementSpeedMultiplier(status.MovementSpeedMultiplier);
 
-            bool matchLocked = NetDead || NetGameplayLocked ||
-                (MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting);
-
-            CharacterInputSnapshot movementInput = matchLocked ? default : lastInput;
+            bool gameplayLocked = NetDead || NetGameplayLocked || IsProjectGameplayLocked;
+            CharacterInputSnapshot movementInput = gameplayLocked
+                ? default
+                : lastInput;
 
             movement.Tick(movementInput, Runner.DeltaTime);
-            cooldowns.Tick(Runner.DeltaTime);
+            timers.Tick(Runner.DeltaTime);
 
             NetFacing = movement.FacingDirection;
             NetMoveInput = movement.MoveInput;
             NetGrounded = movement.IsGrounded;
             NetVelocity = rigidbody2D.linearVelocity;
 
-            if (!matchLocked)
+            if (!gameplayLocked)
             {
                 HandleActionInputs(lastInput);
                 OnPassiveTick(Runner.DeltaTime);
@@ -243,7 +264,7 @@ namespace ProjectMS.CharacterSystem
 
             health.FullHeal();
             NetDead = false;
-            cooldowns.ResetAll();
+            ResetCommonState();
             movement.Reset(position);
             OnResetCharacter();
         }
@@ -260,6 +281,12 @@ namespace ProjectMS.CharacterSystem
             health.Heal(amount);
         }
 
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void Rpc_RequestSlow(float ratio, float duration)
+        {
+            ApplySlowAuthority(ratio, duration);
+        }
+
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void Rpc_PlayActionEffect(CharacterActionType action, Vector2 position, float angle)
         {
@@ -272,8 +299,46 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             PlayerRef attacker = Object != null ? Object.InputAuthority : PlayerRef.None;
-            target.RequestDamage(amount, attacker);
-            OnDamageDealt(target, amount);
+            DealDamageThroughPipeline(target, amount, attacker, CharacterDamageSource.Direct);
+        }
+
+        internal void DealProjectileDamage(CharacterBase target, float amount)
+        {
+            if (target == null || target == this || amount <= 0f)
+                return;
+
+            PlayerRef attacker = Object != null ? Object.InputAuthority : PlayerRef.None;
+            DealDamageThroughPipeline(target, amount, attacker, CharacterDamageSource.Projectile);
+        }
+
+        internal void NotifyProjectileDespawned(
+            CharacterProjectile projectile,
+            ProjectileDespawnReason reason,
+            CharacterBase hitTarget)
+        {
+            if (!HasStateAuthority)
+                return;
+
+            OnProjectileDespawned(projectile, reason, hitTarget);
+        }
+
+        protected void DespawnProjectile(CharacterProjectile projectile)
+        {
+            if (projectile != null)
+                projectile.CompleteManually();
+        }
+
+        private void DealDamageThroughPipeline(
+            CharacterBase target,
+            float amount,
+            PlayerRef attacker,
+            CharacterDamageSource source)
+        {
+            CharacterDamagePipeline pipeline = new CharacterDamagePipeline(
+                (damage, damageSource) => ModifyOutgoingDamage(target, damage, damageSource),
+                damage => target.RequestDamage(damage, attacker),
+                damage => OnDamageDealt(target, damage));
+            pipeline.Apply(amount, source);
         }
 
         protected void Heal(float amount)
@@ -290,6 +355,118 @@ namespace ProjectMS.CharacterSystem
         protected void StartDash(Vector2 direction, float power, float duration)
         {
             movement.StartDash(direction, power, duration);
+        }
+
+        protected void SetActionEnabled(CharacterActionType action, bool enabled)
+        {
+            if (HasStateAuthority)
+                actionState.SetEnabled(action, enabled);
+        }
+
+        protected bool IsActionEnabled(CharacterActionType action)
+        {
+            return actionState != null && actionState.IsEnabled(action);
+        }
+
+        protected void SetActionCharges(CharacterActionType action, int charges)
+        {
+            if (HasStateAuthority)
+                actionState.SetCharges(action, charges);
+        }
+
+        protected void AddActionCharges(CharacterActionType action, int amount)
+        {
+            if (HasStateAuthority)
+                actionState.AddCharges(action, amount);
+        }
+
+        protected int GetActionCharges(CharacterActionType action)
+        {
+            return actionState != null ? actionState.GetCharges(action) : 0;
+        }
+
+        protected void SetCooldownDuration(CharacterActionType action, float seconds)
+        {
+            if (HasStateAuthority)
+                actionState.SetCooldownDuration(action, seconds);
+        }
+
+        protected void ResetCooldownDuration(CharacterActionType action)
+        {
+            if (HasStateAuthority)
+                actionState.ResetCooldownDuration(action);
+        }
+
+        protected void SetAutoCooldown(CharacterActionType action, bool enabled)
+        {
+            if (HasStateAuthority)
+                actionState.SetAutoCooldown(action, enabled);
+        }
+
+        protected void StartCooldown(CharacterActionType action)
+        {
+            if (HasStateAuthority)
+                actionState.StartCooldown(action);
+        }
+
+        protected void StartCooldown(CharacterActionType action, float seconds)
+        {
+            if (HasStateAuthority)
+                actionState.StartCooldown(action, seconds);
+        }
+
+        protected void ClearCooldown(CharacterActionType action)
+        {
+            if (HasStateAuthority)
+                actionState.ClearCooldown(action);
+        }
+
+        protected float GetCooldownRemaining(CharacterActionType action)
+        {
+            return actionState != null ? actionState.GetCooldownRemaining(action) : 0f;
+        }
+
+        protected void SetMovementEnabled(bool enabled)
+        {
+            if (!HasStateAuthority)
+                return;
+
+            NetMovementEnabled = enabled;
+            movement.SetMovementEnabled(enabled);
+        }
+
+        protected void ApplySlow(CharacterBase target, float slowRatio, float duration)
+        {
+            if (target == null || target.Object == null)
+                return;
+
+            if (target.HasStateAuthority)
+                target.ApplySlowAuthority(slowRatio, duration);
+            else
+                target.Rpc_RequestSlow(slowRatio, duration);
+        }
+
+        protected CharacterTimerHandle ScheduleTimer(float seconds, Action callback)
+        {
+            return HasStateAuthority && timers != null
+                ? timers.Schedule(seconds, callback)
+                : default;
+        }
+
+        protected bool CancelTimer(CharacterTimerHandle handle)
+        {
+            return HasStateAuthority && timers != null && timers.Cancel(handle);
+        }
+
+        protected bool IsBehindTarget(CharacterBase target, float rearArcAngle)
+        {
+            if (target == null)
+                return false;
+
+            Vector2 targetForward = target.FacingDirection >= 0 ? Vector2.right : Vector2.left;
+            Vector2 targetToAttacker = ((Vector2)transform.position - (Vector2)target.transform.position).normalized;
+            float rearHalfAngle = Mathf.Clamp(rearArcAngle, 0f, 360f) * 0.5f;
+            return Vector2.Angle(-targetForward, targetToAttacker) <= rearHalfAngle;
         }
 
         protected void SpawnProjectile(
@@ -315,7 +492,7 @@ namespace ProjectMS.CharacterSystem
                 (_, spawnedObject) =>
                 {
                     CharacterProjectile projectile = spawnedObject.GetComponent<CharacterProjectile>();
-                    projectile?.Initialize(normalized, speed, damage, targetLayer, Object.InputAuthority);
+                    projectile?.Initialize(normalized, speed, damage, targetLayer, Object.InputAuthority, Object.Id);
                 });
         }
 
@@ -370,7 +547,9 @@ namespace ProjectMS.CharacterSystem
 
         private void TryExecute(CharacterActionType action, bool pressed)
         {
-            if (!pressed || !cooldowns.CanUse(action))
+            if (!pressed || !actionState.CanUse(action))
+                return;
+            if (action == CharacterActionType.Dash && !NetMovementEnabled)
                 return;
 
             CharacterActionContext context = CreateActionContext(action);
@@ -387,7 +566,9 @@ namespace ProjectMS.CharacterSystem
             if (!executed)
                 return;
 
-            cooldowns.Start(action);
+            actionState.ConsumeCharge(action);
+            if (actionState.ShouldStartCooldownAutomatically(action))
+                actionState.StartCooldown(action);
             NetAction = action;
             NetActionSequence++;
             OnSkillExecuted(action);
@@ -429,8 +610,152 @@ namespace ProjectMS.CharacterSystem
             {
                 NetDead = true;
                 rigidbody2D.linearVelocity = Vector2.zero;
+                ResetCommonState();
                 OnDied(attacker);
             }
+        }
+
+        private bool HasStateAuthority => Object != null && Object.HasStateAuthority;
+
+        private void ResetCommonState()
+        {
+            if (!HasStateAuthority)
+                return;
+
+            timers?.CancelAll();
+            actionState?.Initialize();
+            NetSlowRatio = 0f;
+            NetSlowTimer = default;
+            NetMovementEnabled = true;
+            movement?.CancelDash();
+            movement?.SetMovementSpeedMultiplier(1f);
+            movement?.SetMovementEnabled(true);
+        }
+
+        private void ApplySlowAuthority(float ratio, float duration)
+        {
+            if (HasStateAuthority)
+                status.ApplySlow(ratio, duration);
+        }
+
+        bool ICharacterActionStateStore.GetEnabled(CharacterActionType action)
+        {
+            return IsActionSlot(action) && NetActionEnabled.Get(ActionIndex(action));
+        }
+
+        void ICharacterActionStateStore.SetEnabled(CharacterActionType action, bool enabled)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetActionEnabled.Set(ActionIndex(action), enabled);
+        }
+
+        int ICharacterActionStateStore.GetCharges(CharacterActionType action)
+        {
+            return IsActionSlot(action) ? NetActionCharges.Get(ActionIndex(action)) : 0;
+        }
+
+        void ICharacterActionStateStore.SetCharges(CharacterActionType action, int charges)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetActionCharges.Set(ActionIndex(action), Mathf.Max(-1, charges));
+        }
+
+        float ICharacterActionStateStore.GetCooldownDurationOverride(CharacterActionType action)
+        {
+            return IsActionSlot(action) ? NetCooldownDurationOverrides.Get(ActionIndex(action)) : -1f;
+        }
+
+        void ICharacterActionStateStore.SetCooldownDurationOverride(CharacterActionType action, float seconds)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetCooldownDurationOverrides.Set(ActionIndex(action), Mathf.Max(-1f, seconds));
+        }
+
+        bool ICharacterActionStateStore.GetAutoCooldown(CharacterActionType action)
+        {
+            return IsActionSlot(action) && NetAutoCooldown.Get(ActionIndex(action));
+        }
+
+        void ICharacterActionStateStore.SetAutoCooldown(CharacterActionType action, bool enabled)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetAutoCooldown.Set(ActionIndex(action), enabled);
+        }
+
+        bool ICharacterActionStateStore.IsCooldownRunning(CharacterActionType action)
+        {
+            return ((ICharacterActionStateStore)this).GetCooldownRemaining(action) > 0f;
+        }
+
+        void ICharacterActionStateStore.StartCooldown(CharacterActionType action, float seconds)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetCooldownTimers.Set(ActionIndex(action), TickTimer.CreateFromSeconds(Runner, Mathf.Max(0f, seconds)));
+        }
+
+        void ICharacterActionStateStore.ClearCooldown(CharacterActionType action)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetCooldownTimers.Set(ActionIndex(action), default);
+        }
+
+        float ICharacterActionStateStore.GetCooldownRemaining(CharacterActionType action)
+        {
+            if (Runner == null || !IsActionSlot(action))
+                return 0f;
+
+            return NetCooldownTimers.Get(ActionIndex(action)).RemainingTime(Runner) ?? 0f;
+        }
+
+        float ICharacterStatusStateStore.SlowRatio
+        {
+            get => SlowRatio;
+            set
+            {
+                if (HasStateAuthority)
+                    NetSlowRatio = Mathf.Clamp(value, 0f, 0.99f);
+            }
+        }
+
+        // A configured TickTimer remains running after its remaining time reaches
+        // zero.  Keep that distinction so CharacterStatusHandler can observe
+        // "running and expired" once and clear the replicated slow state.
+        bool ICharacterStatusStateStore.IsSlowRunning => Runner != null && NetSlowTimer.IsRunning;
+
+        bool ICharacterStatusStateStore.IsSlowExpired => Runner != null &&
+            NetSlowTimer.IsRunning && NetSlowTimer.Expired(Runner);
+
+        void ICharacterStatusStateStore.StartSlow(float seconds)
+        {
+            if (HasStateAuthority)
+                NetSlowTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0f, seconds));
+        }
+
+        void ICharacterStatusStateStore.ClearSlow()
+        {
+            if (!HasStateAuthority)
+                return;
+
+            NetSlowRatio = 0f;
+            NetSlowTimer = default;
+        }
+
+        private bool IsSlowRunning
+        {
+            get
+            {
+                return Runner != null && NetSlowTimer.IsRunning && !NetSlowTimer.Expired(Runner);
+            }
+        }
+
+        private static bool IsActionSlot(CharacterActionType action)
+        {
+            return action > CharacterActionType.None && (int)action < ActionSlotCount;
+        }
+
+        private static int ActionIndex(CharacterActionType action)
+        {
+            return (int)action;
         }
 
         private void HandleJumped()
@@ -488,26 +813,6 @@ namespace ProjectMS.CharacterSystem
             return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
         }
 
-        public void RequestHealByMaxHealthPercent(float percent)
-        {
-            RequestHeal(MaxHealth * percent * 0.01f);
-        }
-
-        public void RequestRoundReset(Vector3 position)
-        {
-            if (Object == null) return;
-            if (Object.HasStateAuthority)
-                ResetCharacter((Vector2)position);
-            else
-                Rpc_RequestRoundReset((Vector2)position);
-        }
-
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        private void Rpc_RequestRoundReset(Vector2 position)
-        {
-            ResetCharacter(position);
-        }
-
         protected virtual bool OnBasicAttack(CharacterActionContext context) => false;
         protected virtual bool OnSkillQ(CharacterActionContext context) => false;
         protected virtual bool OnSkillE(CharacterActionContext context) => false;
@@ -521,6 +826,14 @@ namespace ProjectMS.CharacterSystem
         protected virtual void OnPassiveTick(float deltaTime) { }
         protected virtual void OnDamaged(CharacterDamageInfo damage) { }
         protected virtual void OnDamageDealt(CharacterBase target, float requestedDamage) { }
+        protected virtual float ModifyOutgoingDamage(
+            CharacterBase target,
+            float damage,
+            CharacterDamageSource source) => damage;
+        protected virtual void OnProjectileDespawned(
+            CharacterProjectile projectile,
+            ProjectileDespawnReason reason,
+            CharacterBase hitTarget) { }
         protected virtual void OnDied(PlayerRef attacker) { }
         protected virtual void OnJumped() { }
         protected virtual void OnLanded() { }

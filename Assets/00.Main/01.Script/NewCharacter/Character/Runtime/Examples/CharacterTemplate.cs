@@ -33,5 +33,22 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             // 매 네트워크 Simulation 틱에 필요한 패시브만 구현한다.
         }
+
+        protected override float ModifyOutgoingDamage(
+            CharacterBase target,
+            float damage,
+            CharacterDamageSource source)
+        {
+            // 예: 뒤에서 맞힌 공격만 데미지를 높인다.
+            return damage;
+        }
+
+        protected override void OnProjectileDespawned(
+            CharacterProjectile projectile,
+            ProjectileDespawnReason reason,
+            CharacterBase hitTarget)
+        {
+            // 예: 명중, 벽 충돌, 시간 종료, 수동 종료에 맞는 효과를 추가한다.
+        }
     }
 }

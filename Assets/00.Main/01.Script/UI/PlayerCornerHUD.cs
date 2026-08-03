@@ -76,14 +76,14 @@ public class PlayerCornerHUD : MonoBehaviour
         if (hpFillImage == null)
             return;
 
-        if (character == null || character.Health == null)
+        if (character == null)
         {
             hpFillImage.fillAmount = 0f;
             return;
         }
 
-        float max = character.Health.MaxHealth;
-        hpFillImage.fillAmount = max > 0f ? character.Health.CurrentHealth / max : 0f;
+        float max = character.MaxHealth;
+        hpFillImage.fillAmount = max > 0f ? character.CurrentHealth / max : 0f;
     }
 
     private void UpdateScore()
