@@ -175,7 +175,7 @@ MonoBehaviour:
   burstBulletProjectilePrefab: {fileID: 7811597853570981533, guid: 047f2747991adbe44bbd7ecd1006e9ca, type: 3}
   burstBulletProjectileSpeed: 17.5
   burstBulletProjectileFireCount: 4
-  basicAtkAngle: 35
+  basicAttackAngle: 35
   dualRevolverProjectilePrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
   dualRevolverProjectileSpeed: 45
   techJumpAngle: 60

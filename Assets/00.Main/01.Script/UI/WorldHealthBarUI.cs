@@ -30,10 +30,10 @@ public class WorldHealthBarUI : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (character == null || character.Object == null || character.Health == null || fillImage == null)
+        if (character == null || character.Object == null || fillImage == null)
             return;
 
-        float max = character.Health.MaxHealth;
-        fillImage.fillAmount = max > 0f ? character.Health.CurrentHealth / max : 0f;
+        float max = character.MaxHealth;
+        fillImage.fillAmount = max > 0f ? character.CurrentHealth / max : 0f;
     }
 }

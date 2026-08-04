@@ -45,13 +45,13 @@ public class CooldownHUD : MonoBehaviour
 
     private void Update()
     {
-        if (character == null || character.Cooldown == null)
+        if (character == null || character.Cooldowns == null)
             return;
 
         foreach (CooldownSlotUI slot in slots)
         {
-            float remaining = character.Cooldown.GetRemaining(slot.ActionType);
-            float total = character.Cooldown.GetDuration(slot.ActionType);
+            float remaining = character.Cooldowns.GetRemaining(slot.ActionType);
+            float total = character.Cooldowns.GetDuration(slot.ActionType);
             slot.UpdateCooldown(remaining, total);
         }
     }

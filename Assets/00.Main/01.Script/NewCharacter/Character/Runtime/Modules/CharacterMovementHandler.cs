@@ -36,6 +36,8 @@ namespace ProjectMS.CharacterSystem
 
         public bool IsGrounded { get; private set; }
         public bool IsDashing { get; private set; }
+        public bool MovementEnabled { get; private set; } = true;
+        public float MovementSpeedMultiplier { get; private set; } = 1f;
         public int FacingDirection { get; private set; } = 1;
         public float MoveInput { get; private set; }
         public Vector2 CurrentVelocity { get; private set; }
@@ -45,7 +47,7 @@ namespace ProjectMS.CharacterSystem
             bool wasGrounded = IsGrounded;
             CheckGround();
 
-            MoveInput = Mathf.Clamp(input.MoveDirection, -1f, 1f);
+            MoveInput = MovementEnabled ? Mathf.Clamp(input.MoveDirection, -1f, 1f) : 0f;
             if (MoveInput > 0.01f)
                 FacingDirection = 1;
             else if (MoveInput < -0.01f)
@@ -53,8 +55,11 @@ namespace ProjectMS.CharacterSystem
 
             TickDash(deltaTime);
             Move(deltaTime);
-            Jump(input.JumpPressed, deltaTime);
-            TickAutoHop(deltaTime);
+            if (MovementEnabled)
+            {
+                Jump(input.JumpPressed, deltaTime);
+                TickAutoHop(deltaTime);
+            }
             ApplyBetterGravity(input.JumpHeld, deltaTime);
             ClampSpeed();
 
@@ -68,8 +73,38 @@ namespace ProjectMS.CharacterSystem
             StartDash(new Vector2(FacingDirection, 0f), definition.DefaultDashPower, definition.DefaultDashDuration);
         }
 
+        public void SetMovementEnabled(bool enabled)
+        {
+            MovementEnabled = enabled;
+            if (!enabled)
+            {
+                CancelDash();
+                rigidbody.linearVelocity = new Vector2(0f, rigidbody.linearVelocity.y);
+                jumpBufferTimer = 0f;
+                autoHopTimer = 0f;
+            }
+        }
+
+        public void SetMovementSpeedMultiplier(float multiplier)
+        {
+            MovementSpeedMultiplier = Mathf.Max(0f, multiplier);
+        }
+
+        public void CancelDash()
+        {
+            if (!IsDashing)
+                return;
+
+            IsDashing = false;
+            dashTimer = 0f;
+            rigidbody.gravityScale = originalGravityScale;
+        }
+
         public void StartDash(Vector2 direction, float power, float duration)
         {
+            if (!MovementEnabled)
+                return;
+
             Vector2 normalized = direction.sqrMagnitude > 0.0001f
                 ? direction.normalized
                 : new Vector2(FacingDirection, 0f);
@@ -123,7 +158,9 @@ namespace ProjectMS.CharacterSystem
             if (IsDashing)
                 return;
 
-            float targetX = MoveInput * definition.MoveSpeed;
+            float targetX = MovementEnabled
+                ? MoveInput * definition.MoveSpeed * MovementSpeedMultiplier
+                : 0f;
             float acceleration = IsGrounded ? definition.GroundAcceleration : definition.AirAcceleration;
             float nextX = Mathf.MoveTowards(rigidbody.linearVelocity.x, targetX, acceleration * deltaTime);
             rigidbody.linearVelocity = new Vector2(nextX, rigidbody.linearVelocity.y);

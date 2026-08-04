@@ -21,10 +21,6 @@ namespace ProjectMS.CharacterSystem
         public float Normalized => maxHealth > 0f ? Current / maxHealth : 0f;
         public bool IsDead => Current <= 0f;
 
-        // 구 시스템 호환 접근자
-        public float CurrentHealth => Current;
-        public float MaxHealth => Max;
-
         public void Initialize()
         {
             setter(maxHealth);
