@@ -30,7 +30,6 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)] [SerializeField] private float techJumpDuration = 0.08f;
         [SerializeField] private CharacterProjectile techJumpFlashBangPrefab;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSpeed = 8f;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangDamageMultiplier = 2f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangRange = 0.8f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSlowTime = 0.5f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSlowValue = 0.4f;
@@ -39,7 +38,6 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private CharacterProjectile deadEyeProjectilePrefab;
         [Min(0f)] [SerializeField] private float deadEyeProjectileSpeed = 30f;
         [Min(0f)] [SerializeField] private float deadEyeProjectileFireCooltime = 0.75f;
-        [Min(0f)] [SerializeField] private float deadEyeProjectileDamageMultiplier = 2f;
         [Min(0)] [SerializeField] private int deadEyeProjectileFireCount = 3;
         [Min(0f)] [SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
 
@@ -58,7 +56,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private CharacterBase target;
 
-        private bool isFirstGetPassiveAppliedDamage = true;
+        private bool isFirstPassive = true;
         private bool isFirstTechJump = true;
 
 
@@ -69,14 +67,12 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 deadEyeCurrentFireCount++;
 
-                float finalDamage = GetPassiveAppliedDamage(context.Damage * deadEyeProjectileDamageMultiplier);
-
                 SpawnProjectile(
                     deadEyeProjectilePrefab,
                     ProjectileOrigin.position,
                     context.AimDirection,
                     deadEyeProjectileSpeed,
-                    finalDamage,
+                    context.Damage,
                     targetLayer);
 
                 PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
@@ -91,7 +87,6 @@ namespace ProjectMS.CharacterSystem.Examples
             //=======
             if(burstBulletProjectilePrefab == null) return false;
             Vector2 aim = context.AimDirection;
-            float passiveAppliedDamage = GetPassiveAppliedDamage(context.Damage);
             
             for (int i = 0; i< burstBulletProjectileFireCount; i++)
             {
@@ -105,7 +100,7 @@ namespace ProjectMS.CharacterSystem.Examples
                     ProjectileOrigin.position,
                     dir,
                     burstBulletProjectileSpeed,
-                    passiveAppliedDamage,
+                    context.Damage,
                     targetLayer);
             }
             PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
@@ -118,13 +113,13 @@ namespace ProjectMS.CharacterSystem.Examples
             
             CharacterProjectile prefab = ResolveDualRevolverPrefab(burstBulletProjectilePrefab);
             if(prefab == null) return false;
-            float passiveAppliedDamage = GetPassiveAppliedDamage(context.Damage);
+
             SpawnProjectile(
             prefab,
             ProjectileOrigin.position,
             context.AimDirection,
             dualRevolverProjectileSpeed,
-            passiveAppliedDamage,
+            context.Damage,
             targetLayer);
 
             PlayActionEffect(CharacterActionType.SkillQ, EffectOrigin.position, context.AimAngle);
@@ -146,18 +141,16 @@ namespace ProjectMS.CharacterSystem.Examples
                 }
             }
 
-            float finalDamage = GetPassiveAppliedDamage(context.Damage * techJumpFlashBangDamageMultiplier);
-
             SpawnProjectile(
                 techJumpFlashBangPrefab,
                 AttackOrigin.position,
                 Vector2.down,
                 techJumpFlashBangSpeed,
-                finalDamage,
+                context.Damage,
                 targetLayer);
 
             // 빗변 길이 1 기준 연산 - FacingDirection은 1 혹은 1 * -1로 반전용
-            float jumpDirectionX = -Movement.FacingDirection * Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
+            float jumpDirectionX = -FacingDirection * Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
             float jumpDirectionY = Mathf.Sin(techJumpAngle * Mathf.Deg2Rad);
             
             Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
@@ -185,47 +178,22 @@ namespace ProjectMS.CharacterSystem.Examples
             return true;
         }
 
-        // 후에 1:1이 아니게 된다면 데미지를 입히기 직전 데미지를 줄 대상, 데미지가 매개변수로 호출되는 메서드가 필요함
-        private float GetPassiveAppliedDamage(float damage)
+        protected override float ModifyOutgoingDamage(CharacterBase target, float damage, CharacterDamageSource source)
         {
-            if (isFirstGetPassiveAppliedDamage)
+            if (isFirstPassive)
             {
-                isFirstGetPassiveAppliedDamage = false;
-                SettingPassive();
+                isFirstPassive = false;
+
+                if (carnivalBackAttackCriterionAngle > 360)
+                {
+                    Debug.LogError("[ChaserCharacter] 비열한 거리(패시브) 스킬의 백어택 판정 각도는 360도를 초과하면 안됩니다.");
+                    carnivalBackAttackCriterionAngle = 360f;
+                }
             }
 
-            // 만약 좀 더 직관적으로 단순히 앞뒤 구분이 필요하다면 y 값을 0으로 설정 (x축으로만 비교)
-            // 대신 이 경우 캐릭터의 뒤 기준을 정하는 각도는 쓰이지 않게 됨 (변수 삭제 필요)
-            Vector2 directionTargetToThis = (transform.position - target.transform.position).normalized;
-            Vector2 targetFacing = target.transform.right;
-
-            float angleTargetToThis = Vector2.Dot(targetFacing, directionTargetToThis);
-
-            bool isThisOnTargetBack = angleTargetToThis <= backAngleDecimal;
-
-            return isThisOnTargetBack ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
-        }
-
-        private void SettingPassive()
-        {
-            if (carnivalBackAttackCriterionAngle > 360)
-            {
-                Debug.LogError("[ChaserCharacter] 비열한 거리(패시브) 스킬의 백어택 판정 각도는 360도를 초과하면 안됩니다.");
-                carnivalBackAttackCriterionAngle = 360f;
-            }
-
-            backAngleDecimal = -((carnivalBackAttackCriterionAngle / 2) / 90);
-            bool isNotCriterionInCharacterBack = backAngleDecimal >= 1;
-
-            if (isNotCriterionInCharacterBack)
-                backAngleDecimal = -(backAngleDecimal - 1f);
-
-            foreach (CharacterBase c in All)
-            {
-                if (c == LocalPlayer) continue;
-
-                target = c;
-            }
+            bool isBackOfTarget = IsBehindTarget(target, carnivalBackAttackCriterionAngle);
+            
+            return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
         }
 
         // TODO : 저격 모드에 따라 바뀌는 것들 바꾸기
@@ -260,28 +228,12 @@ namespace ProjectMS.CharacterSystem.Examples
             deadEyeSnipingTimeTimer = deadEyeSnipingTimeLimit;
             deadEyeCurrentFireCount = 0;
         }
-
-        /*
-        // 시간이 다 됐는지 반환
-        private bool CheckInSnipingTime()
-        {
-            if (!isSniping) return false;
-
-            deadEyeSnipingTimeTimer -= Runner.DeltaTime;
-
-            if (deadEyeSnipingTimeTimer <= 0f) return true;
-
-            return false;
-        }
-        */
-
         
         private CharacterProjectile ResolveDualRevolverPrefab(CharacterProjectile fallback)
         {
             return dualRevolverProjectilePrefab != null ? dualRevolverProjectilePrefab : fallback;
         }
 
-        
         private Vector2 Rotate(Vector2 v, float degrees)
         {
         float rad = degrees * Mathf.Deg2Rad;
