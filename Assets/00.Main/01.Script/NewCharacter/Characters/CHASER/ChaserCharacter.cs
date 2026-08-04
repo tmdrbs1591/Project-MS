@@ -84,6 +84,7 @@ namespace ProjectMS.CharacterSystem.Examples
             if (isFirstBurst)
             {
                 SetActionCharges(CharacterActionType.BasicAttack, burstCharges);
+                isFirstBurst = false;
             }
 
             if (burstBulletProjectilePrefab == null) return false;
@@ -208,14 +209,14 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             isSniping = true;
             
-            SetMoveAndSkillExceptUltimateCanUse(true);
+            SetMoveAndSkillExceptUltimateCanUse(false);
 
             SetActionCharges(CharacterActionType.BasicAttack, deadEyeProjectileCharges);
             SetCooldownDuration(CharacterActionType.BasicAttack, deadEyeProjectileFireCooltime);
 
             SetCooldownDuration(CharacterActionType.Ultimate, deadEyeReuseCooltime);
 
-            ScheduleTimer(deadEyeSnipingTimeLimit, () => TurnOffSnipingMode());
+            deadEyeSnipingTimeTimer = ScheduleTimer(deadEyeSnipingTimeLimit, () => TurnOffSnipingMode());
         }
 
         private void TurnOffSnipingMode(bool isTurnedOffByNoAmmo = false)
@@ -223,7 +224,7 @@ namespace ProjectMS.CharacterSystem.Examples
             isSniping = false;
             CancelTimer(deadEyeSnipingTimeTimer);
 
-            SetMoveAndSkillExceptUltimateCanUse(false);
+            SetMoveAndSkillExceptUltimateCanUse(true);
 
             SetActionCharges(
                 CharacterActionType.BasicAttack, 
