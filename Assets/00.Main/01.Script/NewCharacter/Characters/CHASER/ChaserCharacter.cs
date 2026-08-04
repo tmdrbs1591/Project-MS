@@ -14,8 +14,10 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Basic Attack - Burst")]
         [SerializeField] private CharacterProjectile burstBulletProjectilePrefab;
         [Min(0f)] [SerializeField] private float burstBulletProjectileSpeed = 15f;
-        [Min(1)]  [SerializeField] private int burstBulletProjectileFireCount = 4;
+        [Min(1)] [SerializeField] private int burstBulletProjectileFireCount = 4;
         [Min(0f)] [SerializeField] private float burstArcAngle = 45f;
+        [Min(0f)] [SerializeField] private float burstReloadingDuration = 2.5f;
+        [Min(1)] [SerializeField] private int burstCharges = 4;
 
         [Header("Skill Q - Dual Revolver")]
         [Tooltip("비어있을 경우 Burst Bullet Projectile Prefab 사용")]
@@ -53,6 +55,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private float backAngleDecimal;
 
         private CharacterBase target;
+        private bool isFirstBurst = true;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -72,13 +75,18 @@ namespace ProjectMS.CharacterSystem.Examples
 
                 if (shouldReload)
                 {
-                    TurnOffSnipingMode();
+                    TurnOffSnipingMode(isTurnedOffByNoAmmo: true);
                 }
 
                 return true;
             }
 
-            if(burstBulletProjectilePrefab == null) return false;
+            if (isFirstBurst)
+            {
+                SetActionCharges(CharacterActionType.BasicAttack, burstCharges);
+            }
+
+            if (burstBulletProjectilePrefab == null) return false;
             Vector2 aim = context.AimDirection;
             
             for (int i = 0; i < burstBulletProjectileFireCount; i++)
@@ -102,7 +110,8 @@ namespace ProjectMS.CharacterSystem.Examples
             
             if (shouldReload)
             {
-                // 장전
+                SetCooldownDuration(CharacterActionType.BasicAttack, burstReloadingDuration);
+                SetActionCharges(CharacterActionType.BasicAttack, burstCharges + 1);
             }
             else
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
@@ -189,14 +198,16 @@ namespace ProjectMS.CharacterSystem.Examples
             ScheduleTimer(deadEyeSnipingTimeLimit, () => TurnOffSnipingMode());
         }
 
-        private void TurnOffSnipingMode()
+        private void TurnOffSnipingMode(bool isTurnedOffByNoAmmo = false)
         {
             isSniping = false;
             CancelTimer(deadEyeSnipingTimeTimer);
 
             SetMoveAndSkillExceptUltimateCanUse(false);
 
-            // 기본 공격 장전 원래대로 바꾸기
+            SetActionCharges(
+                CharacterActionType.BasicAttack, 
+                isTurnedOffByNoAmmo ? burstCharges + 1 : burstCharges);
             ResetCooldownDuration(CharacterActionType.BasicAttack);
 
             ResetCooldownDuration(CharacterActionType.Ultimate);
