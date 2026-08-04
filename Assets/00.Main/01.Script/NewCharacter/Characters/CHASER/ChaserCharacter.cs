@@ -11,33 +11,16 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Common")]
         [SerializeField] private LayerMask targetLayer;
 
-        /*
-        
-        [Header("Basic Attack")]
-        [SerializeField] private CharacterProjectile basicAttackProjectilePrefab;
-        [Min(0f)] [SerializeField] private float basicAttackProjectileDamageMultiplier = 0.3f;
-        [Min(0f)] [SerializeField] private float basicAttackProjectileSpeed = 15f;
-        [Min(0)] [SerializeField] private int basicAttackProjectileFireCount = 4;
-        [Min(0f)] [SerializeField] private float basicAttackAngle = 45f;
-
-        // Dual인데 한 발 발사로 적혀있어서 수정될 수도 있음
-        // 2발 이상이 된다면 발사 간격도 변수로 있어야 할 것 같음
-        [Header("Skill Q - Dual Revolver")]
-        [Tooltip("미지정 시 자동으로 basicAttackProjectilePrefab 사용")] 
-        [SerializeField] private CharacterProjectile dualRevolverProjectilePrefab; // 필요 없으면 삭제해도?
-        [SerializeField] private float dualRevolverProjectileSpeed = 25f;
-        [SerializeField] private float dualRevolverProjectileDamageMultiplier = 1.5f;
-        
-         */
         [Header("Basic Attack - Burst")]
         [SerializeField] private CharacterProjectile burstBulletProjectilePrefab;
         [Min(0f)] [SerializeField] private float burstBulletProjectileSpeed = 15f;
-        [Min(4)]  [SerializeField] private int burstBulletProjectileFireCount = 4; //총알 개수
-        [Min(0f)] [SerializeField] private float basicAtkAngle = 45f;
+        [Min(1)]  [SerializeField] private int burstBulletProjectileFireCount = 4;
+        [Min(0f)] [SerializeField] private float basicAttackAngle = 45f;
+
         [Header("Skill Q - Dual Revolver")]
+        [Tooltip("비어있을 경우 Burst Bullet Projectile Prefab 사용")]
         [SerializeField] private CharacterProjectile dualRevolverProjectilePrefab; //없으면 기본 burstBulletProjectilePrefab사용
         [Min(0)][SerializeField] private float dualRevolverProjectileSpeed = 45f;
-
 
         // 현재 코드 구조에서 개발이 어려움
         [Header("Skill E - Technical Jump")]
@@ -115,7 +98,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 //총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
                 //
                 float t = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
-                float offset = -basicAtkAngle * 0.5f + basicAtkAngle * t;
+                float offset = -basicAttackAngle * 0.5f + basicAttackAngle * t;
                 Vector2 dir = Rotate(aim, offset);
                 SpawnProjectile(
                     burstBulletProjectilePrefab,
