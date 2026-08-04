@@ -56,10 +56,6 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private CharacterBase target;
 
-        private bool isFirstPassive = true;
-        private bool isFirstTechJump = true;
-
-
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
             //----------대드아이 저격탄
@@ -131,16 +127,6 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             if (isSniping) return false;
             
-            if (isFirstTechJump)
-            {
-                isFirstTechJump = false;
-                if (techJumpAngle > 180f)
-                {
-                    Debug.LogError("[ChaserCharacter] 전술 도약(E) 스킬의 점프 각도는 180도를 초과하면 안됩니다.");
-                    techJumpAngle = 180f;
-                }
-            }
-
             SpawnProjectile(
                 techJumpFlashBangPrefab,
                 AttackOrigin.position,
@@ -149,9 +135,11 @@ namespace ProjectMS.CharacterSystem.Examples
                 context.Damage,
                 targetLayer);
 
+            float techJumpAngleRad = Mathf.Min(180, techJumpAngle) * Mathf.Deg2Rad;
+
             // 빗변 길이 1 기준 연산 - FacingDirection은 1 혹은 1 * -1로 반전용
-            float jumpDirectionX = -FacingDirection * Mathf.Cos(techJumpAngle * Mathf.Deg2Rad);
-            float jumpDirectionY = Mathf.Sin(techJumpAngle * Mathf.Deg2Rad);
+            float jumpDirectionX = -FacingDirection * Mathf.Cos(techJumpAngleRad);
+            float jumpDirectionY = Mathf.Sin(techJumpAngleRad);
             
             Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
 
@@ -180,18 +168,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override float ModifyOutgoingDamage(CharacterBase target, float damage, CharacterDamageSource source)
         {
-            if (isFirstPassive)
-            {
-                isFirstPassive = false;
-
-                if (carnivalBackAttackCriterionAngle > 360)
-                {
-                    Debug.LogError("[ChaserCharacter] 비열한 거리(패시브) 스킬의 백어택 판정 각도는 360도를 초과하면 안됩니다.");
-                    carnivalBackAttackCriterionAngle = 360f;
-                }
-            }
-
-            bool isBackOfTarget = IsBehindTarget(target, carnivalBackAttackCriterionAngle);
+            bool isBackOfTarget = IsBehindTarget(target, Mathf.Min(360, carnivalBackAttackCriterionAngle));
             
             return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
         }
@@ -236,10 +213,10 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private Vector2 Rotate(Vector2 v, float degrees)
         {
-        float rad = degrees * Mathf.Deg2Rad;
-        float cos = Mathf.Cos(rad);
-        float sin = Mathf.Sin(rad);
-        return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+            float rad = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(rad);
+            float sin = Mathf.Sin(rad);
+            return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
         }
     }
 }
