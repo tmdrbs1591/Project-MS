@@ -1,4 +1,6 @@
 ﻿using ProjectMS.CharacterSystem;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
@@ -22,9 +24,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Skill Q - Dual Revolver")]
         [Tooltip("비어있을 경우 Burst Bullet Projectile Prefab 사용")]
         [SerializeField] private CharacterProjectile dualRevolverProjectilePrefab; //없으면 기본 burstBulletProjectilePrefab사용
-        [Min(0)][SerializeField] private float dualRevolverProjectileSpeed = 45f;
+        [Min(0)] [SerializeField] private float dualRevolverProjectileSpeed = 45f;
 
-        // 현재 코드 구조에서 개발이 어려움
         [Header("Skill E - Technical Jump")]
         [Tooltip("바닥 기준, 0 ~ 180 사이로 입력")]
         [Min(0f)] [SerializeField] private float techJumpAngle = 60f;
@@ -33,8 +34,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private CharacterProjectile techJumpFlashBangPrefab;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSpeed = 8f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangRange = 0.8f;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangSlowTime = 0.5f;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangSlowValue = 0.4f;
+        [Min(0f)] [SerializeField] private float techJumpFlashBangSlowDuration = 0.5f;
+        [Min(0f)] [SerializeField] private float techJumpFlashBangSlowRatio = 0.4f;
 
         [Header("Skill R - Dead Eye")]
         [SerializeField] private CharacterProjectile deadEyeProjectilePrefab;
@@ -52,10 +53,9 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isSniping = false;
         private CharacterTimerHandle deadEyeSnipingTimeTimer;
 
-        private float backAngleDecimal;
-
-        private CharacterBase target;
         private bool isFirstBurst = true;
+
+        private bool isFlashBangFired = false;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -158,7 +158,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             Movement.StartDash(jumpDirection, techJumpPower, techJumpDuration);
 
-            // 섬광탄이 터지며 범위 내 슬로우(CharacterProjectile 수정 필요)
+            isFlashBangFired = true;
 
             PlayActionEffect(CharacterActionType.SkillE, AttackOrigin.position, AimAngle);
             return true;
@@ -176,6 +176,26 @@ namespace ProjectMS.CharacterSystem.Examples
             bool isBackOfTarget = IsBehindTarget(target, Mathf.Min(360, carnivalBackAttackCriterionAngle));
             
             return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
+        }
+
+        // 후에 섬광탄인지 검사할 수 있어야 함 (프리팹으로 검사 불가)
+        protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
+        {
+            if (!isFlashBangFired) return;
+            isFlashBangFired = false;
+
+            OnFlashBangBoomed(projectile);
+        }
+
+        private void OnFlashBangBoomed(CharacterProjectile flashBang)
+        {
+            List<CharacterBase> foundEnemies = FindEnemiesInCircle(flashBang.transform.position, techJumpFlashBangRange, targetLayer);
+
+            foreach (CharacterBase foundEnemy in foundEnemies)
+            {
+                DealDamage(foundEnemy, Definition.GetDamage(CharacterActionType.SkillE));
+                ApplySlow(foundEnemy, techJumpFlashBangSlowRatio, techJumpFlashBangSlowDuration);
+            }
         }
 
         private void ChangeSnipingMode()
