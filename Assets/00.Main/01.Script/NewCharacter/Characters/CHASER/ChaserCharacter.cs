@@ -38,8 +38,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private CharacterProjectile deadEyeProjectilePrefab;
         [Min(0f)] [SerializeField] private float deadEyeProjectileSpeed = 30f;
         [Min(0f)] [SerializeField] private float deadEyeProjectileFireCooltime = 0.75f;
-        [Min(0)] [SerializeField] private int deadEyeProjectileFireCount = 3;
+        [Min(0)] [SerializeField] private int deadEyeProjectileCharges = 3;
         [Min(0f)] [SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
+        [Min(0f)] [SerializeField] private float deadEyeReuseCooltime = 0.25f;
 
         [Header("Passive - Dirty Carnival")]
         [Tooltip("캐릭터 등 기준, 0 ~ 360 사이로 입력")]
@@ -47,22 +48,19 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(1f)] [SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f; // 추후 CharacterBase에 들어가면 좋을 듯함
 
         private bool isSniping = false;
-        private float deadEyeSnipingTimeTimer;
-        private int deadEyeCurrentFireCount = 0;
+        private CharacterTimerHandle deadEyeSnipingTimeTimer;
 
         private float backAngleDecimal;
-
-        private RigidbodyType2D rigidBodyTypeBeforeDeadEye;
 
         private CharacterBase target;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
             //----------대드아이 저격탄
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
+
             if (isSniping)
             {
-                deadEyeCurrentFireCount++;
-
                 SpawnProjectile(
                     deadEyeProjectilePrefab,
                     ProjectileOrigin.position,
@@ -73,18 +71,18 @@ namespace ProjectMS.CharacterSystem.Examples
 
                 PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
 
-                if (deadEyeCurrentFireCount >= deadEyeProjectileFireCount)
+                if (shouldReload)
                 {
-                    ChangeSnipingMode(false);
+                    TurnOffSnipingMode();
                 }
 
                 return true;
             }
-            //=======
+
             if(burstBulletProjectilePrefab == null) return false;
             Vector2 aim = context.AimDirection;
             
-            for (int i = 0; i< burstBulletProjectileFireCount; i++)
+            for (int i = 0; i < burstBulletProjectileFireCount; i++)
             {
                 //총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
                 //
@@ -99,14 +97,21 @@ namespace ProjectMS.CharacterSystem.Examples
                     context.Damage,
                     targetLayer);
             }
+            
             PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
+            
+            if (shouldReload)
+            {
+                // 장전
+            }
+            else
+                ResetCooldownDuration(CharacterActionType.BasicAttack);
+            
             return true;
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
         {
-            if (isSniping) return false;
-            
             CharacterProjectile prefab = ResolveDualRevolverPrefab(burstBulletProjectilePrefab);
             if(prefab == null) return false;
 
@@ -125,8 +130,6 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnSkillE(CharacterActionContext context)
         {
-            if (isSniping) return false;
-            
             SpawnProjectile(
                 techJumpFlashBangPrefab,
                 AttackOrigin.position,
@@ -153,15 +156,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnUltimate(CharacterActionContext context)
         {
-            if (!Movement.IsGrounded) return false;
-
             ChangeSnipingMode();
-            
-            // 테스트용 코드 - 이럴 경우 시간으로 인해 혹은 총알 소진으로 인해 종료될 경우 쿨타임 적용 X
-            // 쿨타임 강제 시작 메서드 필요
-            if (isSniping) return false; 
-
-            // FUN으로 궁극기 켜져있으면 남은 시간 타이머 깎기 (CharacterBase에서 수정 필요)
 
             return true;
         }
@@ -173,39 +168,49 @@ namespace ProjectMS.CharacterSystem.Examples
             return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
         }
 
-        // TODO : 저격 모드에 따라 바뀌는 것들 바꾸기
-        /* 
-         * 바꿔야 할 것 목록
-         * - 이동 가능 여부
-         * - 궁극기 쿨타임
-         * - basicAttack의 잔탄 수 (못바꾸면 지금 상태 유지하지만 중간에 장전 되는 거 꺼야함)
-         * - basicAttack의 공격 쿨타임 (못바꾸면 변수 삭제)
-         * - (선택적) UI에 스킬 사용 불가 표시 및 평타, 궁극기 스킬 아이콘 변경
-         */
-        private bool ChangeSnipingMode()
+        private void ChangeSnipingMode()
         {
-            bool newIsSniping = !isSniping;
-
-            ResetSnipingSetting(newIsSniping);
-
-            isSniping = newIsSniping;
-            return isSniping;
+            if (isSniping) TurnOffSnipingMode();
+            else TurnOnSnipingMode();
         }
 
-        private bool ChangeSnipingMode(bool newIsSniping)
+        private void TurnOnSnipingMode()
         {
-            ResetSnipingSetting(newIsSniping);
+            isSniping = true;
+            
+            SetMoveAndSkillExceptUltimateCanUse(true);
 
-            isSniping = newIsSniping;
-            return isSniping;
+            SetActionCharges(CharacterActionType.BasicAttack, deadEyeProjectileCharges);
+            SetCooldownDuration(CharacterActionType.BasicAttack, deadEyeProjectileFireCooltime);
+
+            SetCooldownDuration(CharacterActionType.Ultimate, deadEyeReuseCooltime);
+
+            ScheduleTimer(deadEyeSnipingTimeLimit, () => TurnOffSnipingMode());
         }
 
-        private void ResetSnipingSetting(bool newIsSniping)
+        private void TurnOffSnipingMode()
         {
-            deadEyeSnipingTimeTimer = deadEyeSnipingTimeLimit;
-            deadEyeCurrentFireCount = 0;
+            isSniping = false;
+            CancelTimer(deadEyeSnipingTimeTimer);
+
+            SetMoveAndSkillExceptUltimateCanUse(false);
+
+            // 기본 공격 장전 원래대로 바꾸기
+            ResetCooldownDuration(CharacterActionType.BasicAttack);
+
+            ResetCooldownDuration(CharacterActionType.Ultimate);
+            StartCooldown(CharacterActionType.Ultimate);
         }
-        
+
+        private void SetMoveAndSkillExceptUltimateCanUse(bool canUse)
+        {
+            SetMovementEnabled(canUse);
+
+            SetActionEnabled(CharacterActionType.SkillQ, canUse);
+            SetActionEnabled(CharacterActionType.SkillE, canUse);
+            SetActionEnabled(CharacterActionType.Dash, canUse);
+        }
+
         private CharacterProjectile ResolveDualRevolverPrefab(CharacterProjectile fallback)
         {
             return dualRevolverProjectilePrefab != null ? dualRevolverProjectilePrefab : fallback;
