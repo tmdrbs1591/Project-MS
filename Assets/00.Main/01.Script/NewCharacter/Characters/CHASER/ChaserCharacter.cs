@@ -15,7 +15,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private CharacterProjectile burstBulletProjectilePrefab;
         [Min(0f)] [SerializeField] private float burstBulletProjectileSpeed = 15f;
         [Min(1)]  [SerializeField] private int burstBulletProjectileFireCount = 4;
-        [Min(0f)] [SerializeField] private float basicAttackAngle = 45f;
+        [Min(0f)] [SerializeField] private float burstArcAngle = 45f;
 
         [Header("Skill Q - Dual Revolver")]
         [Tooltip("비어있을 경우 Burst Bullet Projectile Prefab 사용")]
@@ -56,7 +56,6 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            //----------대드아이 저격탄
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
 
             if (isSniping)
@@ -84,11 +83,12 @@ namespace ProjectMS.CharacterSystem.Examples
             
             for (int i = 0; i < burstBulletProjectileFireCount; i++)
             {
-                //총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
-                //
-                float t = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
-                float offset = -basicAttackAngle * 0.5f + basicAttackAngle * t;
+                // 총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
+                float angleRatio = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
+                float offset = -burstArcAngle * 0.5f + burstArcAngle * angleRatio;
+                
                 Vector2 dir = Rotate(aim, offset);
+                
                 SpawnProjectile(
                     burstBulletProjectilePrefab,
                     ProjectileOrigin.position,
@@ -113,19 +113,20 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool OnSkillQ(CharacterActionContext context)
         {
             CharacterProjectile prefab = ResolveDualRevolverPrefab(burstBulletProjectilePrefab);
-            if(prefab == null) return false;
+            
+            if (prefab == null) return false;
 
             SpawnProjectile(
-            prefab,
-            ProjectileOrigin.position,
-            context.AimDirection,
-            dualRevolverProjectileSpeed,
-            context.Damage,
-            targetLayer);
+                prefab,
+                ProjectileOrigin.position,
+                context.AimDirection,
+                dualRevolverProjectileSpeed,
+                context.Damage,
+                targetLayer);
 
             PlayActionEffect(CharacterActionType.SkillQ, EffectOrigin.position, context.AimAngle);
+            
             return true;
-            // Projectile로 ResolveDualRevolverPrefab(basicAttackProjectilePrefab) 쓰세용
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
@@ -221,6 +222,7 @@ namespace ProjectMS.CharacterSystem.Examples
             float rad = degrees * Mathf.Deg2Rad;
             float cos = Mathf.Cos(rad);
             float sin = Mathf.Sin(rad);
+
             return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
         }
     }
