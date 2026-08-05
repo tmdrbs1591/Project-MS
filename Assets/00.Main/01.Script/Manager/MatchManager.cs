@@ -28,6 +28,12 @@ public class MatchManager : NetworkBehaviour
 
     public const int WinsRequired = 2;
 
+    /// <summary>라운드 승자가 이번 AugmentSelect 구간에 고를 수 있는 증강 개수.</summary>
+    private const int WinnerAugmentPicks = 1;
+
+    /// <summary>라운드 패자가 이번 AugmentSelect 구간에 고를 수 있는 증강 개수.</summary>
+    private const int LoserAugmentPicks = 2;
+
     [Header("타이밍")]
     [Tooltip("매치 시작 직후 증강 팩 선택 제한시간.")]
     [SerializeField] private float packSelectDuration = 45f;
@@ -35,6 +41,10 @@ public class MatchManager : NetworkBehaviour
     [Tooltip("증강 선택 최대 대기시간. 양쪽 다 고르면 이 시간이 남았어도 즉시 다음 라운드로 넘어간다. " +
              "한쪽이 고르지 않고 버틸 때(자리비움/연결끊김 등)의 안전장치용 상한선일 뿐이다.")]
     [SerializeField] private float augmentSelectDuration = 20f;
+    [Tooltip("AugmentSelect 진입 직후 짧게 쉬는 시간. Rpc_BeginAugmentSelect가 상대 클라에 " +
+             "도착하기 전에 '둘 다 이미 픽을 다 씀(0개 남음)'으로 오판해 곧바로 다음 라운드로 " +
+             "넘어가버리는 것을 막는다.")]
+    [SerializeField] private float augmentSelectGraceDuration = 1f;
     [Tooltip("라운드 리셋 직후 사망 판정을 잠깐 쉬는 시간. 상대 클라의 부활 RPC가 도착하기 전에 " +
              "'아직 죽어있음'으로 오판해 곧바로 다음 라운드가 끝나버리는 것을 막는다.")]
     [SerializeField] private float roundStartGraceDuration = 1f;
@@ -178,17 +188,77 @@ public class MatchManager : NetworkBehaviour
             return;
         }
 
-        // PackSelect / AugmentSelect 플로우 임시 비활성화 — 로직은 보존
-        ResetRoundCharacters();
-        RoundNumber++;
-        Phase = MatchPhase.Fighting;
-        PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
+        // PackSelect 플로우는 아직 임시 비활성화 상태 — AugmentSelect로 바로 진입한다.
+        BeginAugmentSelect();
     }
 
-    // 카드팩 기능 비활성화 — CharacterBase 관련 코드 제거됨
-    private void TickAugmentSelect() { }
+    private void BeginAugmentSelect()
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return;
 
-    private void OnAugmentSelectExpired()
+        PlayerRef winner = LastRoundWinner;
+        PlayerRef loser = p1.Object.InputAuthority == winner
+            ? p2.Object.InputAuthority
+            : p1.Object.InputAuthority;
+
+        Rpc_BeginAugmentSelect(winner, loser);
+
+        Phase = MatchPhase.AugmentSelect;
+        PhaseTimer = TickTimer.CreateFromSeconds(Runner, augmentSelectDuration);
+    }
+
+    private void TickAugmentSelect()
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return;
+
+        // Rpc_BeginAugmentSelect가 상대 클라에 도착하기 전에는 픽 배정이 아직 반영 안 됐을 수
+        // 있으므로(둘 다 0개 남음으로 보임), 그레이스 타임 동안은 "둘 다 다 골랐음" 판정을 쉰다.
+        float elapsed = augmentSelectDuration - GetPhaseTimeRemaining();
+        bool pastGrace = elapsed >= augmentSelectGraceDuration;
+        bool bothDone = p1.AugmentPicksRemaining <= 0 && p2.AugmentPicksRemaining <= 0;
+
+        if (pastGrace && bothDone)
+        {
+            AdvanceToNextRound();
+            return;
+        }
+
+        if (PhaseTimer.Expired(Runner))
+        {
+            // 시간 초과 — 아직 못 고른 쪽은 무작위 증강으로 강제 완료시킨다.
+            Rpc_ForceFinishAugmentPicks();
+            AdvanceToNextRound();
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_BeginAugmentSelect(PlayerRef winner, PlayerRef loser)
+    {
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (!ch.Object.HasStateAuthority)
+                continue;
+
+            if (ch.Object.InputAuthority == winner)
+                ch.SetAugmentPicksRemaining(WinnerAugmentPicks);
+            else if (ch.Object.InputAuthority == loser)
+                ch.SetAugmentPicksRemaining(LoserAugmentPicks);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_ForceFinishAugmentPicks()
+    {
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (ch.Object.HasStateAuthority)
+                ch.AutoFinishAugmentPicks();
+        }
+    }
+
+    private void AdvanceToNextRound()
     {
         ResetRoundCharacters();
         RoundNumber++;

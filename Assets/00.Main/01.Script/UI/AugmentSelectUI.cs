@@ -8,12 +8,17 @@ using UnityEngine.UI;
 /// 라운드 종료 후(MatchPhase.AugmentSelect) 뜨는 증강 선택 UI. 로컬 캐릭터가 매치 시작 시
 /// 고른 팩들의 증강 폴(CharacterBase.GetAugmentPool)에서 3개를 무작위로 뽑아 제시한다.
 ///
+/// [픽 수]
+///   - 라운드 승자는 1개, 패자는 2개를 고른다(CharacterBase.AugmentPicksRemaining, MatchManager가 배정).
+///   - 패자가 첫 픽을 고르면 남은 픽 수가 줄어드는 것을 감지해 자동으로 다음 3택을 다시 띄운다.
+///
 /// [규칙]
-///   - 초기 배정 시엔 같은 라운드에 이미 다른 슬롯에 나온 팩과 겹치지 않는 후보를 우선 뽑는다.
+///   - 초기 배정 시엔 같은 픽에 이미 다른 슬롯에 나온 팩과 겹치지 않는 후보를 우선 뽑는다.
 ///     고른 팩 수가 3개 이상이면 3개 슬롯이 서로 다른 팩에서 나온다(부족할 때만 같은 팩에서 또 뽑음).
 ///   - 리롤은 "그 슬롯이 리롤 전 갖고 있던 팩"만 제외한다(다른 슬롯에 떠 있는 팩과 겹치는 건
 ///     허용). 그마저도 후보가 없으면(안 나온 증강이 그 팩밖에 안 남은 경우) 팩 제약 없이 허용한다.
-///   - 이번 라운드에 한 번이라도 등장했던 증강은(리롤로 사라진 것 포함) 다시 나오지 않는다.
+///   - 이번 픽에 한 번이라도 등장했던 증강은(리롤로 사라진 것 포함) 같은 픽 안에서는 다시 나오지
+///     않는다. 이미 보유한 증강(CharacterBase.HasAugment)도 애초에 후보에서 제외된다.
 ///
 /// 선택은 로컬 캐릭터 자신에게만 적용되며(내 StateAuthority), 상대에게 알리거나 동기화할
 /// 필요가 없다 — 증강 값 자체가 [Networked] 라 자동으로 보인다.
@@ -31,12 +36,14 @@ public class AugmentSelectUI : MonoBehaviour
     [SerializeField] private Image timerFillImage;
     [SerializeField] private AugmentChoiceSlot[] slots;
 
-    // 한 라운드에 한 번만 고를 수 있다. 다음 AugmentSelect 구간이 오면 다시 풀린다.
-    private bool pickedThisRound;
     private List<AugmentPoolEntry> pool;
 
-    // 이번 라운드에 한 번이라도 슬롯에 떴던 증강(리롤로 사라진 것 포함). 다시 등장하지 않게 막는다.
-    private readonly HashSet<AugmentType> shownTypesThisRound = new HashSet<AugmentType>();
+    // 마지막으로 슬롯을 채웠을 때의 AugmentPicksRemaining 값. 이 값이 바뀌면(픽을 하나 소비하면)
+    // 다음 Update에서 새 3택을 다시 굴린다 — 패자의 2번째 픽이 이 방식으로 자동으로 뜬다.
+    private int rolledForPicksRemaining = -1;
+
+    // 이번 픽(3택 + 리롤)에 한 번이라도 슬롯에 떴던 증강. 다시 등장하지 않게 막는다.
+    private readonly HashSet<AugmentType> shownTypesThisPick = new HashSet<AugmentType>();
 
     private void Awake()
     {
@@ -55,24 +62,51 @@ public class AugmentSelectUI : MonoBehaviour
             return;
         }
 
-        if (pool == null)
-            RollNewChoices();
+        CharacterBase local = CharacterBase.LocalPlayer;
+        int picksRemaining = local != null ? local.AugmentPicksRemaining : 0;
 
-        SetPanelActive(!pickedThisRound);
+        if (pool == null)
+            pool = local != null ? local.GetAugmentPool() : new List<AugmentPoolEntry>();
+
+        if (picksRemaining > 0 && picksRemaining != rolledForPicksRemaining)
+            RollNewChoices(picksRemaining);
+
+        float total = match.GetPhaseTotalDuration();
+        float remaining = Mathf.Max(0f, match.GetPhaseTimeRemaining());
+
+        // 제한시간 안에 못 고르면 지금 제시된 슬롯 중 맨 앞(왼쪽)을 자동으로 선택한다.
+        // 패자처럼 픽이 두 개 남아있어도, 첫 픽을 자동 선택하면 다음 프레임에 새 3택이
+        // 뜨자마자 그 첫 번째도 이어서 자동 선택되어(remaining이 계속 0이므로) 남은 픽이
+        // 모두 채워질 때까지 이어진다.
+        if (remaining <= 0f && picksRemaining > 0)
+            AutoPickFirstAvailable();
+
+        SetPanelActive(picksRemaining > 0);
 
         if (timerFillImage != null)
-        {
-            float total = match.GetPhaseTotalDuration();
-            float remaining = Mathf.Max(0f, match.GetPhaseTimeRemaining());
             timerFillImage.fillAmount = total > 0f ? remaining / total : 0f;
+    }
+
+    /// <summary>제한시간 초과 시 지금 활성화된 슬롯 중 맨 앞(왼쪽) 것을 자동으로 선택한다.</summary>
+    private void AutoPickFirstAvailable()
+    {
+        if (slots == null)
+            return;
+
+        foreach (AugmentChoiceSlot slot in slots)
+        {
+            if (slot.gameObject.activeSelf)
+            {
+                OnPick(slot);
+                return;
+            }
         }
     }
 
-    private void RollNewChoices()
+    private void RollNewChoices(int picksRemaining)
     {
-        CharacterBase local = CharacterBase.LocalPlayer;
-        //pool = local != null ? local.GetAugmentPool() : new List<AugmentPoolEntry>();
-        shownTypesThisRound.Clear();
+        rolledForPicksRemaining = picksRemaining;
+        shownTypesThisPick.Clear();
 
         if (slots == null)
             return;
@@ -89,11 +123,15 @@ public class AugmentSelectUI : MonoBehaviour
         if (slots == null || slotIndex >= slots.Length)
             return;
 
+        CharacterBase local = CharacterBase.LocalPlayer;
         AugmentChoiceSlot slot = slots[slotIndex];
         bool isReroll = !resetReroll;
 
-        // 이번 라운드에 한 번이라도 나왔던 증강은(리롤로 사라진 것 포함) 항상 제외한다.
-        List<AugmentPoolEntry> notShown = pool.FindAll(entry => entry.Data != null && !shownTypesThisRound.Contains(entry.Data.type));
+        // 이번 픽에 한 번이라도 나왔던 증강과, 이미 보유한 증강은 항상 제외한다.
+        List<AugmentPoolEntry> notShown = pool.FindAll(entry =>
+            entry.Data != null &&
+            !shownTypesThisPick.Contains(entry.Data.type) &&
+            (local == null || !local.HasAugment(entry.Data.type)));
 
         List<AugmentPoolEntry> candidates;
 
@@ -135,7 +173,7 @@ public class AugmentSelectUI : MonoBehaviour
         }
 
         AugmentPoolEntry chosen = candidates[UnityEngine.Random.Range(0, candidates.Count)];
-        shownTypesThisRound.Add(chosen.Data.type);
+        shownTypesThisPick.Add(chosen.Data.type);
 
         slot.SetSlotActive(true);
         if (resetReroll)
@@ -145,20 +183,19 @@ public class AugmentSelectUI : MonoBehaviour
 
     private void OnPick(AugmentChoiceSlot slot)
     {
-        if (pickedThisRound)
-            return;
-
         CharacterBase local = CharacterBase.LocalPlayer;
-        if (local == null)
+        if (local == null || local.AugmentPicksRemaining <= 0)
             return;
 
-        //local.GrantAugment(slot.CurrentType);
-        pickedThisRound = true;
+        local.GrantAugment(slot.CurrentType);
+        // 남은 픽이 있으면(패자의 2번째 픽) 다음 Update에서 picksRemaining 변화가 감지되어
+        // RollNewChoices가 자동으로 다시 호출된다.
     }
 
     private void OnReroll(AugmentChoiceSlot slot)
     {
-        if (pickedThisRound)
+        CharacterBase local = CharacterBase.LocalPlayer;
+        if (local == null || local.AugmentPicksRemaining <= 0)
             return;
 
         if (!slot.TryConsumeReroll())
@@ -171,9 +208,9 @@ public class AugmentSelectUI : MonoBehaviour
 
     private void ResetForNextRound()
     {
-        pickedThisRound = false;
         pool = null;
-        shownTypesThisRound.Clear();
+        rolledForPicksRemaining = -1;
+        shownTypesThisPick.Clear();
     }
 
     private void SetPanelActive(bool active)

@@ -15397,7 +15397,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98dad4a338745ad41be8994bc4d7261f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkLauncher
-  playerCount: 1
+  playerCount: 2
   gameSceneName: SampleScene
   lobbySceneName: Lobby
 --- !u!114 &1910536806
