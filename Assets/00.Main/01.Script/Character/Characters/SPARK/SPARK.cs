@@ -24,8 +24,6 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private CharacterProjectile projectilePrefab;
         [Min(0f)][SerializeField] private float projectileSpeed = 20f;
         [SerializeField] private LayerMask targetLayer; // 피격 대상 레이어
-        private float bonusDamage = 0;
-        private bool useSkill = false;
 
         [Header("Skill Q - ElectricNode")]
         [SerializeField] private GameObject electricNodePrefab = null;
@@ -86,21 +84,16 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             if (projectilePrefab == null)
                 return false;
-            bonusDamage = context.Damage * 0.3f;
-
-            float finalDamage = useSkill ? context.Damage + bonusDamage : context.Damage;
-
             SpawnProjectile(
                 projectilePrefab,
                 ProjectileOrigin.position,
                 context.AimDirection,
                 projectileSpeed,
-                finalDamage,
+                context.Damage,
                 targetLayer
             );
 
             PlayActionEffect(context.Action, ProjectileOrigin.position, context.AimAngle);
-            useSkill = false;
             return true;
         }
 
@@ -306,12 +299,6 @@ namespace ProjectMS.CharacterSystem.Examples
             TeslaNextTickTimer = TickTimer.None;
             TeslaTickCounter = 0;
             lastRenderedTickCount = -1;
-        }
-
-        protected override void OnSkillExecuted(CharacterActionType actionType)
-        {
-            base.OnSkillExecuted(actionType);
-            useSkill = true;
         }
 
         private IReadOnlyList<Vector3> GetActiveNodePositions()
