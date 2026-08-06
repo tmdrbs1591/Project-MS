@@ -207,7 +207,7 @@ namespace ProjectMS.CharacterSystem.Examples
                     lastRenderedTickCount = TeslaTickCounter;
                     PlayActionEffect(CharacterActionType.Ultimate, transform.position, transform.eulerAngles.z);
 
-                    // 💡 궁극기 범위(teslaRadius) 크기에 맞춰 푸른색 원형 자기장 범위 이펙트 출력
+                    //  궁극기 범위(teslaRadius) 크기에 맞춰 푸른색 원형 자기장 범위 이펙트 출력
                     PlayRangeEffect(transform.position, teslaRadius, Color.cyan, 0.4f);
                 }
             }
@@ -231,12 +231,13 @@ namespace ProjectMS.CharacterSystem.Examples
                     foreach (CharacterBase enemy in FindEnemiesInCircle(nodePos, overloadRadius, targetLayer))
                     {
                         DealDamage(enemy, context.Damage);
+                        ApplySlow(enemy, 0.5f, 1f); // 50% 느려짐, 1초 유지
                     }
                 }
 
                 PlayActionEffect(context.Action, nodePos, 0f);
 
-                // 💡 E스킬 과부하 범위(overloadRadius) 크기에 맞춰 노란색 폭발 범위 이펙트 출력
+                //  E스킬 과부하 범위(overloadRadius) 크기에 맞춰 노란색 폭발 범위 이펙트 출력
                 PlayRangeEffect(nodePos, overloadRadius, Color.yellow, 0.5f);
             }
 
@@ -257,12 +258,13 @@ namespace ProjectMS.CharacterSystem.Examples
                 foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
                 {
                     DealDamage(enemy, TeslaDamagePerTick);
+                    ApplySlow(enemy, 0.2f, 0.3f); // 20% 느려짐, 0.3초 유지
                 }
             }
 
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
 
-            // 💡 궁극기 최초 시전 시 넓은 범위(teslaRadius)로 퍼지는 테슬라 필드 범위 이펙트 출력
+            //  궁극기 최초 시전 시 넓은 범위(teslaRadius)로 퍼지는 테슬라 필드 범위 이펙트 출력
             PlayRangeEffect(transform.position, teslaRadius, new Color(0f, 0.8f, 1f, 1f), 0.6f);
 
             return true;
@@ -288,6 +290,7 @@ namespace ProjectMS.CharacterSystem.Examples
                     foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
                     {
                         DealDamage(enemy, TeslaDamagePerTick);
+                        ApplySlow(enemy, 0.2f, 0.3f); // 20% 느려짐, 0.3초 유지
                     }
                 }
             }
