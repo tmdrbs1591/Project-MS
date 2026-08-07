@@ -37,6 +37,12 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float lineTickDamage = 20f;
         private float lineDamageTimer = 0f;
 
+        [Header("Passive - Electrostatic Charge")]
+        [SerializeField] private float totalCharge = 100f;
+        private float maxCharge;
+        private Vector2 lastPosition;
+        private bool isCharging = false;
+
         [Networked] private TickTimer TeslaTimer { get; set; }
         [Networked] private TickTimer TeslaNextTickTimer { get; set; }
         [Networked] private float TeslaDamagePerTick { get; set; }
@@ -84,6 +90,7 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             if (projectilePrefab == null)
                 return false;
+
             SpawnProjectile(
                 projectilePrefab,
                 ProjectileOrigin.position,
@@ -95,6 +102,15 @@ namespace ProjectMS.CharacterSystem.Examples
 
             PlayActionEffect(context.Action, ProjectileOrigin.position, context.AimAngle);
             return true;
+        }
+        protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
+        {
+            base.OnProjectileDespawned(projectile, reason, hitTarget);
+            if (reason == ProjectileDespawnReason.HitCharacter && isCharging == true)
+            {
+                ApplySlow(hitTarget, 1f, 0.5f);
+                isCharging = false;
+            }
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
@@ -270,10 +286,26 @@ namespace ProjectMS.CharacterSystem.Examples
             return true;
         }
 
+        public override void Spawned()
+        {
+            base.Spawned();
+            maxCharge = totalCharge;
+            lastPosition = transform.position;
+        }
+
         protected override void OnPassiveTick(float deltaTime)
         {
             UpdateElectricLine(deltaTime);
             UpdateTeslaFieldLogic();
+            float moveDelta = Vector2.Distance(transform.position, lastPosition);
+
+            totalCharge -= moveDelta;
+            if (totalCharge < 0)
+            {
+                totalCharge = maxCharge;
+                isCharging = true;
+            }
+            lastPosition = transform.position;
         }
 
         private void UpdateTeslaFieldLogic()
