@@ -8,7 +8,7 @@ PhysicsMaterial2D:
   m_PrefabAsset: {fileID: 0}
   m_Name: ElectricNodeMaterial
   serializedVersion: 2
-  friction: 30
+  friction: 100000
   bounciness: 0
   m_FrictionCombine: 1
   m_BounceCombine: 4

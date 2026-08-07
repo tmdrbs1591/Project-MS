@@ -14,7 +14,8 @@ GameObject:
   - component: {fileID: 2297937548139665669}
   - component: {fileID: 4507379730588882779}
   - component: {fileID: 5163196538136971691}
-  m_Layer: 6
+  - component: {fileID: -626298945238706235}
+  m_Layer: 0
   m_Name: SPARK_Q
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -30,7 +31,7 @@ Transform:
   m_GameObject: {fileID: 3595553388960100342}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4, y: 0, z: 0}
+  m_LocalPosition: {x: -4, y: -0.0000000509026, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -129,7 +130,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.0007932186, y: 0.001234889}
+  m_Offset: {x: -0.0007932186, y: -0.00038855337}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -139,7 +140,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.21653032, y: 0.10251552}
+  m_Size: {x: 0.21653032, y: 0.103507325}
   m_EdgeRadius: 0
 --- !u!50 &2297937548139665669
 Rigidbody2D:
@@ -210,3 +211,25 @@ MonoBehaviour:
     Position: 0.01
     Rotation: 0.01
     Scale: 0.01
+--- !u!114 &-626298945238706235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3595553388960100342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17b690925080dbf449e8a237afc35445, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Spark_Q
+  overlapRadius: 0.03
+  stopOverlapRadius: 0.06
+  rightPos: {x: 0.09, y: 0}
+  leftPos: {x: -0.09, y: 0}
+  topPos: {x: -0, y: 0.03}
+  stopPos: {x: 0, y: 0}
+  isRight: 0
+  isLeft: 0
+  isTop: 0
+  isStop: 0
