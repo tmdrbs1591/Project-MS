@@ -151,8 +151,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
             float techJumpAngleRad = Mathf.Min(180, techJumpAngle) * Mathf.Deg2Rad;
 
-            // 빗변 길이 1 기준 연산 - FacingDirection은 1 혹은 1 * -1로 반전용
-            float jumpDirectionX = -FacingDirection * Mathf.Cos(techJumpAngleRad);
+            // 빗변 길이 1 기준 연산
+            float jumpDirectionX = Mathf.Cos(techJumpAngleRad);
+            if (context.AimDirection.x > 0) 
+                jumpDirectionX = -1 * Mathf.Cos(techJumpAngleRad);
+            
             float jumpDirectionY = Mathf.Sin(techJumpAngleRad);
             
             Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
