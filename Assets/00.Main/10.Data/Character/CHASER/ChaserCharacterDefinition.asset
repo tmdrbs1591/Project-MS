@@ -15,14 +15,18 @@ MonoBehaviour:
   displayName: Chaser
   maxHealth: 900
   basicAttackDamage: 50
-  skillQDamage: 20
-  skillEDamage: 20
-  ultimateDamage: 50
+  skillQDamage: 15
+  skillEDamage: 100
+  ultimateDamage: 100
   basicAttackCooldown: 0.3
-  skillQCooldown: 40
-  skillECooldown: 150
+  skillQCooldown: 4
+  skillECooldown: 15
   dashCooldown: 3
   ultimateCooldown: 30
+  knockbackBaseForce: 3
+  knockbackForcePerDamage: 0.1
+  knockbackDuration: 0.15
+  knockbackUpwardBias: 0.35
   moveSpeed: 10
   groundAcceleration: 45
   airAcceleration: 28
@@ -38,6 +42,9 @@ MonoBehaviour:
   lowJumpMultiplier: 2
   defaultDashPower: 14
   defaultDashDuration: 0.16
+  ultimateUsesGauge: 0
+  ultimateGaugeMax: 100
+  ultimateGaugePerDamageDealt: 1
   autoHop: 1
   autoHopInterval: 0.1
   autoHopForce: 5

@@ -13,6 +13,10 @@ using UnityEngine;
 ///   - 게임 씬의 Screen Space Canvas 하위에 빈 오브젝트를 만들고 이 스크립트를 붙인다.
 ///   - 하위에 CooldownSlotUI를 행동 종류 수만큼(평타/Q/E/대시/궁) 만들어 slots 배열에 연결한다.
 ///   - 씬에는 하나만 존재해야 한다(싱글턴).
+///
+/// [게이지형 궁극기]
+///   - CharacterDefinition.UltimateUsesGauge가 켜진 캐릭터는 궁극기 슬롯이 쿨타임이 아니라
+///     "가득 찰 때까지 남은 게이지" 기준으로 표시된다(CharacterBase.IsUltimateGaugeMode 참고).
 /// </summary>
 public class CooldownHUD : MonoBehaviour
 {
@@ -50,8 +54,22 @@ public class CooldownHUD : MonoBehaviour
 
         foreach (CooldownSlotUI slot in slots)
         {
-            float remaining = character.Cooldowns.GetRemaining(slot.ActionType);
-            float total = character.Cooldowns.GetDuration(slot.ActionType);
+            float remaining;
+            float total;
+
+            // 게이지형 궁극기는 "가득 찰 때까지 남은 양"을 쿨타임 슬롯과 같은 방식(overlay가
+            // 줄어들며 준비됨을 드러냄)으로 재활용해서 보여준다 — 슬롯 UI를 따로 안 만들어도 된다.
+            if (slot.ActionType == CharacterActionType.Ultimate && character.IsUltimateGaugeMode)
+            {
+                total = character.UltimateGaugeMax;
+                remaining = Mathf.Max(0f, total - character.UltimateGaugeCurrent);
+            }
+            else
+            {
+                remaining = character.Cooldowns.GetRemaining(slot.ActionType);
+                total = character.Cooldowns.GetDuration(slot.ActionType);
+            }
+
             slot.UpdateCooldown(remaining, total);
         }
     }

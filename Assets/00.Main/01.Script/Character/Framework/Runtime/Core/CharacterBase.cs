@@ -41,6 +41,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetLandSequence { get; set; }
         [Networked] private int NetAutoHopSequence { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
+        [Networked] private float NetUltimateGauge { get; set; }
         [Networked, Capacity(ActionSlotCount)]
         private NetworkArray<NetworkBool> NetActionEnabled => default;
         [Networked, Capacity(ActionSlotCount)]
@@ -88,6 +89,12 @@ namespace ProjectMS.CharacterSystem
         public int FacingDirection => NetFacing >= 0 ? 1 : -1;
         public bool IsFacingRight => FacingDirection > 0;
         public bool IsFacingLeft => FacingDirection < 0;
+
+        /// <summary>궁극기가 쿨타임 대신 게이지(데미지 등으로 충전)로 동작하는지. CooldownHUD가
+        /// 이 값을 보고 궁극기 슬롯을 쿨타임/게이지 중 어느 쪽으로 표시할지 정한다.</summary>
+        public bool IsUltimateGaugeMode => definition != null && definition.UltimateUsesGauge;
+        public float UltimateGaugeCurrent => NetUltimateGauge;
+        public float UltimateGaugeMax => definition != null ? definition.UltimateGaugeMax : 0f;
 
         protected Rigidbody2D Rigidbody => rigidbody2D;
         protected CharacterMovementHandler Movement => movement;
@@ -344,8 +351,23 @@ namespace ProjectMS.CharacterSystem
             CharacterDamagePipeline pipeline = new CharacterDamagePipeline(
                 (damage, damageSource) => ModifyOutgoingDamage(target, damage, damageSource),
                 damage => target.RequestDamage(damage, attacker),
-                damage => OnDamageDealt(target, damage));
+                damage =>
+                {
+                    AddUltimateGaugeFromDamageDealt(damage);
+                    OnDamageDealt(target, damage);
+                });
             pipeline.Apply(amount, source);
+        }
+
+        /// <summary>게이지형 궁극기(IsUltimateGaugeMode)를 쓰는 캐릭터가 적에게 입힌 데미지만큼
+        /// 게이지를 채운다. 게이지 모드가 아니면 아무 일도 안 한다.</summary>
+        private void AddUltimateGaugeFromDamageDealt(float damage)
+        {
+            if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f)
+                return;
+
+            float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageDealt;
+            NetUltimateGauge = Mathf.Clamp(next, 0f, definition.UltimateGaugeMax);
         }
 
         protected void Heal(float amount)
@@ -558,6 +580,8 @@ namespace ProjectMS.CharacterSystem
                 return;
             if (action == CharacterActionType.Dash && !NetMovementEnabled)
                 return;
+            if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode && NetUltimateGauge < UltimateGaugeMax)
+                return;
 
             CharacterActionContext context = CreateActionContext(action);
             bool executed = action switch
@@ -574,7 +598,9 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             actionState.ConsumeCharge(action);
-            if (actionState.ShouldStartCooldownAutomatically(action))
+            if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode)
+                NetUltimateGauge = 0f;
+            else if (actionState.ShouldStartCooldownAutomatically(action))
                 actionState.StartCooldown(action);
             NetAction = action;
             NetActionSequence++;
@@ -664,6 +690,7 @@ namespace ProjectMS.CharacterSystem
 
             timers?.CancelAll();
             actionState?.Initialize();
+            NetUltimateGauge = 0f;
             NetSlowRatio = 0f;
             NetSlowTimer = default;
             NetHitstunTimer = default;

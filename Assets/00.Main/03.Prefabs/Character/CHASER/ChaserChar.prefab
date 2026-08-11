@@ -57,6 +57,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: c48a972d3d024c2408a3331750786a29, type: 3}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: commonSounds
+      value: 
+      objectReference: {fileID: 11400000, guid: 3d38635552a7b794ca24b50aeed315c7, type: 2}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.size
       value: 4
       objectReference: {fileID: 0}

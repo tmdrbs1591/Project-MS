@@ -19,10 +19,13 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private CharacterActionType action;
         [SerializeField] private GameObject prefab;
         [Min(0f)] [SerializeField] private float lifetime = 2f;
+        [Tooltip("이펙트 프리팹의 0도 방향 보정각. 스프라이트/파티클이 +X를 바라보면 0, +Y를 바라보면 -90.\n(CharacterProjectile의 projectileAngleOffset과 같은 목적)")]
+        [SerializeField] private float angleOffset;
 
         public CharacterActionType Action => action;
         public GameObject Prefab => prefab;
         public float Lifetime => lifetime;
+        public float AngleOffset => angleOffset;
     }
 
     /// <summary>액션별 효과음. CharacterActionEffect와 같은 구조로, actionEffects와 별개로
@@ -63,13 +66,8 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private float damagedShakeDuration = 0.15f;
 
         [Header("Optional Sound")]
-        [Tooltip("점프/착지/피격/사망/부활 등 단발성 효과음. 비워두면 소리가 안 남(안전).")]
-        [SerializeField] private AudioClip jumpClip;
-        [SerializeField] private AudioClip landClip;
-        [SerializeField] private AudioClip damagedClip;
-        [Range(0f, 0.5f)] [SerializeField] private float damagedPitchVariance = 0.05f;
-        [SerializeField] private AudioClip deathClip;
-        [SerializeField] private AudioClip revivedClip;
+        [Tooltip("점프/착지/피격/사망/부활 등 공통 효과음 세트. 여러 캐릭터가 같은 에셋을 공유해도 되고,\n비워두면 소리가 안 남(안전).")]
+        [SerializeField] private CharacterCommonSoundSet commonSounds;
         [SerializeField] private CharacterActionSound[] actionSounds = Array.Empty<CharacterActionSound>();
 
         [Header("Optional Jiggle Targets")]
@@ -140,7 +138,7 @@ namespace ProjectMS.CharacterSystem
         {
             squashStretch?.PlayJump();
             SetAnimatorTrigger("Jump");
-            PlaySound(jumpClip);
+            PlaySound(commonSounds != null ? commonSounds.JumpClip : null);
         }
 
         /// <summary>이동 중 자동으로 통통 튀는 연출(AutoHop) 전용. 진짜 점프와 같은 스쿼시/애니메이션을
@@ -154,7 +152,7 @@ namespace ProjectMS.CharacterSystem
         public void PlayLanded()
         {
             SetAnimatorTrigger("Land");
-            PlaySound(landClip);
+            PlaySound(commonSounds != null ? commonSounds.LandClip : null);
         }
 
         public void PlayDamaged()
@@ -164,7 +162,9 @@ namespace ProjectMS.CharacterSystem
             if (bodyRenderer != null && profile != null)
                 bodyRenderer.color = profile.HitFlashColor;
             SetAnimatorTrigger("Damaged");
-            PlaySound(damagedClip, pitchVariance: damagedPitchVariance);
+
+            if (commonSounds != null)
+                PlaySound(commonSounds.DamagedClip, pitchVariance: commonSounds.DamagedPitchVariance);
 
             if (damagedShakeMagnitude > 0f)
                 TwoPlayerCamera.Instance?.Shake(damagedShakeMagnitude, damagedShakeDuration);
@@ -173,13 +173,13 @@ namespace ProjectMS.CharacterSystem
         public void PlayDead()
         {
             SetAnimatorTrigger("Dead");
-            PlaySound(deathClip);
+            PlaySound(commonSounds != null ? commonSounds.DeathClip : null);
         }
 
         public void PlayRevived()
         {
             SetAnimatorTrigger("Revived");
-            PlaySound(revivedClip);
+            PlaySound(commonSounds != null ? commonSounds.RevivedClip : null);
         }
 
         public void PlayAction(CharacterActionType action)
@@ -209,7 +209,7 @@ namespace ProjectMS.CharacterSystem
                 GameObject instance = Instantiate(
                     effect.Prefab,
                     position,
-                    Quaternion.Euler(0f, 0f, angle));
+                    Quaternion.Euler(0f, 0f, angle + effect.AngleOffset));
 
                 if (effect.Lifetime > 0f)
                     Destroy(instance, effect.Lifetime);

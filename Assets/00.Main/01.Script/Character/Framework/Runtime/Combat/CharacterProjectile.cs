@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
@@ -13,6 +14,10 @@ namespace ProjectMS.CharacterSystem
     public sealed class CharacterProjectile : NetworkBehaviour
     {
         [Min(0.1f)] [SerializeField] private float lifetime = 5f;
+
+        [Header("Pierce")]
+        [Tooltip("켜면 캐릭터에 맞아도 소멸하지 않고 계속 날아간다(벽에는 그대로 막힘). 관통형 투사체(예: 루시안식 Q)에 사용. 같은 대상은 한 번만 맞는다.")]
+        [SerializeField] private bool pierceCharacters;
 
         [Header("Collision")]
         [Tooltip("캐릭터 레이어와 별개로, 벽/지형 등 투사체가 부딪혀 소멸할 레이어.")]
@@ -37,9 +42,14 @@ namespace ProjectMS.CharacterSystem
         [Networked] private NetworkId NetSourceObjectId { get; set; }
         [Networked] private TickTimer LifeTimer { get; set; }
 
+        /// <summary>이 투사체를 쏜 플레이어. 다른 투사체/오브젝트가 "내가 쏜 게 맞는지" 확인할 때 쓴다
+        /// (예: 거너 수류탄의 "본인 총알에 맞으면 조기 폭발" 판정).</summary>
+        public PlayerRef Owner => NetOwner;
+
         private const int MaxHitCount = 8;
 
         private readonly RaycastHit2D[] castHits = new RaycastHit2D[MaxHitCount];
+        private readonly HashSet<CharacterBase> pierceHitTargets = new HashSet<CharacterBase>();
         private Collider2D projectileCollider;
         private bool consumed;
 
@@ -79,6 +89,7 @@ namespace ProjectMS.CharacterSystem
         public override void Spawned()
         {
             consumed = false;
+            pierceHitTargets.Clear();
 
             if (Object.HasStateAuthority)
                 LifeTimer = TickTimer.CreateFromSeconds(Runner, lifetime);
@@ -95,15 +106,23 @@ namespace ProjectMS.CharacterSystem
             if (TryHitAlongDelta(delta, out RaycastHit2D hit, out CharacterBase target, out bool hitTarget))
             {
                 if (hitTarget && target != null)
+                {
                     DealDamage(target);
+                    pierceHitTargets.Add(target);
+                }
 
-                Complete(
-                    hitTarget ? ProjectileDespawnReason.HitCharacter : ProjectileDespawnReason.HitWall,
-                    hit.point,
-                    hit.normal,
-                    hitTarget ? target : null,
-                    true);
-                return;
+                if (!(hitTarget && pierceCharacters))
+                {
+                    Complete(
+                        hitTarget ? ProjectileDespawnReason.HitCharacter : ProjectileDespawnReason.HitWall,
+                        hit.point,
+                        hit.normal,
+                        hitTarget ? target : null,
+                        true);
+                    return;
+                }
+
+                // 관통: 소멸하지 않고 이번 틱도 그대로 이동을 마저 진행한다.
             }
 
             transform.position += (Vector3)delta;
@@ -133,8 +152,15 @@ namespace ProjectMS.CharacterSystem
                 CharacterBase target = other.GetComponentInParent<CharacterBase>();
                 if (target == null || target.Object == null || target.Object.InputAuthority == NetOwner)
                     return;
+                if (pierceCharacters && pierceHitTargets.Contains(target))
+                    return;
 
                 DealDamage(target);
+                pierceHitTargets.Add(target);
+
+                if (pierceCharacters)
+                    return; // 관통: 소멸하지 않고 계속 날아간다.
+
                 Vector2 hitPosition = other.ClosestPoint(transform.position);
                 Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
                 Complete(ProjectileDespawnReason.HitCharacter, hitPosition, hitNormal, target, true);
@@ -196,7 +222,8 @@ namespace ProjectMS.CharacterSystem
                     candidateTarget = candidateCollider.GetComponentInParent<CharacterBase>();
                     if (candidateTarget == null ||
                         candidateTarget.Object == null ||
-                        candidateTarget.Object.InputAuthority == NetOwner)
+                        candidateTarget.Object.InputAuthority == NetOwner ||
+                        (pierceCharacters && pierceHitTargets.Contains(candidateTarget)))
                     {
                         continue;
                     }

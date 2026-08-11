@@ -50,6 +50,14 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float defaultDashPower = 14f;
         [Min(0.01f)] [SerializeField] private float defaultDashDuration = 0.16f;
 
+        [Header("Ultimate Gauge")]
+        [Tooltip("켜면 궁극기가 쿨타임 대신 게이지로 동작한다 — 게이지가 가득 차야 쓸 수 있고, 쓰면 0으로 리셋된다. Ultimate Cooldown 값은 이때 무시된다.")]
+        [SerializeField] private bool ultimateUsesGauge;
+        [Tooltip("게이지 최대치(=100%에 해당하는 값).")]
+        [Min(1f)] [SerializeField] private float ultimateGaugeMax = 100f;
+        [Tooltip("적에게 데미지 1을 입힐 때마다 차는 게이지 양.")]
+        [Min(0f)] [SerializeField] private float ultimateGaugePerDamageDealt = 1f;
+
         [Header("Auto Hop")]
         [SerializeField] private bool autoHop = true;
         [Min(0.01f)] [SerializeField] private float autoHopInterval = 0.1f;
@@ -95,6 +103,9 @@ namespace ProjectMS.CharacterSystem
         public float KnockbackForcePerDamage => knockbackForcePerDamage;
         public float KnockbackDuration => knockbackDuration;
         public float KnockbackUpwardBias => knockbackUpwardBias;
+        public bool UltimateUsesGauge => ultimateUsesGauge;
+        public float UltimateGaugeMax => ultimateGaugeMax;
+        public float UltimateGaugePerDamageDealt => ultimateGaugePerDamageDealt;
 
         public float GetDamage(CharacterActionType action)
         {
