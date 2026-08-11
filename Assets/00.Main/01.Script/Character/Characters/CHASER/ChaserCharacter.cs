@@ -39,7 +39,6 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Skill R - Dead Eye")]
         [SerializeField] private CharacterProjectile deadEyeProjectilePrefab;
-        [Min(0f)] [SerializeField] private float deadEyeProjectileSpeed = 30f;
         [Min(0f)] [SerializeField] private float deadEyeProjectileFireCooltime = 0.75f;
         [Min(0)] [SerializeField] private int deadEyeProjectileCharges = 3;
         [Min(0f)] [SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
@@ -65,9 +64,9 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 SpawnProjectile(
                     deadEyeProjectilePrefab,
-                    ProjectileOrigin.position,
+                    context.AimWorldPosition,
                     context.AimDirection,
-                    deadEyeProjectileSpeed,
+                    0f,
                     context.Damage,
                     targetLayer);
 

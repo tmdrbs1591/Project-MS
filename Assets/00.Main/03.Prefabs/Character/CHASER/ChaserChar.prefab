@@ -264,8 +264,7 @@ MonoBehaviour:
   techJumpFlashBangRange: 0.8
   techJumpFlashBangSlowDuration: 0.5
   techJumpFlashBangSlowRatio: 0.4
-  deadEyeProjectilePrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
-  deadEyeProjectileSpeed: 30
+  deadEyeProjectilePrefab: {fileID: 7811597853570981533, guid: 5ffe8d35bf7c83f419e326d8dee79b16, type: 3}
   deadEyeProjectileFireCooltime: 0.75
   deadEyeProjectileCharges: 3
   deadEyeSnipingTimeLimit: 7.5
