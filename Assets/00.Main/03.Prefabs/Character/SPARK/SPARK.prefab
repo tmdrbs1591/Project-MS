@@ -211,7 +211,7 @@ MonoBehaviour:
   projectileSpeed: 20
   targetLayer:
     serializedVersion: 2
-    m_Bits: 192
+    m_Bits: 128
   electricNodePrefab: {fileID: 3595553388960100342, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
   lineRenderer: {fileID: 8668310731192903705}
   throwSpeed: 10

@@ -247,7 +247,7 @@ MonoBehaviour:
   inputCamera: {fileID: 0}
   targetLayer:
     serializedVersion: 2
-    m_Bits: 192
+    m_Bits: 128
   burstBulletProjectilePrefab: {fileID: 7811597853570981533, guid: 047f2747991adbe44bbd7ecd1006e9ca, type: 3}
   burstBulletProjectileSpeed: 17.5
   burstBulletProjectileFireCount: 4
