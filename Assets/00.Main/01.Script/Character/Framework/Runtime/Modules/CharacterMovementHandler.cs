@@ -33,6 +33,7 @@ namespace ProjectMS.CharacterSystem
 
         public event Action Jumped;
         public event Action Landed;
+        public event Action AutoHopped;
 
         public bool IsGrounded { get; private set; }
         public bool IsDashing { get; private set; }
@@ -105,9 +106,22 @@ namespace ProjectMS.CharacterSystem
             if (!MovementEnabled)
                 return;
 
+            ForceVelocityOverride(direction, power, duration, new Vector2(FacingDirection, 0f));
+        }
+
+        /// <summary>피격 시 강제로 밀려나는 넉백. StartDash와 물리 구현은 동일하지만
+        /// MovementEnabled 가드를 건너뛴다 — 맞는 건 자기 의지와 무관하게 항상 적용돼야 한다.
+        /// 방향을 못 정할 수 없는 경우(원점 벡터 등)엔 현재 바라보는 방향의 반대(후방)로 민다.</summary>
+        public void ApplyKnockback(Vector2 direction, float power, float duration)
+        {
+            ForceVelocityOverride(direction, power, duration, new Vector2(-FacingDirection, 0f));
+        }
+
+        private void ForceVelocityOverride(Vector2 direction, float power, float duration, Vector2 fallbackDirection)
+        {
             Vector2 normalized = direction.sqrMagnitude > 0.0001f
                 ? direction.normalized
-                : new Vector2(FacingDirection, 0f);
+                : fallbackDirection.normalized;
 
             dashVelocity = normalized * Mathf.Max(0f, power);
             dashTimer = Mathf.Max(0.01f, duration);
@@ -200,7 +214,7 @@ namespace ProjectMS.CharacterSystem
             rigidbody.linearVelocity = new Vector2(rigidbody.linearVelocity.x, 0f);
             rigidbody.AddForce(Vector2.up * definition.AutoHopForce, ForceMode2D.Impulse);
             IsGrounded = false;
-            Jumped?.Invoke();
+            AutoHopped?.Invoke();
         }
 
         private void TickDash(float deltaTime)

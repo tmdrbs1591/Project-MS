@@ -1425,7 +1425,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4029bfcf221f34419075753870301dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
-  actionType: 2
+  actionType: 3
   cooldownOverlay: {fileID: 1807704769}
   remainingText: {fileID: 0}
 --- !u!114 &307828117
@@ -2471,7 +2471,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4029bfcf221f34419075753870301dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
-  actionType: 4
+  actionType: 5
   cooldownOverlay: {fileID: 223313405}
   remainingText: {fileID: 0}
 --- !u!114 &494226554
@@ -2526,6 +2526,7 @@ GameObject:
   - component: {fileID: 519420030}
   - component: {fileID: 519420033}
   - component: {fileID: 519420034}
+  - component: {fileID: 519420035}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -2686,6 +2687,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleStartVfxController
   battleStartVfx: {fileID: 6971120539330799929}
   battleStartVfxVs: {fileID: 3646246254976116557}
+  battleStartClip: {fileID: 0}
+--- !u!114 &519420035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cecfb71c17575142b3a139e8aa8bc2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoundFinishController
+  hitStopDuration: 0.08
+  slowMotionScale: 0.2
+  slowMotionDuration: 1
+  recoverDuration: 0.3
+  focusZoomSize: 12
+  koClip: {fileID: 0}
+  koShakeMagnitude: 0.3
+  koShakeDuration: 0.25
 --- !u!1 &559007627
 GameObject:
   m_ObjectHideFlags: 0
@@ -3810,7 +3832,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4029bfcf221f34419075753870301dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
-  actionType: 1
+  actionType: 2
   cooldownOverlay: {fileID: 1308007745}
   remainingText: {fileID: 0}
 --- !u!114 &829741876
@@ -4851,7 +4873,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4029bfcf221f34419075753870301dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
-  actionType: 3
+  actionType: 4
   cooldownOverlay: {fileID: 1840396675}
   remainingText: {fileID: 0}
 --- !u!114 &1159288982

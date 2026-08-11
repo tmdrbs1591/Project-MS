@@ -17,6 +17,8 @@ public class BattleStartVfxController : MonoBehaviour
 {
     [SerializeField] private GameObject battleStartVfx;
     [SerializeField] private GameObject battleStartVfxVs;
+    [Tooltip("VFX와 같이 재생할 효과음. 비워두면 소리 없이 VFX만 재생된다.")]
+    [SerializeField] private AudioClip battleStartClip;
 
     private MatchPhase lastPhase = MatchPhase.PackSelect;
     private bool hasPlayed;
@@ -38,6 +40,7 @@ public class BattleStartVfxController : MonoBehaviour
         if (lastPhase == MatchPhase.PackSelect && match.Phase == MatchPhase.Fighting)
         {
             SetVfxActive(true);
+            SoundManager.Instance?.PlaySfx(battleStartClip);
             hasPlayed = true;
         }
 

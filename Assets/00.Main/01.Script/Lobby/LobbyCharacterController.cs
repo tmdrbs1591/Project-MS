@@ -33,6 +33,13 @@ public class LobbyCharacterController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
+
+        // Fusion이 매치 중 Physics2D를 Script 모드로 전환한 채로 세션이 끝나버리면
+        // Rigidbody2D가 자동 시뮬레이션되지 않는다. ResetStatics()의 복구는
+        // RuntimeInitializeOnLoadMethod라 프로세스 시작 시 딱 1회만 실행되므로, 두 번째
+        // 매치 이후 로비로 돌아올 때는 적용되지 않는다 — 로비 씬이 로드될 때마다(=이
+        // 컨트롤러가 새로 생성될 때마다) 여기서도 매번 강제로 복원한다.
+        Physics2D.simulationMode = SimulationMode2D.FixedUpdate;
     }
 
     private void Update()

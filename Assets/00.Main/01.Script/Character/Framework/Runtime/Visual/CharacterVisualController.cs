@@ -25,6 +25,20 @@ namespace ProjectMS.CharacterSystem
         public float Lifetime => lifetime;
     }
 
+    /// <summary>액션별 효과음. CharacterActionEffect와 같은 구조로, actionEffects와 별개로
+    /// 원하는 액션에만 소리를 물릴 수 있다(둘 다 없어도, 하나만 있어도 됨).</summary>
+    [Serializable]
+    public sealed class CharacterActionSound
+    {
+        [SerializeField] private CharacterActionType action;
+        [SerializeField] private AudioClip clip;
+        [Range(0f, 1f)] [SerializeField] private float volume = 1f;
+
+        public CharacterActionType Action => action;
+        public AudioClip Clip => clip;
+        public float Volume => volume;
+    }
+
     [DisallowMultipleComponent]
     public sealed class CharacterVisualController : MonoBehaviour
     {
@@ -42,6 +56,21 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private ParticleSystem dustEffect;
         [SerializeField] private Animator animator;
         [SerializeField] private CharacterActionEffect[] actionEffects = Array.Empty<CharacterActionEffect>();
+
+        [Header("Optional Camera Shake")]
+        [Tooltip("피격당할 때 화면을 흔드는 세기(월드 단위). 0이면 흔들지 않는다.")]
+        [SerializeField] private float damagedShakeMagnitude = 0.1f;
+        [SerializeField] private float damagedShakeDuration = 0.15f;
+
+        [Header("Optional Sound")]
+        [Tooltip("점프/착지/피격/사망/부활 등 단발성 효과음. 비워두면 소리가 안 남(안전).")]
+        [SerializeField] private AudioClip jumpClip;
+        [SerializeField] private AudioClip landClip;
+        [SerializeField] private AudioClip damagedClip;
+        [Range(0f, 0.5f)] [SerializeField] private float damagedPitchVariance = 0.05f;
+        [SerializeField] private AudioClip deathClip;
+        [SerializeField] private AudioClip revivedClip;
+        [SerializeField] private CharacterActionSound[] actionSounds = Array.Empty<CharacterActionSound>();
 
         [Header("Optional Jiggle Targets")]
         [SerializeField] private CharacterJiggleTarget[] jiggleTargets = Array.Empty<CharacterJiggleTarget>();
@@ -111,11 +140,21 @@ namespace ProjectMS.CharacterSystem
         {
             squashStretch?.PlayJump();
             SetAnimatorTrigger("Jump");
+            PlaySound(jumpClip);
+        }
+
+        /// <summary>이동 중 자동으로 통통 튀는 연출(AutoHop) 전용. 진짜 점프와 같은 스쿼시/애니메이션을
+        /// 재생하지만, 걸을 때마다 반복 재생되면 시끄러우므로 사운드는 울리지 않는다.</summary>
+        public void PlayAutoHop()
+        {
+            squashStretch?.PlayJump();
+            SetAnimatorTrigger("Jump");
         }
 
         public void PlayLanded()
         {
             SetAnimatorTrigger("Land");
+            PlaySound(landClip);
         }
 
         public void PlayDamaged()
@@ -125,22 +164,39 @@ namespace ProjectMS.CharacterSystem
             if (bodyRenderer != null && profile != null)
                 bodyRenderer.color = profile.HitFlashColor;
             SetAnimatorTrigger("Damaged");
+            PlaySound(damagedClip, pitchVariance: damagedPitchVariance);
+
+            if (damagedShakeMagnitude > 0f)
+                TwoPlayerCamera.Instance?.Shake(damagedShakeMagnitude, damagedShakeDuration);
         }
 
         public void PlayDead()
         {
             SetAnimatorTrigger("Dead");
+            PlaySound(deathClip);
         }
 
         public void PlayRevived()
         {
             SetAnimatorTrigger("Revived");
+            PlaySound(revivedClip);
         }
 
         public void PlayAction(CharacterActionType action)
         {
-            if (action != CharacterActionType.None)
-                SetAnimatorTrigger(action.ToString());
+            if (action == CharacterActionType.None)
+                return;
+
+            SetAnimatorTrigger(action.ToString());
+
+            foreach (CharacterActionSound sound in actionSounds)
+            {
+                if (sound.Action == action)
+                {
+                    PlaySound(sound.Clip, sound.Volume);
+                    break;
+                }
+            }
         }
 
         public void SpawnActionEffect(CharacterActionType action, Vector2 position, float angle)
@@ -200,6 +256,11 @@ namespace ProjectMS.CharacterSystem
         {
             if (animator != null && !string.IsNullOrEmpty(triggerName))
                 animator.SetTrigger(triggerName);
+        }
+
+        private static void PlaySound(AudioClip clip, float volume = 1f, float pitchVariance = 0f)
+        {
+            SoundManager.Instance?.PlaySfx(clip, volume, pitchVariance);
         }
 
 #if UNITY_EDITOR

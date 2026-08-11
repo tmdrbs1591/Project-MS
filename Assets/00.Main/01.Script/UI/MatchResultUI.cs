@@ -67,10 +67,21 @@ public class MatchResultUI : MonoBehaviour
 
             case MatchPhase.RoundEnd:
             case MatchPhase.AugmentSelect:
-                SetPanelActive(true);
+                // RoundEnd 진입 직후엔 RoundFinishController가 히트스톱/줌/슬로우모션을 로컬로
+                // 재생 중일 수 있다. 그 연출이 화면을 다 차지하는 동안은 배너를 띄우지 않고
+                // 기다렸다가, 연출이 끝나고 화면이 정상으로 돌아온 뒤에 띄운다.
+                bool finishPlaying = match.Phase == MatchPhase.RoundEnd
+                    && RoundFinishController.Instance != null
+                    && RoundFinishController.Instance.IsPlaying;
+
+                SetPanelActive(!finishPlaying);
                 SetReturnButtonActive(false);
-                SetTitle(wonLastRound ? "ROUND WIN" : "ROUND LOSE");
-                SetScore(match.Player1Wins, match.Player2Wins, isLocalLeft);
+
+                if (!finishPlaying)
+                {
+                    SetTitle(wonLastRound ? "ROUND WIN" : "ROUND LOSE");
+                    SetScore(match.Player1Wins, match.Player2Wins, isLocalLeft);
+                }
                 break;
 
             case MatchPhase.MatchEnd:

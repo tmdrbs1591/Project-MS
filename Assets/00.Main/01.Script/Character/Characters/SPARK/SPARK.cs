@@ -154,7 +154,10 @@ namespace ProjectMS.CharacterSystem.Examples
 
             if (plantedElectricNodes != null && plantedElectricNodes.Count >= 2)
             {
-                if (!HasStateAuthority) return;
+                // 리시뮬레이션 중엔 스킵 — 상대(원격 오브젝트) 위치 기준 물리 쿼리는 리시뮬레이션마다
+                // 결과가 달라질 수 있어서, 가드 없이 두면 같은 타격에 DealDamage가 여러 번 불릴 수 있다
+                // (UpdateTeslaFieldLogic의 기존 가드와 동일한 이유).
+                if (!HasStateAuthority || Runner.IsResimulation) return;
 
                 if (plantedElectricNodes[0] == null || plantedElectricNodes[1] == null)
                     return;
@@ -242,7 +245,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
             foreach (Vector3 nodePos in nodePositions)
             {
-                if (HasStateAuthority)
+                // 리시뮬레이션 중엔 데미지 쿼리를 스킵(UpdateElectricLine과 동일한 이유).
+                if (HasStateAuthority && !Runner.IsResimulation)
                 {
                     foreach (CharacterBase enemy in FindEnemiesInCircle(nodePos, overloadRadius, targetLayer))
                     {
@@ -269,7 +273,8 @@ namespace ProjectMS.CharacterSystem.Examples
             TeslaTickCounter = 1;
             lastRenderedTickCount = -1;
 
-            if (HasStateAuthority)
+            // 리시뮬레이션 중엔 데미지 쿼리를 스킵(UpdateElectricLine/UpdateTeslaFieldLogic과 동일한 이유).
+            if (HasStateAuthority && !Runner.IsResimulation)
             {
                 foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
                 {

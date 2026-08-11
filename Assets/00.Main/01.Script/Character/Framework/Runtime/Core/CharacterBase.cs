@@ -39,6 +39,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetActionSequence { get; set; }
         [Networked] private int NetJumpSequence { get; set; }
         [Networked] private int NetLandSequence { get; set; }
+        [Networked] private int NetAutoHopSequence { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
         [Networked, Capacity(ActionSlotCount)]
         private NetworkArray<NetworkBool> NetActionEnabled => default;
@@ -53,6 +54,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private NetworkBool NetMovementEnabled { get; set; }
         [Networked] private float NetSlowRatio { get; set; }
         [Networked] private TickTimer NetSlowTimer { get; set; }
+        [Networked] private TickTimer NetHitstunTimer { get; set; }
 
         private Rigidbody2D rigidbody2D;
         private Collider2D collider2D;
@@ -67,6 +69,7 @@ namespace ProjectMS.CharacterSystem
         private int lastRenderedActionSequence;
         private int lastRenderedJumpSequence;
         private int lastRenderedLandSequence;
+        private int lastRenderedAutoHopSequence;
         private int lastRenderedDamageSequence;
         private bool lastRenderedDead;
         private CharacterInputSnapshot lastInput;
@@ -81,6 +84,7 @@ namespace ProjectMS.CharacterSystem
         public CharacterCooldownHandler Cooldowns => cooldowns;
         public float SlowRatio => Mathf.Clamp(NetSlowRatio, 0f, 0.99f);
         public bool IsSlowed => SlowRatio > 0f && IsSlowRunning;
+        public bool IsHitstunned => Runner != null && NetHitstunTimer.IsRunning && !NetHitstunTimer.Expired(Runner);
         public int FacingDirection => NetFacing >= 0 ? 1 : -1;
         public bool IsFacingRight => FacingDirection > 0;
         public bool IsFacingLeft => FacingDirection < 0;
@@ -121,6 +125,7 @@ namespace ProjectMS.CharacterSystem
 
             movement.Jumped += HandleJumped;
             movement.Landed += HandleLanded;
+            movement.AutoHopped += HandleAutoHopped;
         }
 
         public override void Spawned()
@@ -139,6 +144,7 @@ namespace ProjectMS.CharacterSystem
             lastRenderedActionSequence = NetActionSequence;
             lastRenderedJumpSequence = NetJumpSequence;
             lastRenderedLandSequence = NetLandSequence;
+            lastRenderedAutoHopSequence = NetAutoHopSequence;
             lastRenderedDamageSequence = NetDamageSequence;
             lastRenderedDead = NetDead;
             OnCharacterSpawned();
@@ -162,6 +168,7 @@ namespace ProjectMS.CharacterSystem
 
             movement.Jumped -= HandleJumped;
             movement.Landed -= HandleLanded;
+            movement.AutoHopped -= HandleAutoHopped;
         }
 
         private void Update()
@@ -187,7 +194,7 @@ namespace ProjectMS.CharacterSystem
             movement.SetMovementEnabled(NetMovementEnabled);
             movement.SetMovementSpeedMultiplier(status.MovementSpeedMultiplier);
 
-            bool gameplayLocked = NetDead || NetGameplayLocked || IsProjectGameplayLocked;
+            bool gameplayLocked = NetDead || NetGameplayLocked || IsProjectGameplayLocked || IsHitstunned;
             CharacterInputSnapshot movementInput = gameplayLocked
                 ? default
                 : lastInput;
@@ -613,6 +620,39 @@ namespace ProjectMS.CharacterSystem
                 ResetCommonState();
                 OnDied(attacker);
             }
+            else
+            {
+                // 죽는 타격이 아닐 때만 넉백을 건다 — 어차피 죽는 순간 위의 ResetCommonState()가
+                // 속도를 0으로 되돌리고 대시/넉백을 취소해버려서(그래야 사망 연출/카메라 포커스가
+                // 제자리에서 안정적으로 잡힘), 죽는 타격에 걸어봐야 바로 지워진다.
+                ApplyKnockback(applied, attacker);
+            }
+        }
+
+        /// <summary>피해량에 비례해 밀려나는 넉백 + 그 동안 이동/행동을 막는 히트스턴을 건다.</summary>
+        private void ApplyKnockback(float damageApplied, PlayerRef attacker)
+        {
+            float force = definition.KnockbackBaseForce + damageApplied * definition.KnockbackForcePerDamage;
+            if (force <= 0f)
+                return;
+
+            Vector2 direction = ResolveKnockbackDirection(attacker);
+            float duration = definition.KnockbackDuration;
+
+            movement.ApplyKnockback(direction, force, duration);
+            NetHitstunTimer = TickTimer.CreateFromSeconds(Runner, duration);
+        }
+
+        /// <summary>공격자 위치 기준 좌우 방향 + 위쪽 편향을 섞은 넉백 방향. 공격자를 못 찾으면
+        /// (투사체 소유자가 이미 디스폰된 경우 등) 피격자가 바라보던 방향의 반대(후방)로 민다.</summary>
+        private Vector2 ResolveKnockbackDirection(PlayerRef attacker)
+        {
+            CharacterBase attackerCharacter = All.Find(c => c != null && c.Object != null && c.Object.InputAuthority == attacker);
+            float horizontal = attackerCharacter != null
+                ? Mathf.Sign(transform.position.x - attackerCharacter.transform.position.x)
+                : -FacingDirection;
+
+            return new Vector2(horizontal, definition.KnockbackUpwardBias).normalized;
         }
 
         private bool HasStateAuthority => Object != null && Object.HasStateAuthority;
@@ -626,6 +666,7 @@ namespace ProjectMS.CharacterSystem
             actionState?.Initialize();
             NetSlowRatio = 0f;
             NetSlowTimer = default;
+            NetHitstunTimer = default;
             NetMovementEnabled = true;
             movement?.CancelDash();
             movement?.SetMovementSpeedMultiplier(1f);
@@ -770,6 +811,13 @@ namespace ProjectMS.CharacterSystem
             OnLanded();
         }
 
+        /// <summary>이동 중 자동으로 통통 튀는 연출(AutoHop)용. 진짜 점프(스페이스바)와 달리
+        /// 스쿼시/애니메이션만 재생하고 사운드는 울리지 않는다 — HandleJumped와 분리된 이유.</summary>
+        private void HandleAutoHopped()
+        {
+            NetAutoHopSequence++;
+        }
+
         private void DetectVisualEvents()
         {
             if (lastRenderedActionSequence != NetActionSequence)
@@ -788,6 +836,12 @@ namespace ProjectMS.CharacterSystem
             {
                 lastRenderedLandSequence = NetLandSequence;
                 visual.PlayLanded();
+            }
+
+            if (lastRenderedAutoHopSequence != NetAutoHopSequence)
+            {
+                lastRenderedAutoHopSequence = NetAutoHopSequence;
+                visual.PlayAutoHop();
             }
 
             if (lastRenderedDamageSequence != NetDamageSequence)

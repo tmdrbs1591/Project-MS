@@ -36,6 +36,78 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.9587955
       objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: jumpClip
+      value: 
+      objectReference: {fileID: 8300000, guid: d111a03e1e489d340853e5744f4710e1, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: landClip
+      value: 
+      objectReference: {fileID: 8300000, guid: da7d12a91ec16264ebc858171651e142, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: deathClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 393539a2d02f304458c1570d99d709b7, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: damagedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 40f46126f664f484c9ea255414519f48, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: revivedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: c48a972d3d024c2408a3331750786a29, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[0].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: c261de343f2c9ad4b876ad59eb847fa4, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[1].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 49ff796b6479e554bb3bde26589f769a, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[2].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 16c8209a491593c4a8925660e9217f83, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[3].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 510ef97ec057fbd499b60b89715278ba, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[0].action
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[0].volume
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[1].action
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[1].volume
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[2].action
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[2].volume
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[3].action
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[3].volume
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 5099800003330966633, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_Color.b
       value: 1
@@ -175,7 +247,9 @@ MonoBehaviour:
   burstBulletProjectilePrefab: {fileID: 7811597853570981533, guid: 047f2747991adbe44bbd7ecd1006e9ca, type: 3}
   burstBulletProjectileSpeed: 17.5
   burstBulletProjectileFireCount: 4
-  basicAttackAngle: 35
+  burstArcAngle: 45
+  burstReloadingDuration: 2.5
+  burstCharges: 4
   dualRevolverProjectilePrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
   dualRevolverProjectileSpeed: 45
   techJumpAngle: 60
@@ -183,16 +257,15 @@ MonoBehaviour:
   techJumpDuration: 0.08
   techJumpFlashBangPrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
   techJumpFlashBangSpeed: 8
-  techJumpFlashBangDamageMultiplier: 2
   techJumpFlashBangRange: 0.8
-  techJumpFlashBangSlowTime: 0.5
-  techJumpFlashBangSlowValue: 0.4
+  techJumpFlashBangSlowDuration: 0.5
+  techJumpFlashBangSlowRatio: 0.4
   deadEyeProjectilePrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
   deadEyeProjectileSpeed: 30
   deadEyeProjectileFireCooltime: 0.75
-  deadEyeProjectileDamageMultiplier: 2
-  deadEyeProjectileFireCount: 3
+  deadEyeProjectileCharges: 3
   deadEyeSnipingTimeLimit: 7.5
+  deadEyeReuseCooltime: 0.25
   carnivalBackAttackCriterionAngle: 90
   carnivalBackAttackAdditionalDamageMultiplier: 2
 --- !u!4 &8892872073989034078 stripped
