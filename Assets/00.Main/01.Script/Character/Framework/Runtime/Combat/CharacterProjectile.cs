@@ -263,6 +263,13 @@ namespace ProjectMS.CharacterSystem
 
         private void DealDamage(CharacterBase target)
         {
+            // Fusion이 예측이 빗나가서 과거 틱을 리시뮬레이션할 때, 이 가드가 없으면 같은
+            // 타격의 데미지 적용 코드가 여러 번 재실행돼서 데미지/사운드/히트/넉백이 전부
+            // 중복된다(SPARK.cs의 UpdateElectricLine/UpdateTeslaFieldLogic과 동일한 이유로
+            // 같은 패턴 적용).
+            if (Runner != null && Runner.IsResimulation)
+                return;
+
             CharacterBase source = ResolveSource();
             if (source != null)
                 source.DealProjectileDamage(target, NetDamage);

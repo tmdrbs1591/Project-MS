@@ -10,7 +10,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: pierceCharacters
-      value: 1
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: wallLayer.m_Bits
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey

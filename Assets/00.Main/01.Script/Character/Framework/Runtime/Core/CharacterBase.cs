@@ -651,14 +651,16 @@ namespace ProjectMS.CharacterSystem
                 // 죽는 타격이 아닐 때만 넉백을 건다 — 어차피 죽는 순간 위의 ResetCommonState()가
                 // 속도를 0으로 되돌리고 대시/넉백을 취소해버려서(그래야 사망 연출/카메라 포커스가
                 // 제자리에서 안정적으로 잡힘), 죽는 타격에 걸어봐야 바로 지워진다.
-                ApplyKnockback(applied, attacker);
+                ApplyKnockback(attacker);
             }
         }
 
-        /// <summary>피해량에 비례해 밀려나는 넉백 + 그 동안 이동/행동을 막는 히트스턴을 건다.</summary>
-        private void ApplyKnockback(float damageApplied, PlayerRef attacker)
+        /// <summary>캐릭터별 고정 세기로 밀려나는 넉백 + 그 동안 이동/행동을 막는 히트스턴을 건다.
+        /// 데미지량과 무관하게 항상 같은 세기다(예전엔 데미지 비례였으나 의도적으로 뺌 — 캐릭터마다
+        /// 데미지 스케일이 달라서 큰 피해를 주는 캐릭터가 넉백까지 비정상적으로 세지는 문제가 있었음).</summary>
+        private void ApplyKnockback(PlayerRef attacker)
         {
-            float force = definition.KnockbackBaseForce + damageApplied * definition.KnockbackForcePerDamage;
+            float force = definition.KnockbackBaseForce;
             if (force <= 0f)
                 return;
 

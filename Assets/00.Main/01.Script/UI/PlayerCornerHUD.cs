@@ -13,7 +13,9 @@ using UnityEngine.UI;
 ///     isLeftSide 를 좌/우에 맞게 설정한다.
 ///   - hpFillImage: Filled Image (Horizontal). 캐릭터가 아직 스폰되지 않았으면 0으로 표시된다.
 ///   - nameText: 임시로 "P1"(왼쪽)/"P2"(오른쪽)만 표시한다. 실제 닉네임 연동은 추후.
-///   - scoreSlots: 3판 2선승이라 3칸. 승수만큼 앞에서부터 scoreFilledColor, 나머지는 scoreEmptyColor.
+///   - scoreSlots: MatchManager.WinsRequired(=2)만큼(3판 2선승, 2승 찍으면 매치 종료라 그 이상은
+///     필요 없음 — 예전 "5판 3선승" 시절엔 3칸이 맞았으나 지금은 아님). 승수만큼 앞에서부터
+///     scoreFilledColor, 나머지는 scoreEmptyColor.
 ///   - characterImage: 캐릭터 초상화 표시용 빈 슬롯. 캐릭터 선택/포트레이트 시스템이 아직 없어
 ///     지금은 자동으로 채우지 않는다(필요 시 인스펙터에서 수동으로 스프라이트를 지정).
 /// </summary>
@@ -27,7 +29,7 @@ public class PlayerCornerHUD : MonoBehaviour
     [Header("이름 (임시)")]
     [SerializeField] private TMP_Text nameText;
 
-    [Header("스코어 (3판 2선승, 3칸)")]
+    [Header("스코어 (3판 2선승 = WinsRequired 2, 2칸)")]
     [SerializeField] private Image[] scoreSlots;
     [SerializeField] private Color scoreFilledColor = Color.white;
     [SerializeField] private Color scoreEmptyColor = new Color(1f, 1f, 1f, 0.25f);

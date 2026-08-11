@@ -24,10 +24,8 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float ultimateCooldown = 30f;
 
         [Header("Knockback")]
-        [Tooltip("피해량과 무관하게 항상 적용되는 기본 넉백 힘.")]
+        [Tooltip("피해량과 무관하게 항상 적용되는 고정 넉백 힘(캐릭터별 튜닝값).")]
         [Min(0f)] [SerializeField] private float knockbackBaseForce = 3f;
-        [Tooltip("받은 피해량 1당 추가되는 넉백 힘.")]
-        [Min(0f)] [SerializeField] private float knockbackForcePerDamage = 0.1f;
         [Tooltip("넉백이 지속되는 시간(초). 이 동안 이동/행동 입력이 안 먹는다(히트스턴).")]
         [Min(0.01f)] [SerializeField] private float knockbackDuration = 0.15f;
         [Tooltip("넉백 방향에서 위쪽으로 얼마나 띄울지(0=수평만, 1=거의 수직).")]
@@ -100,7 +98,6 @@ namespace ProjectMS.CharacterSystem
         public Key Dash => dash;
         public Key Ultimate => ultimate;
         public float KnockbackBaseForce => knockbackBaseForce;
-        public float KnockbackForcePerDamage => knockbackForcePerDamage;
         public float KnockbackDuration => knockbackDuration;
         public float KnockbackUpwardBias => knockbackUpwardBias;
         public bool UltimateUsesGauge => ultimateUsesGauge;

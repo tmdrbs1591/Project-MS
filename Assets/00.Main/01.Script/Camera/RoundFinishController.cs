@@ -123,7 +123,6 @@ public class RoundFinishController : MonoBehaviour
 
     private IEnumerator FinishRoutine(Transform loserTransform)
     {
-        Debug.Log($"[RoundFinishController] focus target: {loserTransform.name} at {loserTransform.position}", loserTransform);
         twoPlayerCamera.SetFocusOverride(loserTransform, focusZoomSize);
         SoundManager.Instance?.PlaySfx(koClip);
 
@@ -152,7 +151,6 @@ public class RoundFinishController : MonoBehaviour
     /// <summary>연출을 중단하고 타임스케일/카메라 포커스를 안전하게 원상복구한다.</summary>
     private void StopFinishRoutine()
     {
-        Debug.LogWarning("[RoundFinishController] StopFinishRoutine 호출됨 — 포커스 오버라이드가 취소됩니다.");
         StopCoroutine(finishRoutine);
         finishRoutine = null;
         Time.timeScale = 1f;

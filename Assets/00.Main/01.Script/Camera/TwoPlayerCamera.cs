@@ -24,7 +24,10 @@ using UnityEngine;
 ///   - SetFocusOverride(target, zoomSize) 를 호출하면 두 플레이어 자동 프레이밍을 잠깐
 ///     멈추고 target 하나로 SmoothDamp 이동/줌한다(피니시 연출 등에서 사용, RoundFinishController 참고).
 ///   - ClearFocusOverride() 로 원래의 두 플레이어 프레이밍으로 복귀한다.
-///   - 오버라이드 중에도 minSize/maxSize/boundsCollider 제한은 동일하게 적용된다.
+///   - 오버라이드 중엔 boundsCollider 제한을 끈다 — 죽는 위치가 맵 가장자리에 가까우면 경계
+///     클램프가 실제 타깃 위치와 화면 중심을 몇 칸씩 어긋나게 만들어서(KO 줌인이 시체가 아닌
+///     다른 곳을 비추는 것처럼 보임), 포커스 중엔 정확한 위치/줌을 우선한다. maxSize 상한만
+///     그대로 유지된다.
 ///
 /// [카메라 셰이크]
 ///   - Shake(magnitude, duration) 를 아무 스크립트에서나 TwoPlayerCamera.Instance.Shake(...)
@@ -129,7 +132,11 @@ public class TwoPlayerCamera : MonoBehaviour
         if (!TryGetFramingTarget(out Vector3 targetPos, out float targetSize))
             return;
 
-        bool hasBounds = boundsCollider != null;
+        // 포커스 오버라이드(예: KO 줌인) 중엔 영역 제한을 끈다 — 평소 게임플레이 프레이밍은
+        // 둘 다 화면 안에 담아야 해서 경계를 지켜야 하지만, 죽는 위치가 맵 가장자리에 가까우면
+        // 경계 클램프가 실제 시체 위치와 화면 중심을 몇 칸씩 어긋나게 만든다. 포커스 중엔 정확한
+        // 위치/줌이 더 중요하므로 이 제한을 건너뛴다(화면 일부가 맵 밖을 살짝 비쳐도 괜찮다).
+        bool hasBounds = boundsCollider != null && !hasFocusOverride;
         Bounds area = hasBounds ? boundsCollider.bounds : default;
         float aspect = cam.aspect > 0f ? cam.aspect : 1f;
 
