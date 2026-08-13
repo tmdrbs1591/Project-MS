@@ -189,6 +189,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             if (Runner == null || !Object.IsValid) return;
 
+
             UpdateLineVisual();
             UpdateTeslaVisual();
         }
@@ -206,9 +207,16 @@ namespace ProjectMS.CharacterSystem.Examples
                 }
                 if (myNodes.Count >= 2)
                 {
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, myNodes[0].position);
-                    lineRenderer.SetPosition(1, myNodes[1].position);
+                    if (myNodes[1].GetComponent<Spark_Q>().isStop == true)
+                    {
+                        lineRenderer.enabled = true;
+                        lineRenderer.SetPosition(0, myNodes[0].position);
+                        lineRenderer.SetPosition(1, myNodes[1].position);
+                    }
+                    else
+                    {
+                        lineRenderer.enabled = false;
+                    }
                 }
                 else
                 {

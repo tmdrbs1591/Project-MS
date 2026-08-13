@@ -224,7 +224,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Spark_Q
   overlapRadius: 0.03
-  stopOverlapRadius: 0.06
+  stopOverlapRadius: 0.07
   rightPos: {x: 0.09, y: 0}
   leftPos: {x: -0.09, y: 0}
   topPos: {x: -0, y: 0.03}
