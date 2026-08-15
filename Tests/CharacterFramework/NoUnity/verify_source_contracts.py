@@ -10,13 +10,13 @@ import sys
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-ROOT = PROJECT_ROOT / "Assets" / "00.Main" / "01.Script" / "NewCharacter" / "Character"
+ROOT = PROJECT_ROOT / "Assets" / "00.Main" / "01.Script" / "Character" / "Framework"
 SOURCE = (ROOT / "Runtime" / "Core" / "CharacterBase.cs").read_text(encoding="utf-8")
 PROJECTILE_SOURCE = (ROOT / "Runtime" / "Combat" / "CharacterProjectile.cs").read_text(encoding="utf-8")
 PIPELINE_SOURCE = (ROOT / "Runtime" / "Modules" / "CharacterDamagePipeline.cs").read_text(encoding="utf-8")
 TEMPLATE_SOURCE = (ROOT / "Runtime" / "Examples" / "CharacterTemplate.cs").read_text(encoding="utf-8")
-README_SOURCE = (ROOT / "README.md").read_text(encoding="utf-8")
-GUIDE_SOURCE = (ROOT / "Docs" / "캐릭터_개발_가이드.md").read_text(encoding="utf-8")
+README_SOURCE = (PROJECT_ROOT / "Docs" / "Character" / "CharacterFramework.md").read_text(encoding="utf-8")
+GUIDE_SOURCE = README_SOURCE
 EXAMPLE_SOURCES = {
     path.name: path.read_text(encoding="utf-8")
     for path in (ROOT / "Runtime" / "Examples").glob("*.cs")
@@ -32,6 +32,18 @@ COMMON_SOURCE_FILES = (
     "Runtime/Modules/CharacterTimerHandler.cs",
     "Runtime/Modules/CharacterDamagePipeline.cs",
     "Runtime/Combat/CharacterProjectile.cs",
+    "Runtime/OwnedEntities/CharacterOwnedEntity.cs",
+    "Runtime/OwnedEntities/CharacterDeployable.cs",
+    "Runtime/OwnedEntities/CharacterSummon.cs",
+    "Runtime/OwnedEntities/CharacterOwnedEntityRegistry.cs",
+    "Runtime/OwnedEntities/OwnedEntityPolicies.cs",
+    "Runtime/OwnedEntities/OwnedEntityGroupId.cs",
+    "Runtime/OwnedEntities/OwnedEntitySpawnRequest.cs",
+    "Runtime/OwnedEntities/OwnedEntitySpawnResult.cs",
+    "Runtime/OwnedEntities/OwnedEntityDurabilityRules.cs",
+    "Runtime/Combat/IDamageable.cs",
+    "Runtime/Combat/DamageRequest.cs",
+    "Runtime/Combat/DamageResult.cs",
 )
 
 DOCUMENTED_FACADE_NAMES = (
@@ -42,7 +54,97 @@ DOCUMENTED_FACADE_NAMES = (
     "ScheduleTimer", "CancelTimer", "FacingDirection", "IsFacingRight",
     "IsFacingLeft", "IsBehindTarget", "ModifyOutgoingDamage",
     "OnDamageDealt", "OnProjectileDespawned", "DespawnProjectile", "SpawnProjectile",
+    "SpawnOwnedEntity", "DestroyOwnedEntity", "GetOwnedEntities", "DestroyOwnedEntities",
+    "FindDamageablesInCircle", "FindDamageablesInBox", "FindDamageablesInLine", "FindDamageablesInArc",
 )
+
+
+def require_owned_entity_base_contract() -> None:
+    owned_root = ROOT / "Runtime" / "OwnedEntities"
+    owned_source = (owned_root / "CharacterOwnedEntity.cs").read_text(encoding="utf-8")
+    deployable_source = (owned_root / "CharacterDeployable.cs").read_text(encoding="utf-8")
+    summon_source = (owned_root / "CharacterSummon.cs").read_text(encoding="utf-8")
+    registry_source = (owned_root / "CharacterOwnedEntityRegistry.cs").read_text(encoding="utf-8")
+    policies_source = (owned_root / "OwnedEntityPolicies.cs").read_text(encoding="utf-8")
+    damageable_source = (ROOT / "Runtime" / "Combat" / "IDamageable.cs").read_text(encoding="utf-8")
+
+    require(r"abstract\s+class\s+CharacterOwnedEntity\s*:\s*NetworkBehaviour\s*,\s*IDamageable\s*,\s*IStateAuthorityChanged",
+            "owned entity is the shared network damageable base", owned_source)
+    require(r"class\s+CharacterDeployable\s*:\s*CharacterOwnedEntity",
+            "deployable extension boundary", deployable_source)
+    require(r"abstract\s+class\s+CharacterSummon\s*:\s*CharacterOwnedEntity",
+            "summon extension boundary", summon_source)
+    require(r"sealed\s+class\s+CharacterOwnedEntityRegistry",
+            "per-character owned entity registry", registry_source)
+    require(r"interface\s+IDamageable", "shared damage target interface", damageable_source)
+
+    for token in (
+        "HealthDepleted", "LifetimeExpired", "LimitExceeded", "OwnerDied",
+        "OwnerDespawned", "OwnerDisconnected", "SkillTriggered", "Manual",
+        "RejectNew", "DestroyOldest", "DestroyNewest", "Unlimited",
+        "HealthOrDuration", "AllowSelfDamage", "AllowFriendlyDamage",
+    ):
+        if token not in policies_source + owned_source:
+            raise AssertionError(f"owned entity policy contract missing: {token}")
+
+    for facade in (
+        "SpawnOwnedEntity", "DestroyOwnedEntity", "GetOwnedEntities", "DestroyOwnedEntities",
+    ):
+        if facade not in SOURCE:
+            raise AssertionError(f"CharacterBase owned entity facade missing: {facade}")
+
+    spawn_body = extract_method_body(SOURCE, "protected OwnedEntitySpawnResult<T> SpawnOwnedEntity")
+    if "Runner.Spawn(" not in spawn_body or "InitializeOwnedEntity" not in spawn_body:
+        raise AssertionError("owned entity facade does not own spawn and initialization")
+    if "ownedEntityRegistry" not in spawn_body:
+        raise AssertionError("owned entity facade does not route through registry")
+    spawn_position = spawn_body.find("Runner.Spawn(")
+    replacement_position = spawn_body.find("replacement.RequestDestroy")
+    if replacement_position < 0 or replacement_position < spawn_position:
+        raise AssertionError("overflow replacement is retired before replacement spawn succeeds")
+    if "Runner.Despawn(spawnedObject)" not in spawn_body:
+        raise AssertionError("malformed owned entity spawn is not rolled back")
+
+    destroy_body = extract_method_body(SOURCE, "protected bool DestroyOwnedEntity(")
+    if "RequestDestroy" not in destroy_body:
+        raise AssertionError("owned entity facade bypasses the entity destruction gate")
+
+    query_source = (ROOT / "Runtime" / "Combat" / "CharacterCombatQuery2D.cs").read_text(encoding="utf-8")
+    for facade, query in (
+        ("FindDamageablesInCircle", "DamageablesInCircle"),
+        ("FindDamageablesInBox", "DamageablesInBox"),
+        ("FindDamageablesInLine", "DamageablesInLine"),
+        ("FindDamageablesInArc", "DamageablesInArc"),
+    ):
+        if facade not in SOURCE:
+            raise AssertionError(f"CharacterBase damageable query facade missing: {facade}")
+        if query not in query_source:
+            raise AssertionError(f"shared damageable query missing: {query}")
+
+    require(
+        r"DamageablesInCircle\s*\(\s*CharacterBase\s+owner\s*,",
+        "damageable query receives the attacking character",
+        query_source,
+    )
+    require(
+        r"target\s*==\s*owner",
+        "damageable query excludes the attacking character but not its owned entities",
+        query_source,
+    )
+
+    for token in (
+        "StateAuthorityChanged", "NetworkObjectFlags.DestroyWhenStateAuthorityLeaves",
+        "NetworkObjectFlags.AllowStateAuthorityOverride", "RequestStateAuthority",
+        "pendingOwnerDisconnect", "RequestDestroy(OwnedEntityDestroyReason.OwnerDisconnected)",
+        "OwnerDisconnected", "cachedOwnerCharacterId", "cachedGroup", "cachedOwner",
+        "ConfirmOwnedEntityDamage",
+    ):
+        if token not in owned_source:
+            raise AssertionError(f"owned entity lifecycle contract missing: {token}")
+    if "Rpc_ConfirmOwnedEntityDamage" not in SOURCE:
+        raise AssertionError("owned entity applied damage is not acknowledged to the source authority")
+    if "OnOwnedEntityDamageDealt(targetId, appliedDamage, source)" not in SOURCE:
+        raise AssertionError("owned entity damage confirmation lacks a despawn-safe NetworkId hook")
 
 CSHARP_NON_CODE = re.compile(
     r'''(?:
@@ -192,15 +294,34 @@ def require_damage_entry_point_contract(source: str) -> None:
 def require_projectile_damage_contract(source: str) -> None:
     for token in (
         "NetSourceObjectId",
+        "NetOwnerTeamId",
         "DealProjectileDamage",
+        "IDamageable",
+        "ResolveDamageable",
+        "DamageRequest",
+        "ProjectileDespawnReason.HitOwnedEntity",
         "Runner.TryFindObject(NetSourceObjectId, out NetworkObject sourceObject)",
     ):
         if token not in source:
             raise AssertionError(f"projectile damage contract missing: {token}")
 
+    if source.count("IsSourceCharacter(target)") < 1 or source.count("IsSourceCharacter(candidateTarget)") < 1:
+        raise AssertionError("projectile does not exclude only its source CharacterBase")
+
     code = sanitize_csharp_non_code(source)
-    if code.count("target.RequestDamage(NetDamage, NetOwner);") != 1:
+    if code.count("target.RequestDamage(request);") != 1:
         raise AssertionError("projectile fallback damage request is not unique")
+
+    require(
+        r"private\s+void\s+DealDamage\s*\(\s*IDamageable\s+target\s*\)",
+        "projectile deals damage through IDamageable",
+        source,
+    )
+    require(
+        r"private\s+static\s+IDamageable\s+ResolveDamageable\s*\(\s*Collider2D\s+collider\s*\)",
+        "projectile resolves character and owned entity damage targets",
+        source,
+    )
 
     complete = extract_method_body(source, "private void Complete(")
     if not re.search(r"if\s*\(\s*consumed\s*\)\s*return\s*;", complete):
@@ -225,10 +346,10 @@ def require_projectile_damage_contract(source: str) -> None:
     if len(re.findall(r"\bComplete\s*\(", fixed_update)) != 2:
         raise AssertionError("FixedUpdateNetwork completion calls are not bounded to cast and lifetime")
     if not re.search(
-        r"Complete\s*\(\s*hitTarget\s*\?\s*ProjectileDespawnReason\.HitCharacter\s*:\s*ProjectileDespawnReason\.HitWall\s*,\s*hit\.point\s*,\s*hit\.normal\s*,\s*hitTarget\s*\?\s*target\s*:\s*null\s*,\s*true\s*\)\s*;",
+        r"Complete\s*\(\s*hitTarget\s*\?\s*ResolveHitReason\s*\(\s*target\s*\)\s*:\s*ProjectileDespawnReason\.HitWall\s*,\s*hit\.point\s*,\s*hit\.normal\s*,\s*target\s+as\s+CharacterBase\s*,\s*true\s*\)\s*;",
         fixed_update,
     ):
-        raise AssertionError("cast collision does not complete with character/wall reasons")
+        raise AssertionError("cast collision does not complete with damageable/wall reasons")
     if not re.search(
         r"if\s*\(\s*LifeTimer\.Expired\s*\(\s*Runner\s*\)\s*\)\s*Complete\s*\(\s*ProjectileDespawnReason\.LifetimeExpired\s*,\s*transform\.position\s*,\s*-NetDirection\s*,\s*null\s*,\s*false\s*\)\s*;",
         fixed_update,
@@ -239,10 +360,10 @@ def require_projectile_damage_contract(source: str) -> None:
     if len(re.findall(r"\bComplete\s*\(", trigger)) != 2:
         raise AssertionError("trigger completion calls are not bounded to character and wall")
     if not re.search(
-        r"Complete\s*\(\s*ProjectileDespawnReason\.HitCharacter\s*,\s*hitPosition\s*,\s*hitNormal\s*,\s*target\s*,\s*true\s*\)\s*;",
+        r"Complete\s*\(\s*ResolveHitReason\s*\(\s*target\s*\)\s*,\s*hitPosition\s*,\s*hitNormal\s*,\s*target\s+as\s+CharacterBase\s*,\s*true\s*\)\s*;",
         trigger,
     ):
-        raise AssertionError("trigger character hit does not use Complete")
+        raise AssertionError("trigger damageable hit does not use Complete")
     if not re.search(
         r"Complete\s*\(\s*ProjectileDespawnReason\.HitWall\s*,\s*hitPosition\s*,\s*hitNormal\s*,\s*null\s*,\s*true\s*\)\s*;",
         trigger,
@@ -279,7 +400,7 @@ def require_manual_projectile_despawn_contract(source: str) -> None:
 
 def require_legacy_projectile_initialize_contract(source: str) -> None:
     require(
-        r"public\s+void\s+Initialize\s*\(\s*Vector2\s+direction\s*,\s*float\s+speed\s*,\s*float\s+damage\s*,\s*LayerMask\s+targetLayer\s*,\s*PlayerRef\s+owner\s*,\s*NetworkId\s+sourceObjectId\s*\)",
+        r"public\s+void\s+Initialize\s*\(\s*Vector2\s+direction\s*,\s*float\s+speed\s*,\s*float\s+damage\s*,\s*LayerMask\s+targetLayer\s*,\s*PlayerRef\s+owner\s*,\s*NetworkId\s+sourceObjectId\s*,\s*int\s+ownerTeamId\s*\)",
         "source-aware projectile initializer",
         source,
     )
@@ -380,7 +501,7 @@ def require_projectile_spawn_route(source: str, example_sources: dict[str, str])
     if "Runner.Spawn(" not in body:
         raise AssertionError("CharacterBase SpawnProjectile does not spawn through Runner")
     if not re.search(
-        r"Initialize\s*\(\s*normalized\s*,\s*speed\s*,\s*damage\s*,\s*targetLayer\s*,\s*Object\.InputAuthority\s*,\s*Object\.Id\s*\)",
+        r"Initialize\s*\(\s*normalized\s*,\s*speed\s*,\s*damage\s*,\s*targetLayer\s*,\s*Object\.InputAuthority\s*,\s*Object\.Id\s*,\s*DamageTeamId\s*\)",
         body,
     ):
         raise AssertionError("CharacterBase SpawnProjectile does not use source-aware initialization")
@@ -532,9 +653,9 @@ def audit_self_test() -> None:
             "Runner.Despawn(Object); // ProjectileDespawnReason.LifetimeExpired",
         ),
         (
-            "trigger character completion bypass",
-            "Complete(ProjectileDespawnReason.HitCharacter, hitPosition, hitNormal, target, true);",
-            "Runner.Despawn(Object); // ProjectileDespawnReason.HitCharacter",
+            "trigger damageable completion bypass",
+            "Complete(ResolveHitReason(target), hitPosition, hitNormal, target as CharacterBase, true);",
+            "Runner.Despawn(Object); // ResolveHitReason(target)",
         ),
         (
             "trigger wall completion bypass",
@@ -642,7 +763,14 @@ def audit_self_test() -> None:
             raise AssertionError(f"example audit accepts a Fusion {label}")
 
     legacy_spawn = SOURCE.replace(
-        "projectile?.Initialize(normalized, speed, damage, targetLayer, Object.InputAuthority, Object.Id);",
+        """projectile?.Initialize(
+                        normalized,
+                        speed,
+                        damage,
+                        targetLayer,
+                        Object.InputAuthority,
+                        Object.Id,
+                        DamageTeamId);""",
         "projectile?.Initialize(normalized, speed, damage, targetLayer, Object.InputAuthority);",
         1,
     )
@@ -780,6 +908,7 @@ def main() -> int:
         require_manual_projectile_despawn_contract(SOURCE)
         require_legacy_projectile_initialize_contract(PROJECTILE_SOURCE)
         require_common_source_files(COMMON_SOURCE_FILES)
+        require_owned_entity_base_contract()
         require_examples_use_base_infrastructure(EXAMPLE_SOURCES)
         require_projectile_spawn_route(SOURCE, EXAMPLE_SOURCES)
         require_template_override_examples(TEMPLATE_SOURCE)

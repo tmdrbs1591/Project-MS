@@ -477,6 +477,60 @@ internal static class CharacterCommonModuleTests
         Equal(0, missingTargetNotifications, "missing target request does not notify dealt damage");
     }
 
+    private static void TestOwnedEntityDurabilityRules()
+    {
+        Equal(false, OwnedEntityDurabilityRules.UsesHealth(OwnedEntityLifetimeMode.Manual),
+            "manual owned entity does not use health");
+        Equal(true, OwnedEntityDurabilityRules.UsesHealth(OwnedEntityLifetimeMode.Health),
+            "health mode uses health");
+        Equal(false, OwnedEntityDurabilityRules.UsesDuration(OwnedEntityLifetimeMode.Health),
+            "health mode does not use duration");
+        Equal(true, OwnedEntityDurabilityRules.UsesDuration(OwnedEntityLifetimeMode.Duration),
+            "duration mode uses duration");
+        Equal(true, OwnedEntityDurabilityRules.UsesHealth(OwnedEntityLifetimeMode.HealthOrDuration),
+            "combined mode uses health");
+        Equal(true, OwnedEntityDurabilityRules.UsesDuration(OwnedEntityLifetimeMode.HealthOrDuration),
+            "combined mode uses duration");
+
+        Equal(false, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Duration, OwnedEntityDamageRelation.Enemy, false, false, 10f),
+            "duration-only entity rejects damage");
+        Equal(false, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Self, false, false, 10f),
+            "self damage blocked by default");
+        Equal(false, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Friendly, false, false, 10f),
+            "friendly damage blocked by default");
+        Equal(true, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Enemy, false, false, 10f),
+            "enemy damage allowed by default");
+        Equal(true, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Self, true, false, 10f),
+            "self damage can be enabled");
+        Equal(true, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Friendly, false, true, 10f),
+            "friendly damage can be enabled");
+        Equal(false, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Enemy, false, false, 0f),
+            "zero damage rejected");
+        Equal(false, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Enemy, false, false, float.NaN),
+            "NaN damage rejected");
+        Equal(false, OwnedEntityDurabilityRules.CanReceiveDamage(
+                OwnedEntityLifetimeMode.Health, OwnedEntityDamageRelation.Enemy, false, false, float.PositiveInfinity),
+            "infinite damage rejected");
+
+        Equal(OwnedEntityDestroyReason.HealthDepleted,
+            OwnedEntityDurabilityRules.ResolveDestructionReason(true, true),
+            "health depletion wins same-tick lifetime tie");
+        Equal(OwnedEntityDestroyReason.LifetimeExpired,
+            OwnedEntityDurabilityRules.ResolveDestructionReason(false, true),
+            "lifetime expiry selected without health depletion");
+        Equal(OwnedEntityDestroyReason.None,
+            OwnedEntityDurabilityRules.ResolveDestructionReason(false, false),
+            "no completed condition returns no destruction");
+    }
+
     private static object CreateStatusStore(Type storeType)
     {
         AssemblyName name = new AssemblyName("CharacterStatusStoreTestAssembly" + Guid.NewGuid().ToString("N"));
@@ -568,8 +622,10 @@ internal static class CharacterCommonModuleTests
     {
         Equal(0, (int)CharacterDamageSource.Direct, "direct damage enum");
         Equal(1, (int)CharacterDamageSource.Projectile, "projectile damage enum");
+        Equal(2, (int)CharacterDamageSource.Area, "area damage enum");
         Equal(0, (int)ProjectileDespawnReason.HitCharacter, "hit character reason");
         Equal(3, (int)ProjectileDespawnReason.Manual, "manual reason");
+        Equal(4, (int)ProjectileDespawnReason.HitOwnedEntity, "owned entity hit reason");
 
         CharacterTimerHandle invalid = default(CharacterTimerHandle);
         Equal(false, invalid.IsValid, "default timer handle invalid");
@@ -662,6 +718,7 @@ internal static class CharacterCommonModuleTests
         TestMovementBoundary();
         TestTimers();
         TestDamagePipeline();
+        TestOwnedEntityDurabilityRules();
         return failures;
     }
 }

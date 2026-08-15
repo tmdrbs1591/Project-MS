@@ -5,6 +5,7 @@ namespace ProjectMS.CharacterSystem
         HitCharacter = 0,
         HitWall = 1,
         LifetimeExpired = 2,
-        Manual = 3
+        Manual = 3,
+        HitOwnedEntity = 4
     }
 }

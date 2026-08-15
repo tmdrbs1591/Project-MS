@@ -8,18 +8,20 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-$frameworkRoot = Join-Path $projectRoot 'Assets\00.Main\01.Script\NewCharacter\Character'
+$frameworkRoot = Join-Path $projectRoot 'Assets\00.Main\01.Script\Character\Framework'
 $timerHandlePath = Join-Path $frameworkRoot 'Runtime\Core\CharacterTimerHandle.cs'
 $movementHandlerPath = Join-Path $frameworkRoot 'Runtime\Modules\CharacterMovementHandler.cs'
 
 $sourcePaths = @(
     (Join-Path $frameworkRoot 'Runtime\Core\CharacterActionType.cs'),
     (Join-Path $frameworkRoot 'Runtime\Core\CharacterDamageSource.cs'),
+    (Join-Path $frameworkRoot 'Runtime\OwnedEntities\OwnedEntityPolicies.cs'),
     (Join-Path $frameworkRoot 'Runtime\Core\ProjectileDespawnReason.cs'),
     $timerHandlePath,
     (Join-Path $frameworkRoot 'Runtime\Modules\CharacterActionStateHandler.cs'),
     (Join-Path $frameworkRoot 'Runtime\Modules\CharacterCooldownHandler.cs'),
     (Join-Path $frameworkRoot 'Runtime\Modules\CharacterStatusHandler.cs'),
+    (Join-Path $frameworkRoot 'Runtime\OwnedEntities\OwnedEntityDurabilityRules.cs'),
     $movementHandlerPath,
     (Join-Path $PSScriptRoot 'CharacterCommonModuleTests.cs')
 )

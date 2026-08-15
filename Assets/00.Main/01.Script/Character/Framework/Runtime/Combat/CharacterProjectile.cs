@@ -40,6 +40,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetTargetLayerMask { get; set; }
         [Networked] private PlayerRef NetOwner { get; set; }
         [Networked] private NetworkId NetSourceObjectId { get; set; }
+        [Networked] private int NetOwnerTeamId { get; set; }
         [Networked] private TickTimer LifeTimer { get; set; }
 
         /// <summary>이 투사체를 쏜 플레이어. 다른 투사체/오브젝트가 "내가 쏜 게 맞는지" 확인할 때 쓴다
@@ -49,7 +50,7 @@ namespace ProjectMS.CharacterSystem
         private const int MaxHitCount = 8;
 
         private readonly RaycastHit2D[] castHits = new RaycastHit2D[MaxHitCount];
-        private readonly HashSet<CharacterBase> pierceHitTargets = new HashSet<CharacterBase>();
+        private readonly HashSet<IDamageable> pierceHitTargets = new HashSet<IDamageable>();
         private Collider2D projectileCollider;
         private bool consumed;
 
@@ -64,7 +65,8 @@ namespace ProjectMS.CharacterSystem
             float damage,
             LayerMask targetLayer,
             PlayerRef owner,
-            NetworkId sourceObjectId)
+            NetworkId sourceObjectId,
+            int ownerTeamId)
         {
             NetDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
             NetSpeed = Mathf.Max(0f, speed);
@@ -72,6 +74,7 @@ namespace ProjectMS.CharacterSystem
             NetTargetLayerMask = targetLayer.value;
             NetOwner = owner;
             NetSourceObjectId = sourceObjectId;
+            NetOwnerTeamId = ownerTeamId;
         }
 
         [Obsolete("Use CharacterBase.SpawnProjectile or Initialize with a source NetworkId; legacy initialization cannot preserve damage callbacks.", true)]
@@ -103,7 +106,7 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             Vector2 delta = NetDirection * NetSpeed * Runner.DeltaTime;
-            if (TryHitAlongDelta(delta, out RaycastHit2D hit, out CharacterBase target, out bool hitTarget))
+            if (TryHitAlongDelta(delta, out RaycastHit2D hit, out IDamageable target, out bool hitTarget))
             {
                 if (hitTarget && target != null)
                 {
@@ -114,10 +117,10 @@ namespace ProjectMS.CharacterSystem
                 if (!(hitTarget && pierceCharacters))
                 {
                     Complete(
-                        hitTarget ? ProjectileDespawnReason.HitCharacter : ProjectileDespawnReason.HitWall,
+                        hitTarget ? ResolveHitReason(target) : ProjectileDespawnReason.HitWall,
                         hit.point,
                         hit.normal,
-                        hitTarget ? target : null,
+                        target as CharacterBase,
                         true);
                     return;
                 }
@@ -149,8 +152,8 @@ namespace ProjectMS.CharacterSystem
 
             if (isTarget)
             {
-                CharacterBase target = other.GetComponentInParent<CharacterBase>();
-                if (target == null || target.Object == null || target.Object.InputAuthority == NetOwner)
+                IDamageable target = ResolveDamageable(other);
+                if (target == null || IsSourceCharacter(target))
                     return;
                 if (pierceCharacters && pierceHitTargets.Contains(target))
                     return;
@@ -163,7 +166,7 @@ namespace ProjectMS.CharacterSystem
 
                 Vector2 hitPosition = other.ClosestPoint(transform.position);
                 Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
-                Complete(ProjectileDespawnReason.HitCharacter, hitPosition, hitNormal, target, true);
+                Complete(ResolveHitReason(target), hitPosition, hitNormal, target as CharacterBase, true);
                 return;
             }
 
@@ -177,7 +180,7 @@ namespace ProjectMS.CharacterSystem
         private bool TryHitAlongDelta(
             Vector2 delta,
             out RaycastHit2D bestHit,
-            out CharacterBase bestTarget,
+            out IDamageable bestTarget,
             out bool hitTarget)
         {
             bestHit = default;
@@ -216,13 +219,12 @@ namespace ProjectMS.CharacterSystem
                 if (!candidateIsTarget && !candidateIsWall)
                     continue;
 
-                CharacterBase candidateTarget = null;
+                IDamageable candidateTarget = null;
                 if (candidateIsTarget)
                 {
-                    candidateTarget = candidateCollider.GetComponentInParent<CharacterBase>();
+                    candidateTarget = ResolveDamageable(candidateCollider);
                     if (candidateTarget == null ||
-                        candidateTarget.Object == null ||
-                        candidateTarget.Object.InputAuthority == NetOwner ||
+                        IsSourceCharacter(candidateTarget) ||
                         (pierceCharacters && pierceHitTargets.Contains(candidateTarget)))
                     {
                         continue;
@@ -261,7 +263,7 @@ namespace ProjectMS.CharacterSystem
             return sourceObject.GetComponent<CharacterBase>();
         }
 
-        private void DealDamage(CharacterBase target)
+        private void DealDamage(IDamageable target)
         {
             // Fusion이 예측이 빗나가서 과거 틱을 리시뮬레이션할 때, 이 가드가 없으면 같은
             // 타격의 데미지 적용 코드가 여러 번 재실행돼서 데미지/사운드/히트/넉백이 전부
@@ -274,7 +276,42 @@ namespace ProjectMS.CharacterSystem
             if (source != null)
                 source.DealProjectileDamage(target, NetDamage);
             else
-                target.RequestDamage(NetDamage, NetOwner);
+            {
+                DamageRequest request = new DamageRequest(
+                    NetDamage,
+                    NetOwner,
+                    NetSourceObjectId,
+                    NetOwnerTeamId,
+                    CharacterDamageSource.Projectile,
+                    hitPosition: transform.position,
+                    hitDirection: NetDirection);
+                target.RequestDamage(request);
+            }
+        }
+
+        private static IDamageable ResolveDamageable(Collider2D collider)
+        {
+            if (collider == null)
+                return null;
+
+            CharacterBase character = collider.GetComponentInParent<CharacterBase>();
+            if (character != null)
+                return character;
+            return collider.GetComponentInParent<CharacterOwnedEntity>();
+        }
+
+        private bool IsSourceCharacter(IDamageable target)
+        {
+            CharacterBase character = target as CharacterBase;
+            return character != null && character.Object != null &&
+                   NetSourceObjectId.IsValid && character.Object.Id == NetSourceObjectId;
+        }
+
+        private static ProjectileDespawnReason ResolveHitReason(IDamageable target)
+        {
+            return target is CharacterOwnedEntity
+                ? ProjectileDespawnReason.HitOwnedEntity
+                : ProjectileDespawnReason.HitCharacter;
         }
 
         private void Complete(
