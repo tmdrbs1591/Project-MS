@@ -23,16 +23,21 @@ namespace ProjectMS.CharacterSystem
 
         public void Apply(float amount, CharacterDamageSource source)
         {
-            if (amount <= 0f || requestDamage == null)
+            if (!IsFinitePositive(amount) || requestDamage == null)
                 return;
 
             float finalDamage = modifyDamage != null ? modifyDamage(amount, source) : amount;
-            if (finalDamage <= 0f)
+            if (!IsFinitePositive(finalDamage))
                 return;
 
             requestDamage(finalDamage);
             if (notifyDamageDealt != null)
                 notifyDamageDealt(finalDamage);
+        }
+
+        private static bool IsFinitePositive(float value)
+        {
+            return value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
         }
     }
 }

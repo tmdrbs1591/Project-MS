@@ -50,5 +50,15 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             // 예: 명중, 벽 충돌, 시간 종료, 수동 종료에 맞는 효과를 추가한다.
         }
+
+        protected override void OnResetCharacter()
+        {
+            // 조준 모드, 변신, 연속기처럼 캐릭터 스크립트가 가진 로컬 상태를 초기화한다.
+        }
+
+        protected override void OnCharacterDespawned()
+        {
+            // 외부 이벤트 구독이나 캐릭터별 런타임 참조가 있다면 여기서 해제한다.
+        }
     }
 }

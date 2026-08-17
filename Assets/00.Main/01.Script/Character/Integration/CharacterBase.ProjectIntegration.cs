@@ -93,7 +93,15 @@ namespace ProjectMS.CharacterSystem
             if (Object == null || !Object.HasStateAuthority || NetAugmentPicksRemaining <= 0)
                 return;
 
-            NetAugmentFlags |= 1 << (int)type;
+            int typeIndex = (int)type;
+            if (typeIndex < 0 || typeIndex >= 32 || !System.Enum.IsDefined(typeof(AugmentType), type) ||
+                HasAugment(type) ||
+                !GetAugmentPool().Exists(entry => entry.Data != null && entry.Data.type == type))
+            {
+                return;
+            }
+
+            NetAugmentFlags |= 1 << typeIndex;
             NetAugmentPicksRemaining--;
         }
 

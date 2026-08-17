@@ -8,7 +8,7 @@ namespace ProjectMS.CharacterSystem
     /// 맵 Structure와는 별개의 계층이다.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
-    public abstract class CharacterOwnedEntity : NetworkBehaviour, IDamageable, IStateAuthorityChanged
+    public abstract class CharacterOwnedEntity : NetworkBehaviour, IDamageable, IStateAuthorityChanged, IPlayerLeft
     {
         [Header("Durability")]
         [SerializeField] private OwnedEntityLifetimeMode lifetimeMode = OwnedEntityLifetimeMode.Manual;
@@ -30,6 +30,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private NetworkBool NetDestroying { get; set; }
         [Networked] private float NetHealth { get; set; }
         [Networked] private TickTimer NetLifetimeTimer { get; set; }
+        [Networked] private TickTimer NetDespawnTimer { get; set; }
         [Networked] private OwnedEntityDestroyReason NetDestroyReason { get; set; }
 
         private Vector2 initialVelocity;
@@ -37,6 +38,7 @@ namespace ProjectMS.CharacterSystem
         private OwnedEntityGroupId cachedGroup;
         private CharacterBase cachedOwner;
         private bool pendingOwnerDisconnect;
+        private bool renderedDestroying;
 
         public NetworkId OwnerCharacterId => cachedOwnerCharacterId.IsValid
             ? cachedOwnerCharacterId
@@ -56,6 +58,8 @@ namespace ProjectMS.CharacterSystem
         public OwnedEntityDestroyReason DestroyReason => NetDestroyReason;
         public bool AllowSelfDamage => allowSelfDamage;
         public bool AllowFriendlyDamage => allowFriendlyDamage;
+        internal virtual bool CanExpireAfterOwnerExit => OwnedEntityDurabilityRules.UsesDuration(lifetimeMode);
+        protected CharacterBase OwnerCharacter => ResolveOwner();
 
         internal void InitializeOwnedEntity(
             NetworkId ownerCharacterId,
@@ -82,6 +86,7 @@ namespace ProjectMS.CharacterSystem
         public override void Spawned()
         {
             pendingOwnerDisconnect = false;
+            renderedDestroying = false;
             if (!cachedOwnerCharacterId.IsValid)
                 cachedOwnerCharacterId = NetOwnerCharacterId;
             if (!cachedGroup.IsValid)
@@ -110,8 +115,14 @@ namespace ProjectMS.CharacterSystem
 
         public override void FixedUpdateNetwork()
         {
-            if (!Object.HasStateAuthority || NetDestroying)
+            if (!Object.HasStateAuthority)
                 return;
+            if (NetDestroying)
+            {
+                if (NetDespawnTimer.Expired(Runner) && Runner != null && Object != null && Object.IsValid)
+                    Runner.Despawn(Object);
+                return;
+            }
 
             bool healthDepleted = OwnedEntityDurabilityRules.UsesHealth(lifetimeMode) && NetHealth <= 0f;
             bool lifetimeExpired = OwnedEntityDurabilityRules.UsesDuration(lifetimeMode) &&
@@ -121,6 +132,15 @@ namespace ProjectMS.CharacterSystem
                 lifetimeExpired);
             if (reason != OwnedEntityDestroyReason.None)
                 RequestDestroy(reason);
+        }
+
+        public override void Render()
+        {
+            if (!renderedDestroying && NetDestroying)
+            {
+                renderedDestroying = true;
+                OnOwnedEntityDestroyedRendered(NetDestroyReason);
+            }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -137,16 +157,26 @@ namespace ProjectMS.CharacterSystem
             if (pendingOwnerDisconnect && Object.HasStateAuthority)
             {
                 pendingOwnerDisconnect = false;
+                cachedOwner = null;
+                cachedOwnerCharacterId = default;
+                NetOwnerCharacterId = default;
+                NetOwnerPlayer = PlayerRef.None;
                 if (OwnerExitPolicy == OwnedEntityOwnerExitPolicy.Destroy)
                     RequestDestroy(OwnedEntityDestroyReason.OwnerDisconnected);
                 return;
             }
+        }
 
-            if (Object.StateAuthority == PlayerRef.None && Runner.IsSharedModeMasterClient)
+        public void PlayerLeft(PlayerRef player)
+        {
+            if (Object == null || Runner == null || IsDestroying ||
+                !Runner.IsSharedModeMasterClient || Object.StateAuthority != player)
             {
-                pendingOwnerDisconnect = true;
-                Object.RequestStateAuthority();
+                return;
             }
+
+            pendingOwnerDisconnect = true;
+            Object.RequestStateAuthority();
         }
 
         public bool CanReceiveDamage(DamageRequest request)
@@ -193,7 +223,8 @@ namespace ProjectMS.CharacterSystem
             CharacterDamageSource source,
             int skillId,
             Vector2 hitPosition,
-            Vector2 hitDirection)
+            Vector2 hitDirection,
+            RpcInfo info = default)
         {
             DamageRequest request = new DamageRequest(
                 amount,
@@ -204,7 +235,7 @@ namespace ProjectMS.CharacterSystem
                 skillId,
                 hitPosition,
                 hitDirection);
-            if (CanReceiveDamage(request))
+            if (IsValidDamageRpcSource(request, info.Source) && CanReceiveDamage(request))
                 ApplyDamageAuthority(request);
         }
 
@@ -216,13 +247,12 @@ namespace ProjectMS.CharacterSystem
             NetDestroying = true;
             NetActive = false;
             NetDestroyReason = reason;
+            NetDespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             OnOwnedEntityDestroyed(reason);
 
             CharacterBase owner = ResolveOwner();
-            owner?.UnregisterOwnedEntity(this);
+            owner?.NotifyOwnedEntityDestroyed(this, reason);
 
-            if (Runner != null && Object.IsValid)
-                Runner.Despawn(Object);
             return true;
         }
 
@@ -238,6 +268,33 @@ namespace ProjectMS.CharacterSystem
         protected virtual void OnOwnedEntityHealthChanged(float previous, float current) { }
         protected virtual void OnOwnedEntitySpawnedAuthority() { }
         protected virtual void OnOwnedEntityDestroyed(OwnedEntityDestroyReason reason) { }
+        protected virtual void OnOwnedEntityDestroyedRendered(OwnedEntityDestroyReason reason) { }
+
+        /// <summary>소유 캐릭터의 공통 보정, 실제 적용량 확인, 게이지·콜백 흐름을 사용해 피해를 준다.</summary>
+        protected void DealDamage(
+            IDamageable target,
+            float amount,
+            CharacterDamageSource source = CharacterDamageSource.Area)
+        {
+            ResolveOwner()?.DealOwnedEntityDamage(target, amount, source);
+        }
+
+        protected System.Collections.Generic.List<IDamageable> FindDamageablesInCircle(
+            Vector2 center,
+            float radius,
+            LayerMask targetLayer)
+        {
+            return CharacterCombatQuery2D.DamageablesInCircle(ResolveOwner(), center, radius, targetLayer);
+        }
+
+        protected System.Collections.Generic.List<IDamageable> FindDamageablesInBox(
+            Vector2 center,
+            Vector2 size,
+            float angle,
+            LayerMask targetLayer)
+        {
+            return CharacterCombatQuery2D.DamageablesInBox(ResolveOwner(), center, size, angle, targetLayer);
+        }
 
         private DamageResult ApplyDamageAuthority(DamageRequest request)
         {
@@ -303,6 +360,20 @@ namespace ProjectMS.CharacterSystem
 
             cachedOwner = ownerObject.GetComponent<CharacterBase>();
             return cachedOwner;
+        }
+
+        private bool IsValidDamageRpcSource(DamageRequest request, PlayerRef rpcSource)
+        {
+            if (request.Attacker == PlayerRef.None || request.Attacker != rpcSource ||
+                !request.SourceObjectId.IsValid || Runner == null ||
+                !Runner.TryFindObject(request.SourceObjectId, out NetworkObject sourceObject))
+            {
+                return false;
+            }
+
+            CharacterBase sourceCharacter = sourceObject.GetComponent<CharacterBase>();
+            return sourceCharacter != null && sourceCharacter.DamageOwner == rpcSource &&
+                   sourceCharacter.DamageTeamId == request.AttackerTeamId;
         }
 
         private void ConfirmOwnedEntityDamage(DamageRequest request, DamageResult result)

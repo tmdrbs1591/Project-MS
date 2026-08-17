@@ -77,6 +77,18 @@ namespace ProjectMS.CharacterSystem
             return snapshot;
         }
 
+        public void ClearGameplayInput()
+        {
+            moveDirection = 0f;
+            jumpHeld = false;
+            jumpPressed = false;
+            basicAttackPressed = false;
+            skillQPressed = false;
+            skillEPressed = false;
+            dashPressed = false;
+            ultimatePressed = false;
+        }
+
         private static bool IsHeld(Keyboard keyboard, Key key)
         {
             return key != Key.None && keyboard[key].isPressed;

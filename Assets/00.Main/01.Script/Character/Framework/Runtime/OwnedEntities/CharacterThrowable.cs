@@ -29,6 +29,10 @@ namespace ProjectMS.CharacterSystem
         public float RemainingFuseTime => NetFuseTimer.RemainingTime(Runner) ?? 0f;
         public bool IsFuseStarted => NetFuseStarted;
         public bool HasFuseTriggered => NetFuseTriggered;
+        public bool HasValidFuseConfiguration =>
+            fuseStartMode != CharacterThrowableFuseStartMode.OnGroundContact || groundLayer.value != 0;
+        internal override bool CanExpireAfterOwnerExit =>
+            base.CanExpireAfterOwnerExit || fuseStartMode != CharacterThrowableFuseStartMode.Manual;
 
         public override void FixedUpdateNetwork()
         {

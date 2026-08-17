@@ -11,11 +11,11 @@ Photon Fusion 2 Shared Mode용 공통 캐릭터 프레임워크입니다.
 
 ## 시작 위치
 
-- 전체 가이드: `Docs/캐릭터_개발_가이드.pdf`
-- Markdown 원문: `Docs/캐릭터_개발_가이드.md`
-- 신규 캐릭터 템플릿: `Runtime/Examples/CharacterTemplate.cs`
-- 총 캐릭터 예제: `Runtime/Examples/GunCharacterExample.cs`
-- 검 캐릭터 예제: `Runtime/Examples/SwordCharacterExample.cs`
+- 전체 가이드: [CharacterFramework.md](CharacterFramework.md)
+- 프로젝트 연동 지점: [CharacterBase.ProjectIntegration.md](CharacterBase.ProjectIntegration.md)
+- 신규 캐릭터 템플릿: [CharacterTemplate.cs](../../Assets/00.Main/01.Script/Character/Framework/Runtime/Examples/CharacterTemplate.cs)
+- 총 캐릭터 예제: [GunCharacterExample.cs](../../Assets/00.Main/01.Script/Character/Framework/Runtime/Examples/GunCharacterExample.cs)
+- 검 캐릭터 예제: [SwordCharacterExample.cs](../../Assets/00.Main/01.Script/Character/Framework/Runtime/Examples/SwordCharacterExample.cs)
 
 ## 새 캐릭터 코드에서 쓰는 공통 기능
 
@@ -64,6 +64,8 @@ OwnedEntitySpawnResult<MyFlashThrowable> result =
 
 퓨즈가 만료되면 State Authority에서 `OnFuseExpiredAuthority`가 한 번 호출되고 `FuseExpired` 사유로 공통 제거됩니다. 섬광, 폭발, 연막 같은 캐릭터별 효과는 `CharacterThrowable` 파생 클래스에서 이 훅만 재정의합니다. BASE는 특정 효과나 피해량을 알지 않습니다.
 
+파생 투척체는 `FindDamageablesInCircle`/`FindDamageablesInBox`와 `DealDamage`를 사용할 수 있습니다. 이 경로는 소유 캐릭터의 피해 보정과 실제 적용량 확인, 궁극기 게이지, 피해 콜백을 그대로 거칩니다. 스킬마다 다른 피해량·반경 같은 생성 시점 값은 `SpawnThrowable(prefab, request, throwable => throwable.InitializePayload(...))` 초기화 콜백으로 전달하고, 파생 클래스의 값은 필요한 경우 `[Networked]`로 보관합니다.
+
 투척체 프리팹에는 다음 컴포넌트가 필요합니다.
 
 - `NetworkObject`
@@ -72,11 +74,15 @@ OwnedEntitySpawnResult<MyFlashThrowable> result =
 - Trigger가 아닌 `Collider2D`
 - Fusion Physics Addon의 `NetworkRigidbody2D`
 
+`OnGroundContact`를 선택했다면 `Ground Layer`가 비어 있으면 생성이 거부됩니다. 위치 동기화 컴포넌트는 `NetworkRigidbody2D` 하나만 두며 `NetworkTransform`을 함께 붙이지 않습니다.
+
 총 비행시간 제한도 필요하면 `CharacterOwnedEntity`의 생존 방식을 `Duration` 또는 `HealthOrDuration`으로 설정할 수 있습니다. 이 제한시간과 투척체 퓨즈는 독립적이며 먼저 만료된 조건이 제거를 결정합니다.
 
 `OnDamageDealt`는 직접 공격과 발사자 `CharacterBase`를 찾을 수 있는 투사체 공격 모두에서 호출됩니다. `OnProjectileDespawned`의 `reason`은 `HitCharacter`, `HitOwnedEntity`, `HitWall`, `LifetimeExpired`, `Manual` 중 하나입니다.
 
-캐릭터 스크립트에는 `[Networked]`, `[Rpc]`, `Runner.Spawn`을 추가하지 않습니다. 공통 기능으로 만들 수 없는 경우에는 공통 시스템 담당자에게 기능을 요청합니다.
+`SpawnProjectile`은 생성된 `CharacterProjectile`을 반환하고 선택적인 `skillId`를 받습니다. 여러 발사체를 동시에 쓰는 캐릭터는 전역 불리언 하나로 종류를 추측하지 말고 반환 참조, `CharacterProjectile.SkillId`, 디스폰 콜백의 발사체 인스턴스로 구분합니다.
+
+캐릭터 스크립트에서는 `Runner.Spawn`을 직접 호출하지 않습니다. 캐릭터 고유 상태에 `[Networked]`나 `[Rpc]`가 꼭 필요하면 공통 API로 표현할 수 있는지 먼저 검토하고, 공통 시스템 담당자의 리뷰를 거쳐 최소 범위로 추가합니다.
 
 ## 캐릭터 소유 오브젝트 API
 
@@ -141,6 +147,8 @@ DestroyOwnedEntities(NodeGroup, OwnedEntityDestroyReason.Manual);
 
 파괴 사유는 `HealthDepleted`, `LifetimeExpired`, `FuseExpired`, `LimitExceeded`, `OwnerDied`, `OwnerDespawned`, `OwnerDisconnected`, `SkillTriggered`, `Manual`로 구분됩니다. 캐릭터별 후속 효과는 직접 디스폰하지 말고 파괴 사유를 기준으로 처리합니다.
 
+소유 캐릭터도 `OnOwnedEntityDestroyed(CharacterOwnedEntity entity, OwnedEntityDestroyReason reason)`에서 공통 파괴 결과를 받을 수 있습니다. 충전 반환이나 스킬 상태 정리는 이 훅에서 처리합니다.
+
 ### 피해 처리
 
 캐릭터와 캐릭터 소유 오브젝트는 모두 `IDamageable`로 조회할 수 있습니다. 소유 오브젝트의 기본 피해 정책은 다음과 같습니다.
@@ -176,6 +184,10 @@ foreach (IDamageable target in FindDamageablesInCircle(
 
 공격 캐릭터는 State Authority가 확정한 실제 적용 피해를 `OnOwnedEntityDamageDealt(NetworkId targetId, float appliedDamage, CharacterDamageSource source)`에서 받습니다. 대상이 치명 피해로 먼저 디스폰되어도 `NetworkId` 기반 훅은 호출됩니다. 살아 있는 대상 컴포넌트가 필요한 경우에만 `OnDamageableDealt`를 사용하며, 디스폰된 대상에는 호출되지 않을 수 있습니다.
 
+캐릭터 대상의 `OnDamageDealt`와 `OnDamageableDealt`도 요청량이 아니라 State Authority가 확정한 실제 적용량으로 호출됩니다. `OnDamaged(CharacterDamageInfo)`에서는 팀, 피해 종류, 스킬 ID, 충돌 위치·방향까지 읽을 수 있습니다.
+
+원격 파괴 연출이 필요한 소유 오브젝트는 `OnOwnedEntityDestroyedRendered`를 재정의합니다. BASE가 파괴 상태를 한 네트워크 틱 동기화한 뒤 디스폰하므로, 파괴 직전에 보낸 오브젝트 RPC에 의존하지 않습니다.
+
 ### 소유자와 팀
 
 기본 팀 ID는 `PlayerRef.PlayerId`이므로 현재 1대1 규칙에서는 각 플레이어가 서로 다른 팀입니다. 팀전이 추가되면 캐릭터에서 `ResolveDamageTeamId`만 재정의하고, 설치물 및 투사체 API는 변경하지 않습니다.
@@ -183,7 +195,7 @@ foreach (IDamageable target in FindDamageablesInCircle(
 소유자가 사라질 때의 정책은 다음과 같습니다.
 
 - `Destroy`: Shared Mode 마스터가 State Authority를 인수한 뒤 `OwnerDisconnected` 사유로 제거
-- `ExpireNormally`: 마스터가 State Authority를 인수하고 기존 `TickTimer`의 남은 제한시간 동안 유지
+- `ExpireNormally`: 마스터가 State Authority를 인수하고 제한시간 또는 자동 시작 퓨즈가 끝날 때까지 유지. 종료 조건이 없는 `Manual` 오브젝트와 수동 퓨즈는 생성 거부
 - `TransferStateAuthority`: 향후 권한 모델용 예약 값이며 현재는 생성 실패를 반환
 
 ### 프리팹 체크리스트
@@ -209,8 +221,12 @@ foreach (IDamageable target in FindDamageablesInCircle(
 - 팀전: `ResolveDamageTeamId`를 실제 팀 시스템에 연결합니다. 자가/아군/적 피해 판정 코드는 유지합니다.
 - Host/Server Mode: 캐릭터용 API는 유지하고 BASE 내부의 요청 전달과 권한 처리만 교체합니다.
 - 권한 이전: `TransferStateAuthority`의 소유자 이탈·재접속·중간 입장 테스트를 완성한 뒤 예약 정책을 활성화합니다.
+- 안정적인 계정 소유권: 재접속 후에도 영구 소환물을 유지해야 할 때는 재사용될 수 있는 `PlayerRef` 대신 백엔드의 고유 사용자 ID 계약을 추가합니다.
+- Shared Mode 보안 강화: 경쟁 환경에서 임의 권한 요청을 신뢰할 수 없다면 공용 API는 유지하고 소유 오브젝트를 Master/Server Authority로 이전합니다.
 
 확장 기능을 추가할 때는 기존에 재사용하는 계약, 새로 추가하는 한 가지 능력, 변경하지 않아야 하는 BASE 경계를 개발 문서에 함께 기록합니다.
+
+캐릭터별 조준 모드·변신·연속기 상태는 `OnResetCharacter`에서 반드시 초기화하고, 외부 이벤트 구독은 `OnCharacterDespawned`에서 해제합니다. 공통 리셋은 쿨타임·타이머·슬로우·이동·게임플레이 잠금을 초기화하지만 파생 클래스의 필드는 추측해서 지우지 않습니다.
 
 ## Unity가 있는 환경에서 실행 확인
 

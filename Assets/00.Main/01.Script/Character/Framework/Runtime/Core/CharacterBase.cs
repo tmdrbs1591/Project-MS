@@ -57,8 +57,8 @@ namespace ProjectMS.CharacterSystem
         [Networked] private TickTimer NetSlowTimer { get; set; }
         [Networked] private TickTimer NetHitstunTimer { get; set; }
 
-        private Rigidbody2D rigidbody2D;
-        private Collider2D collider2D;
+        private new Rigidbody2D rigidbody2D;
+        private new Collider2D collider2D;
         private CharacterInputHandler input;
         private CharacterMovementHandler movement;
         private CharacterCooldownHandler cooldowns;
@@ -83,7 +83,7 @@ namespace ProjectMS.CharacterSystem
         public float CurrentHealthPercent => health != null ? health.Normalized : 0f;
         public bool IsDead => NetDead;
         public bool IsLocalPlayer => Object != null && Object.HasInputAuthority;
-        public PlayerRef DamageOwner => Object != null ? Object.InputAuthority : PlayerRef.None;
+        public PlayerRef DamageOwner => ResolveDamageOwner();
         public int DamageTeamId => ResolveDamageTeamId();
         public CharacterCooldownHandler Cooldowns => cooldowns;
         public float SlowRatio => Mathf.Clamp(NetSlowRatio, 0f, 0.99f);
@@ -166,6 +166,10 @@ namespace ProjectMS.CharacterSystem
         {
             if (hasState)
                 DestroyOwnedEntitiesForOwnerExit(OwnedEntityDestroyReason.OwnerDespawned);
+            timers?.CancelAll();
+            ownedEntityRegistry?.Clear();
+            input?.ClearGameplayInput();
+            OnCharacterDespawned();
             UnregisterProjectIntegration();
         }
 
@@ -202,13 +206,16 @@ namespace ProjectMS.CharacterSystem
             if (!Object.HasStateAuthority || input == null)
                 return;
 
+            if (IsProjectInputLocked)
+                input.ClearGameplayInput();
             lastInput = input.ConsumeTick();
             UpdateAim(lastInput.AimWorldPosition);
             status.Tick();
             movement.SetMovementEnabled(NetMovementEnabled);
             movement.SetMovementSpeedMultiplier(status.MovementSpeedMultiplier);
 
-            bool gameplayLocked = NetDead || NetGameplayLocked || IsProjectGameplayLocked || IsHitstunned;
+            bool gameplayLocked = NetDead || NetGameplayLocked || IsProjectGameplayLocked ||
+                                  IsProjectInputLocked || IsHitstunned;
             CharacterInputSnapshot movementInput = gameplayLocked
                 ? default
                 : lastInput;
@@ -253,19 +260,30 @@ namespace ProjectMS.CharacterSystem
 
         public void RequestDamage(float amount, PlayerRef attacker)
         {
-            if (Object == null || amount <= 0f)
+            if (Object == null || !IsFinitePositive(amount))
                 return;
 
             if (Object.HasStateAuthority)
-                ApplyDamage(amount, attacker);
+                ApplyDamage(new DamageRequest(
+                    amount,
+                    attacker,
+                    default,
+                    attacker != PlayerRef.None ? attacker.PlayerId : -1,
+                    CharacterDamageSource.Direct));
             else
-                Rpc_RequestDamage(amount, attacker);
+                Rpc_RequestLegacyDamage(amount, attacker);
         }
 
         public bool CanReceiveDamage(DamageRequest request)
         {
-            return Object != null && !NetDead && request.Amount > 0f &&
-                   !float.IsNaN(request.Amount) && !float.IsInfinity(request.Amount);
+            if (Object == null || NetDead || !IsFinitePositive(request.Amount))
+                return false;
+
+            if (request.SourceObjectId.IsValid && request.SourceObjectId == Object.Id)
+                return false;
+
+            return request.AttackerTeamId < 0 || DamageTeamId < 0 ||
+                   request.AttackerTeamId != DamageTeamId;
         }
 
         public DamageResult RequestDamage(DamageRequest request)
@@ -274,19 +292,27 @@ namespace ProjectMS.CharacterSystem
                 return DamageResult.Rejected(request.Amount, DamageRejectionReason.InvalidTarget);
 
             if (Object.HasStateAuthority)
-                return ApplyDamage(request.Amount, request.Attacker);
+                return ApplyDamage(request);
 
-            Rpc_RequestDamage(request.Amount, request.Attacker);
+            Rpc_RequestDamage(
+                request.Amount,
+                request.Attacker,
+                request.SourceObjectId,
+                request.AttackerTeamId,
+                request.Source,
+                request.SkillId,
+                request.HitPosition,
+                request.HitDirection);
             return DamageResult.Queued(request.Amount);
         }
 
         public void RequestHeal(float amount)
         {
-            if (Object == null || amount <= 0f)
+            if (Object == null || !IsFinitePositive(amount))
                 return;
 
             if (Object.HasStateAuthority)
-                health.Heal(amount);
+                ApplyHeal(amount);
             else
                 Rpc_RequestHeal(amount);
         }
@@ -302,7 +328,10 @@ namespace ProjectMS.CharacterSystem
             if (Object == null || !Object.HasStateAuthority)
                 return;
 
+            float previousHealth = health.Current;
             health.FullHeal();
+            if (!Mathf.Approximately(previousHealth, health.Current))
+                OnHealthChanged(previousHealth, health.Current);
             NetDead = false;
             ResetCommonState();
             movement.Reset(position);
@@ -310,21 +339,70 @@ namespace ProjectMS.CharacterSystem
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        private void Rpc_RequestDamage(float amount, PlayerRef attacker)
-        { 
-            ApplyDamage(amount, attacker);
-        }
-
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)] 
-        private void Rpc_RequestHeal(float amount)
-        { 
-            health.Heal(amount);
+        private void Rpc_RequestLegacyDamage(float amount, PlayerRef attacker, RpcInfo info = default)
+        {
+            if (attacker == PlayerRef.None || info.Source != attacker)
+                return;
+            ApplyDamage(new DamageRequest(
+                amount,
+                attacker,
+                default,
+                attacker != PlayerRef.None ? attacker.PlayerId : -1,
+                CharacterDamageSource.Direct));
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        private void Rpc_RequestSlow(float ratio, float duration)
+        private void Rpc_RequestDamage(
+            float amount,
+            PlayerRef attacker,
+            NetworkId sourceObjectId,
+            int attackerTeamId,
+            CharacterDamageSource source,
+            int skillId,
+            Vector2 hitPosition,
+            Vector2 hitDirection,
+            RpcInfo info = default)
         {
-            ApplySlowAuthority(ratio, duration);
+            DamageRequest request = new DamageRequest(
+                amount,
+                attacker,
+                sourceObjectId,
+                attackerTeamId,
+                source,
+                skillId,
+                hitPosition,
+                hitDirection);
+            if (IsValidDamageRpcSource(request, info.Source) && CanReceiveDamage(request))
+                ApplyDamage(request);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)] 
+        private void Rpc_RequestHeal(float amount, RpcInfo info = default)
+        {
+            if (info.Source == DamageOwner && IsFinitePositive(amount))
+                ApplyHeal(amount);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void Rpc_RequestSlow(
+            float ratio,
+            float duration,
+            NetworkId sourceObjectId,
+            PlayerRef attacker,
+            int attackerTeamId,
+            RpcInfo info = default)
+        {
+            DamageRequest sourceRequest = new DamageRequest(
+                1f,
+                attacker,
+                sourceObjectId,
+                attackerTeamId,
+                CharacterDamageSource.Direct);
+            if (IsFiniteNonNegative(ratio) && IsFiniteNonNegative(duration) &&
+                IsValidDamageRpcSource(sourceRequest, info.Source) && CanReceiveDamage(sourceRequest))
+            {
+                ApplySlowAuthority(ratio, duration);
+            }
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -338,7 +416,7 @@ namespace ProjectMS.CharacterSystem
             if (target == null || target == this || amount <= 0f)
                 return;
 
-            PlayerRef attacker = Object != null ? Object.InputAuthority : PlayerRef.None;
+            PlayerRef attacker = DamageOwner;
             DealDamageThroughPipeline(target, amount, attacker, CharacterDamageSource.Direct);
         }
 
@@ -347,7 +425,7 @@ namespace ProjectMS.CharacterSystem
             if (target == null || target == this || amount <= 0f)
                 return;
 
-            PlayerRef attacker = Object != null ? Object.InputAuthority : PlayerRef.None;
+            PlayerRef attacker = DamageOwner;
             DealDamageThroughPipeline(target, amount, attacker, CharacterDamageSource.Projectile);
         }
 
@@ -387,14 +465,19 @@ namespace ProjectMS.CharacterSystem
             PlayerRef attacker,
             CharacterDamageSource source)
         {
+            DamageRequest request = new DamageRequest(
+                amount,
+                attacker,
+                Object != null ? Object.Id : default,
+                DamageTeamId,
+                source);
+            if (!target.CanReceiveDamage(request))
+                return;
+
             CharacterDamagePipeline pipeline = new CharacterDamagePipeline(
                 (damage, damageSource) => ModifyOutgoingDamage(target, damage, damageSource),
-                damage => target.RequestDamage(damage, attacker),
-                damage =>
-                {
-                    AddUltimateGaugeFromDamageDealt(damage);
-                    OnDamageDealt(target, damage);
-                });
+                damage => target.RequestDamage(request.WithAmount(damage)),
+                null);
             pipeline.Apply(amount, source);
         }
 
@@ -412,13 +495,13 @@ namespace ProjectMS.CharacterSystem
             {
                 if (characterTarget == this)
                     return;
-                DealDamageThroughPipeline(characterTarget, amount, Object.InputAuthority, source);
+                DealDamageThroughPipeline(characterTarget, amount, DamageOwner, source);
                 return;
             }
 
             DamageRequest request = new DamageRequest(
                 amount,
-                Object.InputAuthority,
+                DamageOwner,
                 Object.Id,
                 DamageTeamId,
                 source);
@@ -440,7 +523,7 @@ namespace ProjectMS.CharacterSystem
             float appliedDamage,
             CharacterDamageSource source)
         {
-            if (Object == null || appliedDamage <= 0f)
+            if (Object == null || !IsFinitePositive(appliedDamage))
                 return;
 
             if (Object.HasStateAuthority)
@@ -449,13 +532,60 @@ namespace ProjectMS.CharacterSystem
                 Rpc_ConfirmOwnedEntityDamage(targetId, appliedDamage, source);
         }
 
-        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        private void Rpc_ConfirmOwnedEntityDamage(
+        internal void ConfirmCharacterDamage(
             NetworkId targetId,
             float appliedDamage,
             CharacterDamageSource source)
         {
-            ApplyOwnedEntityDamageConfirmation(targetId, appliedDamage, source);
+            if (Object == null || !IsFinitePositive(appliedDamage))
+                return;
+
+            if (Object.HasStateAuthority)
+                ApplyCharacterDamageConfirmation(targetId, appliedDamage, source);
+            else
+                Rpc_ConfirmCharacterDamage(targetId, appliedDamage, source);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void Rpc_ConfirmCharacterDamage(
+            NetworkId targetId,
+            float appliedDamage,
+            CharacterDamageSource source,
+            RpcInfo info = default)
+        {
+            if (IsValidDamageConfirmationSource(targetId, info.Source))
+                ApplyCharacterDamageConfirmation(targetId, appliedDamage, source);
+        }
+
+        private void ApplyCharacterDamageConfirmation(
+            NetworkId targetId,
+            float appliedDamage,
+            CharacterDamageSource source)
+        {
+            if (!HasStateAuthority || !IsFinitePositive(appliedDamage) || Runner == null ||
+                !Runner.TryFindObject(targetId, out NetworkObject targetObject))
+            {
+                return;
+            }
+
+            CharacterBase target = targetObject.GetComponent<CharacterBase>();
+            if (target == null)
+                return;
+
+            AddUltimateGaugeFromDamageDealt(appliedDamage);
+            OnDamageDealt(target, appliedDamage);
+            OnDamageableDealt(target, appliedDamage, source);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void Rpc_ConfirmOwnedEntityDamage(
+            NetworkId targetId,
+            float appliedDamage,
+            CharacterDamageSource source,
+            RpcInfo info = default)
+        {
+            if (IsValidDamageConfirmationSource(targetId, info.Source))
+                ApplyOwnedEntityDamageConfirmation(targetId, appliedDamage, source);
         }
 
         private void ApplyOwnedEntityDamageConfirmation(
@@ -463,7 +593,7 @@ namespace ProjectMS.CharacterSystem
             float appliedDamage,
             CharacterDamageSource source)
         {
-            if (!HasStateAuthority || appliedDamage <= 0f)
+            if (!HasStateAuthority || !IsFinitePositive(appliedDamage))
                 return;
 
             AddUltimateGaugeFromDamageDealt(appliedDamage);
@@ -490,7 +620,7 @@ namespace ProjectMS.CharacterSystem
         protected void Heal(float amount)
         {
             if (Object != null && Object.HasStateAuthority)
-                health.Heal(amount);
+                ApplyHeal(amount);
         }
 
         protected void StartDefaultDash()
@@ -583,13 +713,23 @@ namespace ProjectMS.CharacterSystem
 
         protected void ApplySlow(CharacterBase target, float slowRatio, float duration)
         {
-            if (target == null || target.Object == null)
+            if (!HasStateAuthority || target == null || target.Object == null || target == this ||
+                !IsFiniteNonNegative(slowRatio) || !IsFiniteNonNegative(duration))
+                return;
+
+            DamageRequest sourceRequest = new DamageRequest(
+                1f,
+                DamageOwner,
+                Object.Id,
+                DamageTeamId,
+                CharacterDamageSource.Direct);
+            if (!target.CanReceiveDamage(sourceRequest))
                 return;
 
             if (target.HasStateAuthority)
                 target.ApplySlowAuthority(slowRatio, duration);
             else
-                target.Rpc_RequestSlow(slowRatio, duration);
+                target.Rpc_RequestSlow(slowRatio, duration, Object.Id, DamageOwner, DamageTeamId);
         }
 
         protected CharacterTimerHandle ScheduleTimer(float seconds, Action callback)
@@ -615,22 +755,25 @@ namespace ProjectMS.CharacterSystem
             return Vector2.Angle(-targetForward, targetToAttacker) <= rearHalfAngle;
         }
 
-        protected void SpawnProjectile(
+        protected CharacterProjectile SpawnProjectile(
             CharacterProjectile projectilePrefab,
             Vector2 position,
             Vector2 direction,
             float speed,
             float damage,
-            LayerMask targetLayer)
+            LayerMask targetLayer,
+            int skillId = 0)
         {
-            if (projectilePrefab == null || Runner == null || Object == null || !Object.HasStateAuthority)
-                return;
+            if (projectilePrefab == null || Runner == null || Object == null || !Object.HasStateAuthority ||
+                projectilePrefab.GetComponent<NetworkObject>() == null ||
+                projectilePrefab.GetComponents<NetworkTRSP>().Length != 1)
+                return null;
 
             Vector2 normalized = direction.sqrMagnitude > 0.0001f
                 ? direction.normalized
                 : new Vector2(NetFacing >= 0 ? 1f : -1f, 0f);
 
-            Runner.Spawn(
+            CharacterProjectile spawnedProjectile = Runner.Spawn(
                 projectilePrefab,
                 position,
                 Quaternion.identity,
@@ -643,28 +786,45 @@ namespace ProjectMS.CharacterSystem
                         speed,
                         damage,
                         targetLayer,
-                        Object.InputAuthority,
+                        DamageOwner,
                         Object.Id,
-                        DamageTeamId);
+                        DamageTeamId,
+                        skillId);
                 });
+            return spawnedProjectile;
         }
 
         protected OwnedEntitySpawnResult<T> SpawnOwnedEntity<T>(
             T prefab,
-            in OwnedEntitySpawnRequest request)
+            in OwnedEntitySpawnRequest request,
+            Action<T> initialize = null)
             where T : CharacterOwnedEntity
         {
             if (prefab == null || prefab.GetComponent<NetworkObject>() == null)
                 return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.InvalidPrefab);
             if (Runner == null || Object == null || !Object.HasStateAuthority)
                 return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.AuthorityUnavailable);
+            if (request.OwnerExitPolicy == OwnedEntityOwnerExitPolicy.ExpireNormally &&
+                !prefab.CanExpireAfterOwnerExit)
+            {
+                return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.UnsupportedPolicy);
+            }
+            if (request.InitialVelocity.sqrMagnitude > 0f)
+            {
+                Rigidbody2D body = prefab.GetComponent<Rigidbody2D>();
+                if (body == null || body.bodyType != RigidbodyType2D.Dynamic ||
+                    prefab.GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>() == null)
+                {
+                    return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.InvalidPrefab);
+                }
+            }
 
             if (ownedEntityRegistry == null)
                 ownedEntityRegistry = new CharacterOwnedEntityRegistry();
 
-            if (!ownedEntityRegistry.TrySelectOverflowEntity(
+            if (!ownedEntityRegistry.TrySelectOverflowEntities(
                     request,
-                    out CharacterOwnedEntity replacement,
+                    out IReadOnlyList<CharacterOwnedEntity> replacements,
                     out OwnedEntitySpawnFailureReason failureReason))
             {
                 return OwnedEntitySpawnResult<T>.Failed(failureReason);
@@ -672,6 +832,7 @@ namespace ProjectMS.CharacterSystem
 
             int creationSequence = ownedEntityRegistry.ReserveCreationSequence();
             OwnedEntitySpawnRequest spawnRequest = request;
+            PlayerRef ownerPlayer = DamageOwner;
             NetworkObject spawnedObject = Runner.Spawn(
                 prefab.gameObject,
                 spawnRequest.Position,
@@ -682,10 +843,12 @@ namespace ProjectMS.CharacterSystem
                     T entity = networkObject.GetComponent<T>();
                     entity?.InitializeOwnedEntity(
                         Object.Id,
-                        Object.InputAuthority,
+                        ownerPlayer,
                         DamageTeamId,
                         spawnRequest,
                         creationSequence);
+                    if (entity != null)
+                        initialize?.Invoke(entity);
                 });
 
             T spawnedEntity = spawnedObject != null ? spawnedObject.GetComponent<T>() : null;
@@ -702,10 +865,13 @@ namespace ProjectMS.CharacterSystem
                 return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.RegistrationFailed);
             }
 
-            if (replacement != null && !replacement.RequestDestroy(OwnedEntityDestroyReason.LimitExceeded))
+            foreach (CharacterOwnedEntity replacement in replacements)
             {
-                spawnedEntity.RequestDestroy(OwnedEntityDestroyReason.Manual);
-                return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.SpawnFailed);
+                if (replacement != null && !replacement.RequestDestroy(OwnedEntityDestroyReason.LimitExceeded))
+                {
+                    spawnedEntity.RequestDestroy(OwnedEntityDestroyReason.Manual);
+                    return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.SpawnFailed);
+                }
             }
 
             return OwnedEntitySpawnResult<T>.Succeeded(spawnedEntity);
@@ -713,19 +879,22 @@ namespace ProjectMS.CharacterSystem
 
         protected OwnedEntitySpawnResult<T> SpawnThrowable<T>(
             T prefab,
-            in OwnedEntitySpawnRequest request)
+            in OwnedEntitySpawnRequest request,
+            Action<T> initialize = null)
             where T : CharacterThrowable
         {
             Rigidbody2D body = prefab != null ? prefab.GetComponent<Rigidbody2D>() : null;
             Collider2D collider = prefab != null ? prefab.GetComponent<Collider2D>() : null;
             if (prefab == null || body == null || body.bodyType != RigidbodyType2D.Dynamic ||
                 collider == null || collider.isTrigger ||
-                prefab.GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>() == null)
+                prefab.GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>() == null ||
+                prefab.GetComponents<NetworkTRSP>().Length != 1 ||
+                !prefab.HasValidFuseConfiguration)
             {
                 return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.InvalidPrefab);
             }
 
-            return SpawnOwnedEntity(prefab, request);
+            return SpawnOwnedEntity(prefab, request, initialize);
         }
 
         protected bool StartThrowableFuse(CharacterThrowable throwable)
@@ -778,6 +947,23 @@ namespace ProjectMS.CharacterSystem
         internal void UnregisterOwnedEntity(CharacterOwnedEntity entity)
         {
             ownedEntityRegistry?.Unregister(entity);
+        }
+
+        internal void NotifyOwnedEntityDestroyed(
+            CharacterOwnedEntity entity,
+            OwnedEntityDestroyReason reason)
+        {
+            if (HasStateAuthority && entity != null)
+                OnOwnedEntityDestroyed(entity, reason);
+            ownedEntityRegistry?.Unregister(entity);
+        }
+
+        internal void DealOwnedEntityDamage(
+            IDamageable target,
+            float amount,
+            CharacterDamageSource source)
+        {
+            DealDamageToDamageable(target, amount, source);
         }
 
         protected void PlayActionEffect(CharacterActionType action, Vector2 position, float angle)
@@ -931,15 +1117,18 @@ namespace ProjectMS.CharacterSystem
             NetAimDirection = direction.x >= 0f ? 1 : -1;
         }
 
-        private DamageResult ApplyDamage(float amount, PlayerRef attacker)
+        private DamageResult ApplyDamage(DamageRequest request)
         {
+            if (!CanReceiveDamage(request))
+                return DamageResult.Rejected(request.Amount, DamageRejectionReason.InvalidTarget);
+
             float before = health.Current;
-            float applied = health.ApplyDamage(amount);
+            float applied = health.ApplyDamage(request.Amount);
             if (applied <= 0f)
-                return DamageResult.Rejected(amount, DamageRejectionReason.InvalidAmount);
+                return DamageResult.Rejected(request.Amount, DamageRejectionReason.InvalidAmount);
 
             NetDamageSequence++;
-            CharacterDamageInfo info = new CharacterDamageInfo(amount, applied, attacker);
+            CharacterDamageInfo info = new CharacterDamageInfo(request, applied);
             OnDamaged(info);
             OnHealthChanged(before, health.Current);
 
@@ -949,24 +1138,79 @@ namespace ProjectMS.CharacterSystem
                 rigidbody2D.linearVelocity = Vector2.zero;
                 ResetCommonState();
                 DestroyOwnedEntitiesForOwnerDeath();
-                OnDied(attacker);
+                OnDied(request.Attacker);
             }
             else
             {
                 // 죽는 타격이 아닐 때만 넉백을 건다 — 어차피 죽는 순간 위의 ResetCommonState()가
                 // 속도를 0으로 되돌리고 대시/넉백을 취소해버려서(그래야 사망 연출/카메라 포커스가
                 // 제자리에서 안정적으로 잡힘), 죽는 타격에 걸어봐야 바로 지워진다.
-                ApplyKnockback(attacker);
+                ApplyKnockback(request.Attacker);
             }
 
-            return DamageResult.Applied(amount, applied, health.Current, health.IsDead);
+            DamageResult result = DamageResult.Applied(request.Amount, applied, health.Current, health.IsDead);
+            ConfirmCharacterDamageSource(request, result);
+            return result;
         }
 
         protected virtual int ResolveDamageTeamId()
         {
-            return Object != null && Object.InputAuthority != PlayerRef.None
-                ? Object.InputAuthority.PlayerId
+            PlayerRef owner = DamageOwner;
+            return owner != PlayerRef.None
+                ? owner.PlayerId
                 : -1;
+        }
+
+        private PlayerRef ResolveDamageOwner()
+        {
+            if (Object == null)
+                return PlayerRef.None;
+            if (Runner != null && Runner.GameMode == GameMode.Shared)
+                return Object.StateAuthority;
+            return Object.InputAuthority;
+        }
+
+        private bool IsValidDamageRpcSource(DamageRequest request, PlayerRef rpcSource)
+        {
+            if (request.Attacker == PlayerRef.None || request.Attacker != rpcSource ||
+                !request.SourceObjectId.IsValid || Runner == null ||
+                !Runner.TryFindObject(request.SourceObjectId, out NetworkObject sourceObject))
+            {
+                return false;
+            }
+
+            CharacterBase sourceCharacter = sourceObject.GetComponent<CharacterBase>();
+            return sourceCharacter != null && sourceCharacter.DamageOwner == rpcSource &&
+                   sourceCharacter.DamageTeamId == request.AttackerTeamId;
+        }
+
+        private bool IsValidDamageConfirmationSource(NetworkId targetId, PlayerRef rpcSource)
+        {
+            return targetId.IsValid && rpcSource != PlayerRef.None && Runner != null &&
+                   Runner.TryFindObject(targetId, out NetworkObject targetObject) &&
+                   targetObject.StateAuthority == rpcSource;
+        }
+
+        private void ConfirmCharacterDamageSource(DamageRequest request, DamageResult result)
+        {
+            if (result.AppliedDamage <= 0f || !request.SourceObjectId.IsValid || Runner == null ||
+                !Runner.TryFindObject(request.SourceObjectId, out NetworkObject sourceObject))
+            {
+                return;
+            }
+
+            CharacterBase source = sourceObject.GetComponent<CharacterBase>();
+            source?.ConfirmCharacterDamage(Object.Id, result.AppliedDamage, request.Source);
+        }
+
+        private static bool IsFinitePositive(float value)
+        {
+            return value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
+        private static bool IsFiniteNonNegative(float value)
+        {
+            return value >= 0f && !float.IsNaN(value) && !float.IsInfinity(value);
         }
 
         private void DestroyOwnedEntitiesForOwnerDeath()
@@ -1015,7 +1259,7 @@ namespace ProjectMS.CharacterSystem
         /// (투사체 소유자가 이미 디스폰된 경우 등) 피격자가 바라보던 방향의 반대(후방)로 민다.</summary>
         private Vector2 ResolveKnockbackDirection(PlayerRef attacker)
         {
-            CharacterBase attackerCharacter = All.Find(c => c != null && c.Object != null && c.Object.InputAuthority == attacker);
+            CharacterBase attackerCharacter = All.Find(c => c != null && c.DamageOwner == attacker);
             float horizontal = attackerCharacter != null
                 ? Mathf.Sign(transform.position.x - attackerCharacter.transform.position.x)
                 : -FacingDirection;
@@ -1023,7 +1267,7 @@ namespace ProjectMS.CharacterSystem
             return new Vector2(horizontal, definition.KnockbackUpwardBias).normalized;
         }
 
-        private bool HasStateAuthority => Object != null && Object.HasStateAuthority;
+        private new bool HasStateAuthority => Object != null && Object.HasStateAuthority;
 
         private void ResetCommonState()
         {
@@ -1032,6 +1276,7 @@ namespace ProjectMS.CharacterSystem
 
             timers?.CancelAll();
             actionState?.Initialize();
+            NetGameplayLocked = false;
             NetUltimateGauge = 0f;
             NetSlowRatio = 0f;
             NetSlowTimer = default;
@@ -1046,6 +1291,18 @@ namespace ProjectMS.CharacterSystem
         {
             if (HasStateAuthority)
                 status.ApplySlow(ratio, duration);
+        }
+
+        private float ApplyHeal(float amount)
+        {
+            if (!HasStateAuthority || !IsFinitePositive(amount))
+                return 0f;
+
+            float before = health.Current;
+            float applied = health.Heal(amount);
+            if (applied > 0f)
+                OnHealthChanged(before, health.Current);
+            return applied;
         }
 
         bool ICharacterActionStateStore.GetEnabled(CharacterActionType action)
@@ -1270,6 +1527,9 @@ namespace ProjectMS.CharacterSystem
             NetworkId targetId,
             float appliedDamage,
             CharacterDamageSource source) { }
+        protected virtual void OnOwnedEntityDestroyed(
+            CharacterOwnedEntity entity,
+            OwnedEntityDestroyReason reason) { }
         protected virtual void OnProjectileDespawned(
             CharacterProjectile projectile,
             ProjectileDespawnReason reason,
@@ -1280,6 +1540,7 @@ namespace ProjectMS.CharacterSystem
         protected virtual void OnSkillExecuted(CharacterActionType action) { }
         protected virtual void OnHealthChanged(float previous, float current) { }
         protected virtual void OnCharacterSpawned() { }
+        protected virtual void OnCharacterDespawned() { }
         protected virtual void OnResetCharacter() { }
 
 #if UNITY_EDITOR

@@ -41,13 +41,16 @@ namespace ProjectMS.CharacterSystem
         [Networked] private PlayerRef NetOwner { get; set; }
         [Networked] private NetworkId NetSourceObjectId { get; set; }
         [Networked] private int NetOwnerTeamId { get; set; }
+        [Networked] private int NetSkillId { get; set; }
         [Networked] private TickTimer LifeTimer { get; set; }
+        [Networked] private TickTimer DespawnTimer { get; set; }
 
         /// <summary>이 투사체를 쏜 플레이어. 다른 투사체/오브젝트가 "내가 쏜 게 맞는지" 확인할 때 쓴다
         /// (예: 거너 수류탄의 "본인 총알에 맞으면 조기 폭발" 판정).</summary>
         public PlayerRef Owner => NetOwner;
+        public int SkillId => NetSkillId;
 
-        private const int MaxHitCount = 8;
+        private const int MaxHitCount = 32;
 
         private readonly RaycastHit2D[] castHits = new RaycastHit2D[MaxHitCount];
         private readonly HashSet<IDamageable> pierceHitTargets = new HashSet<IDamageable>();
@@ -66,7 +69,8 @@ namespace ProjectMS.CharacterSystem
             LayerMask targetLayer,
             PlayerRef owner,
             NetworkId sourceObjectId,
-            int ownerTeamId)
+            int ownerTeamId,
+            int skillId = 0)
         {
             NetDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
             NetSpeed = Mathf.Max(0f, speed);
@@ -75,6 +79,7 @@ namespace ProjectMS.CharacterSystem
             NetOwner = owner;
             NetSourceObjectId = sourceObjectId;
             NetOwnerTeamId = ownerTeamId;
+            NetSkillId = skillId;
         }
 
         [Obsolete("Use CharacterBase.SpawnProjectile or Initialize with a source NetworkId; legacy initialization cannot preserve damage callbacks.", true)]
@@ -102,19 +107,33 @@ namespace ProjectMS.CharacterSystem
 
         public override void FixedUpdateNetwork()
         {
-            if (!Object.HasStateAuthority || consumed)
+            if (!Object.HasStateAuthority)
                 return;
+            if (consumed)
+            {
+                if (DespawnTimer.Expired(Runner) && Runner != null && Object != null && Object.IsValid)
+                    Runner.Despawn(Object);
+                return;
+            }
 
             Vector2 delta = NetDirection * NetSpeed * Runner.DeltaTime;
-            if (TryHitAlongDelta(delta, out RaycastHit2D hit, out IDamageable target, out bool hitTarget))
+            int hitCount = CastAlongDelta(delta);
+            if (hitCount > 1)
+                Array.Sort(castHits, 0, hitCount, RaycastHitDistanceComparer.Instance);
+            for (int i = 0; i < hitCount; i++)
             {
+                RaycastHit2D hit = castHits[i];
+                if (!TryResolveHit(hit, out IDamageable target, out bool hitTarget))
+                    continue;
+
                 if (hitTarget && target != null)
                 {
                     DealDamage(target);
                     pierceHitTargets.Add(target);
                 }
 
-                if (!(hitTarget && pierceCharacters))
+                bool piercesHit = hitTarget && pierceCharacters && target is CharacterBase;
+                if (!piercesHit)
                 {
                     Complete(
                         hitTarget ? ResolveHitReason(target) : ProjectileDespawnReason.HitWall,
@@ -125,7 +144,7 @@ namespace ProjectMS.CharacterSystem
                     return;
                 }
 
-                // 관통: 소멸하지 않고 이번 틱도 그대로 이동을 마저 진행한다.
+                // 캐릭터 관통: 같은 틱의 다음 충돌도 거리순으로 계속 처리한다.
             }
 
             transform.position += (Vector3)delta;
@@ -153,21 +172,30 @@ namespace ProjectMS.CharacterSystem
             if (isTarget)
             {
                 IDamageable target = ResolveDamageable(other);
-                if (target == null || IsSourceCharacter(target))
+                if (IsSourceCharacter(target))
                     return;
-                if (pierceCharacters && pierceHitTargets.Contains(target))
+                if (target == null)
+                {
+                    if (!isWall)
+                        return;
+                }
+                else if (pierceCharacters && target is CharacterBase && pierceHitTargets.Contains(target))
+                {
                     return;
+                }
+                else
+                {
+                    DealDamage(target);
+                    pierceHitTargets.Add(target);
 
-                DealDamage(target);
-                pierceHitTargets.Add(target);
+                    if (pierceCharacters && target is CharacterBase)
+                        return; // 캐릭터만 관통한다. 소유 오브젝트는 맞으면 소멸한다.
 
-                if (pierceCharacters)
-                    return; // 관통: 소멸하지 않고 계속 날아간다.
-
-                Vector2 hitPosition = other.ClosestPoint(transform.position);
-                Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
-                Complete(ResolveHitReason(target), hitPosition, hitNormal, target as CharacterBase, true);
-                return;
+                    Vector2 hitPosition = other.ClosestPoint(transform.position);
+                    Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
+                    Complete(ResolveHitReason(target), hitPosition, hitNormal, target as CharacterBase, true);
+                    return;
+                }
             }
 
             {
@@ -177,73 +205,68 @@ namespace ProjectMS.CharacterSystem
             }
         }
 
-        private bool TryHitAlongDelta(
-            Vector2 delta,
-            out RaycastHit2D bestHit,
-            out IDamageable bestTarget,
-            out bool hitTarget)
+        private int CastAlongDelta(Vector2 delta)
         {
-            bestHit = default;
-            bestTarget = null;
-            hitTarget = false;
-
             if (projectileCollider == null || delta.sqrMagnitude < 0.000001f)
-                return false;
+                return 0;
 
             int collisionMask = NetTargetLayerMask | wallLayer.value;
             if (collisionMask == 0)
-                return false;
+                return 0;
 
-            Vector2 direction = delta.normalized;
-            float distance = delta.magnitude + collisionSkinWidth;
             ContactFilter2D filter = new ContactFilter2D
             {
                 useLayerMask = true,
                 layerMask = collisionMask,
                 useTriggers = true
             };
+            return projectileCollider.Cast(
+                delta.normalized,
+                filter,
+                castHits,
+                delta.magnitude + collisionSkinWidth);
+        }
 
-            int hitCount = projectileCollider.Cast(direction, filter, castHits, distance);
-            float bestDistance = float.PositiveInfinity;
-
-            for (int i = 0; i < hitCount; i++)
-            {
-                RaycastHit2D candidate = castHits[i];
-                Collider2D candidateCollider = candidate.collider;
-                if (candidateCollider == null || candidateCollider == projectileCollider)
-                    continue;
-
-                int otherLayerBit = 1 << candidateCollider.gameObject.layer;
-                bool candidateIsTarget = (NetTargetLayerMask & otherLayerBit) != 0;
-                bool candidateIsWall = (wallLayer.value & otherLayerBit) != 0;
-                if (!candidateIsTarget && !candidateIsWall)
-                    continue;
-
-                IDamageable candidateTarget = null;
-                if (candidateIsTarget)
-                {
-                    candidateTarget = ResolveDamageable(candidateCollider);
-                    if (candidateTarget == null ||
-                        IsSourceCharacter(candidateTarget) ||
-                        (pierceCharacters && pierceHitTargets.Contains(candidateTarget)))
-                    {
-                        continue;
-                    }
-                }
-
-                if (candidate.distance >= bestDistance)
-                    continue;
-
-                bestDistance = candidate.distance;
-                bestHit = candidate;
-                bestTarget = candidateTarget;
-                hitTarget = candidateIsTarget;
-            }
-
-            if (bestDistance == float.PositiveInfinity)
+        private bool TryResolveHit(
+            RaycastHit2D candidate,
+            out IDamageable target,
+            out bool hitTarget)
+        {
+            target = null;
+            hitTarget = false;
+            Collider2D candidateCollider = candidate.collider;
+            if (candidateCollider == null || candidateCollider == projectileCollider)
                 return false;
 
+            int otherLayerBit = 1 << candidateCollider.gameObject.layer;
+            bool candidateIsTarget = (NetTargetLayerMask & otherLayerBit) != 0;
+            bool candidateIsWall = (wallLayer.value & otherLayerBit) != 0;
+            if (!candidateIsTarget && !candidateIsWall)
+                return false;
+
+            if (candidateIsTarget)
+            {
+                target = ResolveDamageable(candidateCollider);
+                if (IsSourceCharacter(target))
+                    return false;
+                if (target == null && !candidateIsWall)
+                    return false;
+                if (pierceCharacters && target is CharacterBase && pierceHitTargets.Contains(target))
+                    return false;
+            }
+
+            hitTarget = target != null;
             return true;
+        }
+
+        private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit2D>
+        {
+            public static readonly RaycastHitDistanceComparer Instance = new RaycastHitDistanceComparer();
+
+            public int Compare(RaycastHit2D left, RaycastHit2D right)
+            {
+                return left.distance.CompareTo(right.distance);
+            }
         }
 
         internal void CompleteManually()
@@ -283,6 +306,7 @@ namespace ProjectMS.CharacterSystem
                     NetSourceObjectId,
                     NetOwnerTeamId,
                     CharacterDamageSource.Projectile,
+                    NetSkillId,
                     hitPosition: transform.position,
                     hitDirection: NetDirection);
                 target.RequestDamage(request);
@@ -325,6 +349,7 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             consumed = true;
+            DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             if (surfaceNormal.sqrMagnitude < 0.001f)
                 surfaceNormal = -NetDirection;
 
@@ -335,8 +360,6 @@ namespace ProjectMS.CharacterSystem
             if (source != null)
                 source.NotifyProjectileDespawned(this, reason, hitTarget);
 
-            if (Runner != null && Object != null)
-                Runner.Despawn(Object);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

@@ -30,6 +30,10 @@ namespace ProjectMS.CharacterSystem
 
         public void ApplySlow(float ratio, float duration)
         {
+            if (float.IsNaN(ratio) || float.IsInfinity(ratio) ||
+                float.IsNaN(duration) || float.IsInfinity(duration))
+                return;
+
             float clampedRatio = Math.Max(0f, Math.Min(0.99f, ratio));
             if (store.IsSlowRunning && clampedRatio < store.SlowRatio)
                 return;

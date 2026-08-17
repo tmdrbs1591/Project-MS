@@ -19,12 +19,12 @@ namespace ProjectMS.CharacterSystem
             return nextCreationSequence;
         }
 
-        public bool TrySelectOverflowEntity(
+        public bool TrySelectOverflowEntities(
             in OwnedEntitySpawnRequest request,
-            out CharacterOwnedEntity replacement,
+            out IReadOnlyList<CharacterOwnedEntity> replacements,
             out OwnedEntitySpawnFailureReason failureReason)
         {
-            replacement = null;
+            replacements = new List<CharacterOwnedEntity>().AsReadOnly();
             failureReason = OwnedEntitySpawnFailureReason.None;
 
             if (!request.Group.IsValid)
@@ -56,11 +56,11 @@ namespace ProjectMS.CharacterSystem
             switch (request.OverflowPolicy)
             {
                 case OwnedEntityOverflowPolicy.DestroyOldest:
-                    replacement = FindBySequence(entities, findOldest: true);
-                    return replacement != null;
+                    replacements = SelectBySequence(entities, entities.Count - request.MaxCount + 1, true);
+                    return replacements.Count > 0;
                 case OwnedEntityOverflowPolicy.DestroyNewest:
-                    replacement = FindBySequence(entities, findOldest: false);
-                    return replacement != null;
+                    replacements = SelectBySequence(entities, entities.Count - request.MaxCount + 1, false);
+                    return replacements.Count > 0;
                 default:
                     failureReason = OwnedEntitySpawnFailureReason.CountLimitReached;
                     return false;
@@ -157,25 +157,24 @@ namespace ProjectMS.CharacterSystem
             return entities;
         }
 
-        private static CharacterOwnedEntity FindBySequence(
+        private static IReadOnlyList<CharacterOwnedEntity> SelectBySequence(
             List<CharacterOwnedEntity> entities,
+            int count,
             bool findOldest)
         {
-            CharacterOwnedEntity selected = null;
+            List<CharacterOwnedEntity> candidates = new List<CharacterOwnedEntity>();
             foreach (CharacterOwnedEntity entity in entities)
             {
-                if (!IsValid(entity))
-                    continue;
-
-                if (selected == null ||
-                    (findOldest && entity.CreationSequence < selected.CreationSequence) ||
-                    (!findOldest && entity.CreationSequence > selected.CreationSequence))
-                {
-                    selected = entity;
-                }
+                if (IsValid(entity))
+                    candidates.Add(entity);
             }
 
-            return selected;
+            candidates.Sort((left, right) => findOldest
+                ? left.CreationSequence.CompareTo(right.CreationSequence)
+                : right.CreationSequence.CompareTo(left.CreationSequence));
+            if (candidates.Count > count)
+                candidates.RemoveRange(count, candidates.Count - count);
+            return candidates.AsReadOnly();
         }
 
         private static void RemoveInvalid(List<CharacterOwnedEntity> entities)

@@ -35,8 +35,6 @@ COMMON_SOURCE_FILES = (
     "Runtime/OwnedEntities/CharacterOwnedEntity.cs",
     "Runtime/OwnedEntities/CharacterDeployable.cs",
     "Runtime/OwnedEntities/CharacterSummon.cs",
-    "Runtime/OwnedEntities/CharacterThrowable.cs",
-    "Runtime/OwnedEntities/CharacterThrowableFuseRules.cs",
     "Runtime/OwnedEntities/CharacterOwnedEntityRegistry.cs",
     "Runtime/OwnedEntities/OwnedEntityPolicies.cs",
     "Runtime/OwnedEntities/OwnedEntityGroupId.cs",
@@ -53,11 +51,10 @@ DOCUMENTED_FACADE_NAMES = (
     "GetActionCharges", "SetCooldownDuration", "ResetCooldownDuration",
     "SetAutoCooldown", "StartCooldown", "ClearCooldown", "GetCooldownRemaining",
     "SetMovementEnabled", "IsMovementEnabled", "ApplySlow", "SlowRatio", "IsSlowed",
-    "ScheduleTimer", "CancelTimer", "FacingDirection", "AimDirection", "IsFacingRight",
+    "ScheduleTimer", "CancelTimer", "FacingDirection", "IsFacingRight",
     "IsFacingLeft", "IsBehindTarget", "ModifyOutgoingDamage",
     "OnDamageDealt", "OnProjectileDespawned", "DespawnProjectile", "SpawnProjectile",
     "SpawnOwnedEntity", "DestroyOwnedEntity", "GetOwnedEntities", "DestroyOwnedEntities",
-    "SpawnThrowable", "StartThrowableFuse",
     "FindDamageablesInCircle", "FindDamageablesInBox", "FindDamageablesInLine", "FindDamageablesInArc",
 )
 
@@ -70,7 +67,6 @@ def require_owned_entity_base_contract() -> None:
     registry_source = (owned_root / "CharacterOwnedEntityRegistry.cs").read_text(encoding="utf-8")
     policies_source = (owned_root / "OwnedEntityPolicies.cs").read_text(encoding="utf-8")
     damageable_source = (ROOT / "Runtime" / "Combat" / "IDamageable.cs").read_text(encoding="utf-8")
-    throwable_source = (owned_root / "CharacterThrowable.cs").read_text(encoding="utf-8")
 
     require(r"abstract\s+class\s+CharacterOwnedEntity\s*:\s*NetworkBehaviour\s*,\s*IDamageable\s*,\s*IStateAuthorityChanged",
             "owned entity is the shared network damageable base", owned_source)
@@ -81,31 +77,6 @@ def require_owned_entity_base_contract() -> None:
     require(r"sealed\s+class\s+CharacterOwnedEntityRegistry",
             "per-character owned entity registry", registry_source)
     require(r"interface\s+IDamageable", "shared damage target interface", damageable_source)
-    require(r"class\s+CharacterThrowable\s*:\s*CharacterOwnedEntity",
-            "physical throwable extension boundary", throwable_source)
-    for token in (
-        "Rigidbody2D", "Collider2D", "Fusion.Addons.Physics.NetworkRigidbody2D", "fuseSeconds", "groundLayer",
-        "CharacterThrowableFuseStartMode", "TickTimer", "OnCollisionEnter2D",
-        "OnThrowableSpawnedAuthority", "OnFuseStartedAuthority", "OnFuseExpiredAuthority", "FuseExpired",
-    ):
-        if token not in throwable_source:
-            raise AssertionError(f"character throwable contract missing: {token}")
-    require(r"protected\s+sealed\s+override\s+void\s+OnOwnedEntitySpawnedAuthority",
-            "throwable fuse initialization cannot be bypassed by subclasses", throwable_source)
-
-    spawn_throwable_body = extract_method_body(SOURCE, "protected OwnedEntitySpawnResult<T> SpawnThrowable")
-    if "SpawnOwnedEntity" not in spawn_throwable_body or "Runner.Spawn" in spawn_throwable_body:
-        raise AssertionError("throwable spawn does not route through the owned entity facade")
-    if "GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>()" not in spawn_throwable_body:
-        raise AssertionError("throwable spawn accepts a prefab without network physics synchronization")
-    if "body.bodyType != RigidbodyType2D.Dynamic" not in spawn_throwable_body:
-        raise AssertionError("throwable spawn accepts a non-dynamic rigidbody")
-    if "collider.isTrigger" not in spawn_throwable_body:
-        raise AssertionError("throwable spawn accepts a trigger collider that cannot report ground collision")
-    start_fuse_body = extract_method_body(SOURCE, "protected bool StartThrowableFuse(")
-    if "ownedEntityRegistry.Contains" not in start_fuse_body or "TryStartFuse" not in start_fuse_body:
-        raise AssertionError("manual throwable fuse start bypasses owner validation")
-
     for token in (
         "HealthDepleted", "LifetimeExpired", "LimitExceeded", "OwnerDied",
         "OwnerDespawned", "OwnerDisconnected", "SkillTriggered", "Manual",
@@ -333,7 +304,7 @@ def require_projectile_damage_contract(source: str) -> None:
         if token not in source:
             raise AssertionError(f"projectile damage contract missing: {token}")
 
-    if source.count("IsSourceCharacter(target)") < 1 or source.count("IsSourceCharacter(candidateTarget)") < 1:
+    if source.count("IsSourceCharacter(target)") < 2:
         raise AssertionError("projectile does not exclude only its source CharacterBase")
 
     code = sanitize_csharp_non_code(source)
@@ -363,12 +334,15 @@ def require_projectile_damage_contract(source: str) -> None:
     despawn_call = r"\bRunner\s*\.\s*Despawn\s*\(\s*Object\s*\)\s*;"
     if len(re.findall(notify_call, complete)) != 1:
         raise AssertionError("projectile completion source notification is not unique")
-    if len(re.findall(despawn_call, complete)) != 1:
-        raise AssertionError("projectile completion despawn is not unique")
+    if "DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);" not in complete:
+        raise AssertionError("projectile completion does not defer despawn for transient RPC delivery")
     if len(re.findall(notify_call, code)) != 1:
         raise AssertionError("projectile source notification exists outside Complete")
+    fixed_update = extract_method_body(source, "public override void FixedUpdateNetwork()")
+    if len(re.findall(despawn_call, fixed_update)) != 1 or "DespawnTimer.Expired(Runner)" not in fixed_update:
+        raise AssertionError("projectile delayed despawn is not unique")
     if len(re.findall(despawn_call, code)) != 1:
-        raise AssertionError("projectile despawn exists outside Complete")
+        raise AssertionError("projectile despawn exists outside delayed completion path")
 
     fixed_update = extract_method_body(source, "public override void FixedUpdateNetwork(")
     if len(re.findall(r"\bComplete\s*\(", fixed_update)) != 2:
@@ -428,7 +402,7 @@ def require_manual_projectile_despawn_contract(source: str) -> None:
 
 def require_legacy_projectile_initialize_contract(source: str) -> None:
     require(
-        r"public\s+void\s+Initialize\s*\(\s*Vector2\s+direction\s*,\s*float\s+speed\s*,\s*float\s+damage\s*,\s*LayerMask\s+targetLayer\s*,\s*PlayerRef\s+owner\s*,\s*NetworkId\s+sourceObjectId\s*,\s*int\s+ownerTeamId\s*\)",
+        r"public\s+void\s+Initialize\s*\(\s*Vector2\s+direction\s*,\s*float\s+speed\s*,\s*float\s+damage\s*,\s*LayerMask\s+targetLayer\s*,\s*PlayerRef\s+owner\s*,\s*NetworkId\s+sourceObjectId\s*,\s*int\s+ownerTeamId\s*,\s*int\s+skillId\s*=\s*0\s*\)",
         "source-aware projectile initializer",
         source,
     )
@@ -525,11 +499,11 @@ def require_no_direct_projectile_initialize(example_sources: dict[str, str]) -> 
 
 
 def require_projectile_spawn_route(source: str, example_sources: dict[str, str]) -> None:
-    body = extract_method_body(source, "protected void SpawnProjectile(")
+    body = extract_method_body(source, "protected CharacterProjectile SpawnProjectile(")
     if "Runner.Spawn(" not in body:
         raise AssertionError("CharacterBase SpawnProjectile does not spawn through Runner")
     if not re.search(
-        r"Initialize\s*\(\s*normalized\s*,\s*speed\s*,\s*damage\s*,\s*targetLayer\s*,\s*Object\.InputAuthority\s*,\s*Object\.Id\s*,\s*DamageTeamId\s*\)",
+        r"Initialize\s*\(\s*normalized\s*,\s*speed\s*,\s*damage\s*,\s*targetLayer\s*,\s*DamageOwner\s*,\s*Object\.Id\s*,\s*DamageTeamId\s*,\s*skillId\s*\)",
         body,
     ):
         raise AssertionError("CharacterBase SpawnProjectile does not use source-aware initialization")
@@ -796,10 +770,11 @@ def audit_self_test() -> None:
                         speed,
                         damage,
                         targetLayer,
-                        Object.InputAuthority,
+                        DamageOwner,
                         Object.Id,
-                        DamageTeamId);""",
-        "projectile?.Initialize(normalized, speed, damage, targetLayer, Object.InputAuthority);",
+                        DamageTeamId,
+                        skillId);""",
+        "projectile?.Initialize(normalized, speed, damage, targetLayer, DamageOwner);",
         1,
     )
     if legacy_spawn == SOURCE:
@@ -908,7 +883,6 @@ def main() -> int:
             r"protected\s+CharacterTimerHandle\s+ScheduleTimer\s*\(\s*float\s+seconds\s*,\s*Action\s+callback\s*\)",
             r"protected\s+bool\s+CancelTimer\s*\(\s*CharacterTimerHandle\s+handle\s*\)",
             r"public\s+int\s+FacingDirection\s*=>", r"public\s+bool\s+IsFacingRight\s*=>", r"public\s+bool\s+IsFacingLeft\s*=>",
-            r"public\s+Vector2\s+AimDirection\s*=>\s*DirectionFromAngle\(NetAimAngle\)\s*;",
             r"protected\s+bool\s+IsBehindTarget\s*\(\s*CharacterBase\s+target\s*,\s*float\s+rearArcAngle\s*\)",
             r"protected\s+virtual\s+float\s+ModifyOutgoingDamage\s*\(",
             r"protected\s+virtual\s+void\s+OnProjectileDespawned\s*\(",

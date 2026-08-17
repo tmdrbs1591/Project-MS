@@ -28,7 +28,7 @@ namespace ProjectMS.CharacterSystem
 
         public float ApplyDamage(float requestedDamage)
         {
-            if (requestedDamage <= 0f || IsDead)
+            if (!IsFinitePositive(requestedDamage) || IsDead)
                 return 0f;
 
             float before = Current;
@@ -39,7 +39,7 @@ namespace ProjectMS.CharacterSystem
 
         public float Heal(float requestedAmount, bool allowRevive = false)
         {
-            if (requestedAmount <= 0f || (IsDead && !allowRevive))
+            if (!IsFinitePositive(requestedAmount) || (IsDead && !allowRevive))
                 return 0f;
 
             float before = Current;
@@ -51,6 +51,11 @@ namespace ProjectMS.CharacterSystem
         public void FullHeal()
         {
             setter(maxHealth);
+        }
+
+        private static bool IsFinitePositive(float value)
+        {
+            return value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
         }
     }
 }

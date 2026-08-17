@@ -66,7 +66,10 @@ namespace ProjectMS.CharacterSystem
 
             CurrentVelocity = rigidbody.linearVelocity;
             if (!wasGrounded && IsGrounded)
+            {
+                playerJumping = false;
                 Landed?.Invoke();
+            }
         }
 
         public void StartDefaultDash()
@@ -146,6 +149,7 @@ namespace ProjectMS.CharacterSystem
             coyoteTimer = 0f;
             dashTimer = 0f;
             autoHopTimer = 0f;
+            playerJumping = false;
             IsDashing = false;
             IsGrounded = false;
             CurrentVelocity = Vector2.zero;
@@ -250,6 +254,9 @@ namespace ProjectMS.CharacterSystem
 
         private void ClampSpeed()
         {
+            if (IsDashing)
+                return;
+
             float maxSpeed = definition.MaxSpeed;
             if (maxSpeed <= 0f || rigidbody.linearVelocity.sqrMagnitude <= maxSpeed * maxSpeed)
                 return;

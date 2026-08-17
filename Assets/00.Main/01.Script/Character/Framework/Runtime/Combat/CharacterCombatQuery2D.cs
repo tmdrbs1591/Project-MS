@@ -155,7 +155,9 @@ namespace ProjectMS.CharacterSystem
                     continue;
 
                 CharacterBase target = hit.GetComponentInParent<CharacterBase>();
-                if (target == null || target == owner || !seen.Add(target))
+                if (target == null || target == owner ||
+                    (owner != null && owner.DamageTeamId >= 0 && target.DamageTeamId == owner.DamageTeamId) ||
+                    !seen.Add(target))
                     continue;
 
                 result.Add(target);
@@ -174,7 +176,7 @@ namespace ProjectMS.CharacterSystem
             foreach (Collider2D hit in colliders)
             {
                 IDamageable target = ResolveDamageable(hit);
-                if (target == null || target == owner || !seen.Add(target))
+                if (target == null || object.ReferenceEquals(target, owner) || !seen.Add(target))
                     continue;
                 result.Add(target);
             }

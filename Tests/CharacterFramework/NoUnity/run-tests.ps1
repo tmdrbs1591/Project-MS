@@ -22,7 +22,6 @@ $sourcePaths = @(
     (Join-Path $frameworkRoot 'Runtime\Modules\CharacterCooldownHandler.cs'),
     (Join-Path $frameworkRoot 'Runtime\Modules\CharacterStatusHandler.cs'),
     (Join-Path $frameworkRoot 'Runtime\OwnedEntities\OwnedEntityDurabilityRules.cs'),
-    (Join-Path $frameworkRoot 'Runtime\OwnedEntities\CharacterThrowableFuseRules.cs'),
     $movementHandlerPath,
     (Join-Path $PSScriptRoot 'CharacterCommonModuleTests.cs')
 )
