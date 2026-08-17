@@ -4,6 +4,20 @@ using System.Reflection;
 using System.Reflection.Emit;
 using ProjectMS.CharacterSystem;
 
+#if FEATURE_MISSING_THROWABLE
+namespace ProjectMS.CharacterSystem
+{
+    public enum CharacterThrowableFuseStartMode { OnSpawn, OnGroundContact, Manual }
+    public enum CharacterThrowableFuseTrigger { Spawn, GroundContact, Manual }
+    public static class CharacterThrowableFuseRules
+    {
+        public static bool CanStart(
+            CharacterThrowableFuseStartMode mode,
+            CharacterThrowableFuseTrigger trigger) { return false; }
+    }
+}
+#endif
+
 namespace UnityEngine
 {
     public struct Vector2
@@ -531,6 +545,28 @@ internal static class CharacterCommonModuleTests
             "no completed condition returns no destruction");
     }
 
+    private static void TestCharacterThrowableFuseRules()
+    {
+        Equal(true, CharacterThrowableFuseRules.CanStart(
+                CharacterThrowableFuseStartMode.OnSpawn, CharacterThrowableFuseTrigger.Spawn),
+            "spawn fuse starts only from spawn trigger");
+        Equal(false, CharacterThrowableFuseRules.CanStart(
+                CharacterThrowableFuseStartMode.OnSpawn, CharacterThrowableFuseTrigger.GroundContact),
+            "spawn fuse ignores ground trigger");
+        Equal(true, CharacterThrowableFuseRules.CanStart(
+                CharacterThrowableFuseStartMode.OnGroundContact, CharacterThrowableFuseTrigger.GroundContact),
+            "ground fuse starts from ground contact");
+        Equal(false, CharacterThrowableFuseRules.CanStart(
+                CharacterThrowableFuseStartMode.OnGroundContact, CharacterThrowableFuseTrigger.Spawn),
+            "ground fuse does not start in flight");
+        Equal(true, CharacterThrowableFuseRules.CanStart(
+                CharacterThrowableFuseStartMode.Manual, CharacterThrowableFuseTrigger.Manual),
+            "manual fuse starts from explicit command");
+        Equal(false, CharacterThrowableFuseRules.CanStart(
+                CharacterThrowableFuseStartMode.Manual, CharacterThrowableFuseTrigger.GroundContact),
+            "manual fuse ignores ground contact");
+    }
+
     private static object CreateStatusStore(Type storeType)
     {
         AssemblyName name = new AssemblyName("CharacterStatusStoreTestAssembly" + Guid.NewGuid().ToString("N"));
@@ -719,6 +755,7 @@ internal static class CharacterCommonModuleTests
         TestTimers();
         TestDamagePipeline();
         TestOwnedEntityDurabilityRules();
+        TestCharacterThrowableFuseRules();
         return failures;
     }
 }

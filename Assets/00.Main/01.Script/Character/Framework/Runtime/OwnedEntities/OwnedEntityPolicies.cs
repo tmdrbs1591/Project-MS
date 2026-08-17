@@ -40,7 +40,8 @@ namespace ProjectMS.CharacterSystem
         OwnerDespawned = 5,
         OwnerDisconnected = 6,
         SkillTriggered = 7,
-        Manual = 8
+        Manual = 8,
+        FuseExpired = 9
     }
 
     public enum OwnedEntitySpawnFailureReason

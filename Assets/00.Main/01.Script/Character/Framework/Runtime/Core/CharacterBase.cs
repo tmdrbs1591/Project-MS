@@ -101,7 +101,7 @@ namespace ProjectMS.CharacterSystem
 
         protected Rigidbody2D Rigidbody => rigidbody2D;
         protected CharacterMovementHandler Movement => movement;
-        protected Vector2 AimDirection => DirectionFromAngle(NetAimAngle);
+        public Vector2 AimDirection => DirectionFromAngle(NetAimAngle);
         protected float AimAngle => NetAimAngle;
         protected Vector2 AimWorldPosition => lastInput.AimWorldPosition;
         protected Transform AttackOrigin => sockets.ResolveAttackOrigin(transform);
@@ -709,6 +709,30 @@ namespace ProjectMS.CharacterSystem
             }
 
             return OwnedEntitySpawnResult<T>.Succeeded(spawnedEntity);
+        }
+
+        protected OwnedEntitySpawnResult<T> SpawnThrowable<T>(
+            T prefab,
+            in OwnedEntitySpawnRequest request)
+            where T : CharacterThrowable
+        {
+            Rigidbody2D body = prefab != null ? prefab.GetComponent<Rigidbody2D>() : null;
+            Collider2D collider = prefab != null ? prefab.GetComponent<Collider2D>() : null;
+            if (prefab == null || body == null || body.bodyType != RigidbodyType2D.Dynamic ||
+                collider == null || collider.isTrigger ||
+                prefab.GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>() == null)
+            {
+                return OwnedEntitySpawnResult<T>.Failed(OwnedEntitySpawnFailureReason.InvalidPrefab);
+            }
+
+            return SpawnOwnedEntity(prefab, request);
+        }
+
+        protected bool StartThrowableFuse(CharacterThrowable throwable)
+        {
+            return throwable != null && ownedEntityRegistry != null &&
+                   ownedEntityRegistry.Contains(throwable) &&
+                   throwable.TryStartFuse(CharacterThrowableFuseTrigger.Manual);
         }
 
         protected bool DestroyOwnedEntity(

@@ -24,13 +24,55 @@ Photon Fusion 2 Shared Mode용 공통 캐릭터 프레임워크입니다.
 - 행동 설정: `SetActionEnabled`, `IsActionEnabled`, `SetActionCharges`, `AddActionCharges`, `GetActionCharges`, `SetCooldownDuration`, `ResetCooldownDuration`, `SetAutoCooldown`, `StartCooldown`, `ClearCooldown`, `GetCooldownRemaining`
 - 이동과 슬로우: `SetMovementEnabled`, `IsMovementEnabled`, `ApplySlow`, `SlowRatio`, `IsSlowed`
 - 시간과 방향: `ScheduleTimer`, `CancelTimer`, `FacingDirection`, `IsFacingRight`, `IsFacingLeft`, `IsBehindTarget`
-- 공격과 투사체: `SpawnProjectile`, `DespawnProjectile`, `ModifyOutgoingDamage`, `OnDamageDealt`, `OnProjectileDespawned`
+- 공격과 투사체: `SpawnProjectile`, `SpawnThrowable`, `StartThrowableFuse`, `DespawnProjectile`, `ModifyOutgoingDamage`, `OnDamageDealt`, `OnProjectileDespawned`
 - 캐릭터 소유 오브젝트: `SpawnOwnedEntity`, `DestroyOwnedEntity`, `GetOwnedEntities`, `DestroyOwnedEntities`
 - 캐릭터와 소유 오브젝트 통합 공격 조회: `FindDamageablesInCircle`, `FindDamageablesInBox`, `FindDamageablesInLine`, `FindDamageablesInArc`
 
 `StartCooldown(action)`은 수치 파일 또는 `SetCooldownDuration`으로 정한 시간을 사용합니다. `StartCooldown(action, seconds)`은 그 한 번만 직접 지정한 시간으로 시작합니다.
 
 투사체는 캐릭터 코드에서 `CharacterBase.SpawnProjectile`만 호출합니다. `CharacterProjectile.Initialize`을 직접 호출하지 않습니다. 예전 5개 인자 초기화 함수는 발사자 정보를 보장하지 못하므로 일부러 컴파일 오류가 나게 막아 두었습니다.
+
+다른 캐릭터의 현재 조준 방향은 공개 읽기 전용 `CharacterBase.AimDirection`으로 확인합니다. 이 값은 동기화된 `NetAimAngle`에서 계산되므로 상대 캐릭터의 백어택 판정에도 사용할 수 있습니다. 상대 입력이나 네트워크 필드를 직접 읽지 않습니다.
+
+### 물리형 투척체
+
+직선 총알은 `CharacterProjectile`, 수류탄·섬광탄·연막탄처럼 중력과 충돌이 필요한 오브젝트는 `CharacterThrowable`을 사용합니다. 투척체도 캐릭터 소유 오브젝트이므로 캐릭터 코드에서 `Runner.Spawn`을 직접 호출하지 않고 `SpawnThrowable`을 사용합니다.
+
+```csharp
+private static readonly OwnedEntityGroupId FlashGroup = new OwnedEntityGroupId(2101);
+
+OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
+    ProjectileOrigin.position,
+    Quaternion.identity,
+    FlashGroup,
+    maxCount: 1,
+    overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
+    initialVelocity: context.AimDirection * throwSpeed);
+
+OwnedEntitySpawnResult<MyFlashThrowable> result =
+    SpawnThrowable(flashPrefab, request);
+```
+
+초기 속도는 State Authority의 `Rigidbody2D.linearVelocity`에 한 번 적용됩니다. 이후 포물선, 낙하, 바운스와 구름은 Rigidbody2D 중력·Collider2D·Physics Material이 처리하고 Fusion의 `NetworkRigidbody2D`가 위치와 회전을 동기화합니다. 바닥에 닿았다는 이유만으로 디스폰되지 않습니다.
+
+`CharacterThrowable` Inspector에서 퓨즈를 설정합니다.
+
+- `Fuse Seconds`: 퓨즈 시작 후 동작까지의 시간. 0이면 다음 네트워크 틱에 즉시 만료
+- `OnSpawn`: 던진 순간부터 퓨즈 시작
+- `OnGroundContact`: `Ground Layer`에 처음 접촉한 순간부터 퓨즈 시작
+- `Manual`: 소유 캐릭터가 `StartThrowableFuse(throwable)`을 호출할 때 시작
+
+퓨즈가 만료되면 State Authority에서 `OnFuseExpiredAuthority`가 한 번 호출되고 `FuseExpired` 사유로 공통 제거됩니다. 섬광, 폭발, 연막 같은 캐릭터별 효과는 `CharacterThrowable` 파생 클래스에서 이 훅만 재정의합니다. BASE는 특정 효과나 피해량을 알지 않습니다.
+
+투척체 프리팹에는 다음 컴포넌트가 필요합니다.
+
+- `NetworkObject`
+- `CharacterThrowable` 파생 컴포넌트
+- Dynamic `Rigidbody2D`
+- Trigger가 아닌 `Collider2D`
+- Fusion Physics Addon의 `NetworkRigidbody2D`
+
+총 비행시간 제한도 필요하면 `CharacterOwnedEntity`의 생존 방식을 `Duration` 또는 `HealthOrDuration`으로 설정할 수 있습니다. 이 제한시간과 투척체 퓨즈는 독립적이며 먼저 만료된 조건이 제거를 결정합니다.
 
 `OnDamageDealt`는 직접 공격과 발사자 `CharacterBase`를 찾을 수 있는 투사체 공격 모두에서 호출됩니다. `OnProjectileDespawned`의 `reason`은 `HitCharacter`, `HitOwnedEntity`, `HitWall`, `LifetimeExpired`, `Manual` 중 하나입니다.
 
@@ -97,7 +139,7 @@ DestroyOwnedEntities(NodeGroup, OwnedEntityDestroyReason.Manual);
 
 같은 네트워크 틱에 HP 소진과 시간 만료가 함께 확인되면 `HealthDepleted`가 우선합니다. 시간은 클라이언트의 `Time.time`이 아니라 Fusion의 `TickTimer`로 판정합니다.
 
-파괴 사유는 `HealthDepleted`, `LifetimeExpired`, `LimitExceeded`, `OwnerDied`, `OwnerDespawned`, `OwnerDisconnected`, `SkillTriggered`, `Manual`로 구분됩니다. 캐릭터별 후속 효과는 직접 디스폰하지 말고 파괴 사유를 기준으로 처리합니다.
+파괴 사유는 `HealthDepleted`, `LifetimeExpired`, `FuseExpired`, `LimitExceeded`, `OwnerDied`, `OwnerDespawned`, `OwnerDisconnected`, `SkillTriggered`, `Manual`로 구분됩니다. 캐릭터별 후속 효과는 직접 디스폰하지 말고 파괴 사유를 기준으로 처리합니다.
 
 ### 피해 처리
 
@@ -159,6 +201,7 @@ foreach (IDamageable target in FindDamageablesInCircle(
 새 기능은 `CharacterOwnedEntity`에 모두 추가하지 말고, 필요한 능력을 작은 컴포넌트나 인터페이스로 조합합니다.
 
 - 지뢰: `CharacterDeployable`을 상속하고 트리거 감지만 추가합니다. 소유권, HP, 시간, 파괴는 그대로 재사용합니다.
+- 수류탄·섬광탄·연막탄: `CharacterThrowable`을 상속하고 `OnFuseExpiredAuthority`에 효과만 추가합니다. 투척, 물리, 퓨즈, 소유권은 그대로 재사용합니다.
 - 장판: `Duration`을 사용하고 HP를 사용하지 않습니다. 주기 효과는 별도 컴포넌트로 둡니다.
 - 포탑: `CharacterDeployable`에 타게팅과 공격 컴포넌트를 조합합니다. 타게팅 코드를 BASE에 넣지 않습니다.
 - 펫·분신·AI 소환수: `CharacterSummon`에서 시작하고 이동, 타게팅, 공격을 각각 독립 모듈로 추가합니다.

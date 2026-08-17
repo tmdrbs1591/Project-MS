@@ -35,6 +35,8 @@ COMMON_SOURCE_FILES = (
     "Runtime/OwnedEntities/CharacterOwnedEntity.cs",
     "Runtime/OwnedEntities/CharacterDeployable.cs",
     "Runtime/OwnedEntities/CharacterSummon.cs",
+    "Runtime/OwnedEntities/CharacterThrowable.cs",
+    "Runtime/OwnedEntities/CharacterThrowableFuseRules.cs",
     "Runtime/OwnedEntities/CharacterOwnedEntityRegistry.cs",
     "Runtime/OwnedEntities/OwnedEntityPolicies.cs",
     "Runtime/OwnedEntities/OwnedEntityGroupId.cs",
@@ -51,10 +53,11 @@ DOCUMENTED_FACADE_NAMES = (
     "GetActionCharges", "SetCooldownDuration", "ResetCooldownDuration",
     "SetAutoCooldown", "StartCooldown", "ClearCooldown", "GetCooldownRemaining",
     "SetMovementEnabled", "IsMovementEnabled", "ApplySlow", "SlowRatio", "IsSlowed",
-    "ScheduleTimer", "CancelTimer", "FacingDirection", "IsFacingRight",
+    "ScheduleTimer", "CancelTimer", "FacingDirection", "AimDirection", "IsFacingRight",
     "IsFacingLeft", "IsBehindTarget", "ModifyOutgoingDamage",
     "OnDamageDealt", "OnProjectileDespawned", "DespawnProjectile", "SpawnProjectile",
     "SpawnOwnedEntity", "DestroyOwnedEntity", "GetOwnedEntities", "DestroyOwnedEntities",
+    "SpawnThrowable", "StartThrowableFuse",
     "FindDamageablesInCircle", "FindDamageablesInBox", "FindDamageablesInLine", "FindDamageablesInArc",
 )
 
@@ -67,6 +70,7 @@ def require_owned_entity_base_contract() -> None:
     registry_source = (owned_root / "CharacterOwnedEntityRegistry.cs").read_text(encoding="utf-8")
     policies_source = (owned_root / "OwnedEntityPolicies.cs").read_text(encoding="utf-8")
     damageable_source = (ROOT / "Runtime" / "Combat" / "IDamageable.cs").read_text(encoding="utf-8")
+    throwable_source = (owned_root / "CharacterThrowable.cs").read_text(encoding="utf-8")
 
     require(r"abstract\s+class\s+CharacterOwnedEntity\s*:\s*NetworkBehaviour\s*,\s*IDamageable\s*,\s*IStateAuthorityChanged",
             "owned entity is the shared network damageable base", owned_source)
@@ -77,6 +81,30 @@ def require_owned_entity_base_contract() -> None:
     require(r"sealed\s+class\s+CharacterOwnedEntityRegistry",
             "per-character owned entity registry", registry_source)
     require(r"interface\s+IDamageable", "shared damage target interface", damageable_source)
+    require(r"class\s+CharacterThrowable\s*:\s*CharacterOwnedEntity",
+            "physical throwable extension boundary", throwable_source)
+    for token in (
+        "Rigidbody2D", "Collider2D", "Fusion.Addons.Physics.NetworkRigidbody2D", "fuseSeconds", "groundLayer",
+        "CharacterThrowableFuseStartMode", "TickTimer", "OnCollisionEnter2D",
+        "OnThrowableSpawnedAuthority", "OnFuseStartedAuthority", "OnFuseExpiredAuthority", "FuseExpired",
+    ):
+        if token not in throwable_source:
+            raise AssertionError(f"character throwable contract missing: {token}")
+    require(r"protected\s+sealed\s+override\s+void\s+OnOwnedEntitySpawnedAuthority",
+            "throwable fuse initialization cannot be bypassed by subclasses", throwable_source)
+
+    spawn_throwable_body = extract_method_body(SOURCE, "protected OwnedEntitySpawnResult<T> SpawnThrowable")
+    if "SpawnOwnedEntity" not in spawn_throwable_body or "Runner.Spawn" in spawn_throwable_body:
+        raise AssertionError("throwable spawn does not route through the owned entity facade")
+    if "GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>()" not in spawn_throwable_body:
+        raise AssertionError("throwable spawn accepts a prefab without network physics synchronization")
+    if "body.bodyType != RigidbodyType2D.Dynamic" not in spawn_throwable_body:
+        raise AssertionError("throwable spawn accepts a non-dynamic rigidbody")
+    if "collider.isTrigger" not in spawn_throwable_body:
+        raise AssertionError("throwable spawn accepts a trigger collider that cannot report ground collision")
+    start_fuse_body = extract_method_body(SOURCE, "protected bool StartThrowableFuse(")
+    if "ownedEntityRegistry.Contains" not in start_fuse_body or "TryStartFuse" not in start_fuse_body:
+        raise AssertionError("manual throwable fuse start bypasses owner validation")
 
     for token in (
         "HealthDepleted", "LifetimeExpired", "LimitExceeded", "OwnerDied",
@@ -880,6 +908,7 @@ def main() -> int:
             r"protected\s+CharacterTimerHandle\s+ScheduleTimer\s*\(\s*float\s+seconds\s*,\s*Action\s+callback\s*\)",
             r"protected\s+bool\s+CancelTimer\s*\(\s*CharacterTimerHandle\s+handle\s*\)",
             r"public\s+int\s+FacingDirection\s*=>", r"public\s+bool\s+IsFacingRight\s*=>", r"public\s+bool\s+IsFacingLeft\s*=>",
+            r"public\s+Vector2\s+AimDirection\s*=>\s*DirectionFromAngle\(NetAimAngle\)\s*;",
             r"protected\s+bool\s+IsBehindTarget\s*\(\s*CharacterBase\s+target\s*,\s*float\s+rearArcAngle\s*\)",
             r"protected\s+virtual\s+float\s+ModifyOutgoingDamage\s*\(",
             r"protected\s+virtual\s+void\s+OnProjectileDespawned\s*\(",
