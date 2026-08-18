@@ -40,6 +40,13 @@ public class LobbyCharacterController : MonoBehaviour
         // 매치 이후 로비로 돌아올 때는 적용되지 않는다 — 로비 씬이 로드될 때마다(=이
         // 컨트롤러가 새로 생성될 때마다) 여기서도 매번 강제로 복원한다.
         Physics2D.simulationMode = SimulationMode2D.FixedUpdate;
+
+        // lobbyLocked도 같은 이유로 매번 풀어줘야 한다 — MatchmakingManager.StartMatching()이
+        // 매칭 시작 시 SetLocked(true)로 잠그는데, 정상적으로 매치가 끝나 ReturnToLobby()로
+        // 돌아오는 경로는 CancelMatching()을 안 거치므로 아무도 다시 풀어주지 않는다. static이라
+        // 씬을 새로 로드해도 값이 안 지워져서, 안 풀면 두 번째 매치부터 로비 캐릭터가 아예
+        // 움직이지 못한다(포탈까지 걸어갈 수도 없어 재매칭 자체가 막힌 것처럼 보임).
+        lobbyLocked = false;
     }
 
     private void Update()

@@ -127,11 +127,12 @@ public class AugmentSelectUI : MonoBehaviour
         AugmentChoiceSlot slot = slots[slotIndex];
         bool isReroll = !resetReroll;
 
-        // 이번 픽에 한 번이라도 나왔던 증강과, 이미 보유한 증강은 항상 제외한다.
+        // 이번 픽에 한 번이라도 나왔던 증강과, 이미 Max_Stack까지 다 채운 증강은 제외한다
+        // (중첩형은 최대치 전까지 다시 나올 수 있다).
         List<AugmentPoolEntry> notShown = pool.FindAll(entry =>
             entry.Data != null &&
             !shownTypesThisPick.Contains(entry.Data.type) &&
-            (local == null || !local.HasAugment(entry.Data.type)));
+            (local == null || local.GetAugmentStack(entry.Data.type) < Mathf.Max(1, entry.Data.maxStack)));
 
         List<AugmentPoolEntry> candidates;
 

@@ -79,7 +79,7 @@ namespace ProjectMS.CharacterSystem
         public CharacterDefinition Definition => definition;
         public CharacterVisualController Visual => visual;
         public float CurrentHealth => NetHealth;
-        public float MaxHealth => definition != null ? definition.MaxHealth : 0f;
+        public float MaxHealth => definition != null ? definition.MaxHealth * MaxHealthMultiplier : 0f;
         public float CurrentHealthPercent => health != null ? health.Normalized : 0f;
         public bool IsDead => NetDead;
         public bool IsLocalPlayer => Object != null && Object.HasInputAuthority;
@@ -213,6 +213,7 @@ namespace ProjectMS.CharacterSystem
             status.Tick();
             movement.SetMovementEnabled(NetMovementEnabled);
             movement.SetMovementSpeedMultiplier(status.MovementSpeedMultiplier);
+            movement.SetBaseSpeedMultiplier(MoveSpeedMultiplier);
 
             bool gameplayLocked = NetDead || NetGameplayLocked || IsProjectGameplayLocked ||
                                   IsProjectInputLocked || IsHitstunned;
@@ -329,6 +330,9 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             float previousHealth = health.Current;
+            // 라운드 사이 체력 증강(방탄복/유리 대포)이 새로 생겼을 수 있으니 라운드 시작마다 최대
+            // 체력을 다시 계산해서 반영한 뒤 채운다.
+            health.SetMaxHealth(MaxHealth);
             health.FullHeal();
             if (!Mathf.Approximately(previousHealth, health.Current))
                 OnHealthChanged(previousHealth, health.Current);
@@ -442,6 +446,19 @@ namespace ProjectMS.CharacterSystem
             DealDamageToDamageable(target, amount, source);
         }
 
+        /// <summary>투사체가 벽/바닥에서 폭발할 때(예: 폭발 마법 증강) 호출된다. 반경 안의
+        /// IDamageable 전부에게 데미지를 준다 — 어떤 캐릭터의 투사체든 공용으로 쓸 수 있게
+        /// 프레임워크 레벨에 둔다. 공격력 증강 배율은 DealDamage 경로에서 다시 적용되므로
+        /// 여기 넘기는 damage는 "이미 계산된 폭발 피해량"이어야 한다(중복 곱산 주의).</summary>
+        internal void DetonateProjectileExplosion(Vector2 position, float damage, float radius, LayerMask targetLayer)
+        {
+            if (!HasStateAuthority || damage <= 0f || Runner == null || Runner.IsResimulation)
+                return;
+
+            foreach (IDamageable target in FindDamageablesInCircle(position, radius, targetLayer))
+                DealDamage(target, damage, CharacterDamageSource.Projectile);
+        }
+
         internal void NotifyProjectileDespawned(
             CharacterProjectile projectile,
             ProjectileDespawnReason reason,
@@ -465,8 +482,13 @@ namespace ProjectMS.CharacterSystem
             PlayerRef attacker,
             CharacterDamageSource source)
         {
+            // 공격력 증강(대형 탄약집/유리 대포/버서커)을 캐릭터별 ModifyOutgoingDamage보다 먼저
+            // 적용한다 — 이게 여러 호출부(DealDamage/DealProjectileDamage/DealDamageToDamageable)의
+            // 유일한 합류점이라 여기 한 곳에서만 곱한다.
+            float augmentedAmount = amount * AttackMultiplier;
+
             DamageRequest request = new DamageRequest(
-                amount,
+                augmentedAmount,
                 attacker,
                 Object != null ? Object.Id : default,
                 DamageTeamId,
@@ -478,7 +500,7 @@ namespace ProjectMS.CharacterSystem
                 (damage, damageSource) => ModifyOutgoingDamage(target, damage, damageSource),
                 damage => target.RequestDamage(request.WithAmount(damage)),
                 null);
-            pipeline.Apply(amount, source);
+            pipeline.Apply(augmentedAmount, source);
         }
 
         private void DealDamageToDamageable(
@@ -495,12 +517,16 @@ namespace ProjectMS.CharacterSystem
             {
                 if (characterTarget == this)
                     return;
+                // 배율은 DealDamageThroughPipeline 안에서 한 번만 적용된다 — 원본 amount를 그대로 넘긴다.
                 DealDamageThroughPipeline(characterTarget, amount, DamageOwner, source);
                 return;
             }
 
+            // 캐릭터가 아닌 IDamageable(설치물 등)은 이 경로가 유일한 합류점이라 여기서 적용한다.
+            float augmentedAmount = amount * AttackMultiplier;
+
             DamageRequest request = new DamageRequest(
-                amount,
+                augmentedAmount,
                 DamageOwner,
                 Object.Id,
                 DamageTeamId,
@@ -508,7 +534,7 @@ namespace ProjectMS.CharacterSystem
             if (!target.CanReceiveDamage(request))
                 return;
 
-            float finalDamage = ModifyOutgoingDamage(target, amount, source);
+            float finalDamage = ModifyOutgoingDamage(target, augmentedAmount, source);
             request = request.WithAmount(finalDamage);
             if (!target.CanReceiveDamage(request))
                 return;
@@ -613,7 +639,7 @@ namespace ProjectMS.CharacterSystem
             if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f)
                 return;
 
-            float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageDealt;
+            float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageDealt * UltimateGaugeRateMultiplier;
             NetUltimateGauge = Mathf.Clamp(next, 0f, definition.UltimateGaugeMax);
         }
 
@@ -1090,6 +1116,9 @@ namespace ProjectMS.CharacterSystem
             actionState.ConsumeCharge(action);
             if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode)
                 NetUltimateGauge = 0f;
+            else if (action == CharacterActionType.Dash && actionState.ShouldStartCooldownAutomatically(action))
+                // 추진력 강화 증강(DashCooldownMultiplier)만 적용받는 유일한 액션이라 여기서 따로 계산한다.
+                actionState.StartCooldown(action, actionState.GetCooldownDuration(action) * DashCooldownMultiplier);
             else if (actionState.ShouldStartCooldownAutomatically(action))
                 actionState.StartCooldown(action);
             NetAction = action;
@@ -1131,6 +1160,7 @@ namespace ProjectMS.CharacterSystem
             CharacterDamageInfo info = new CharacterDamageInfo(request, applied);
             OnDamaged(info);
             OnHealthChanged(before, health.Current);
+            ApplyAugmentReflect(applied);
 
             if (health.IsDead && !NetDead)
             {

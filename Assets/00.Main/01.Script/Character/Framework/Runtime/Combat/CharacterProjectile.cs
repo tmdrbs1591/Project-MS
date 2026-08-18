@@ -34,6 +34,11 @@ namespace ProjectMS.CharacterSystem
         [Tooltip("이펙트를 표면 노말 방향으로 살짝 밀어 벽 안쪽에 묻히는 것을 방지한다.")]
         [Min(0f)] [SerializeField] private float hitVfxSurfaceOffset = 0.02f;
 
+        [Header("Augment - 바운스/폭발")]
+        [Tooltip("바운스 마법/폭발 마법 증강 적용 시 쓰는 폭발 반경/이펙트. 두 증강 다 안 쓰면 무시된다.")]
+        [Min(0f)] [SerializeField] private float explodeRadius = 2f;
+        [SerializeField] private GameObject explodeVfxPrefab;
+
         [Networked] private Vector2 NetDirection { get; set; }
         [Networked] private float NetSpeed { get; set; }
         [Networked] private float NetDamage { get; set; }
@@ -44,6 +49,9 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetSkillId { get; set; }
         [Networked] private TickTimer LifeTimer { get; set; }
         [Networked] private TickTimer DespawnTimer { get; set; }
+        [Networked] private int NetBounceCount { get; set; }
+        [Networked] private NetworkBool NetExplodeOnWall { get; set; }
+        [Networked] private float NetExplodeDamageMultiplier { get; set; }
 
         /// <summary>이 투사체를 쏜 플레이어. 다른 투사체/오브젝트가 "내가 쏜 게 맞는지" 확인할 때 쓴다
         /// (예: 거너 수류탄의 "본인 총알에 맞으면 조기 폭발" 판정).</summary>
@@ -80,6 +88,16 @@ namespace ProjectMS.CharacterSystem
             NetSourceObjectId = sourceObjectId;
             NetOwnerTeamId = ownerTeamId;
             NetSkillId = skillId;
+        }
+
+        /// <summary>바운스 마법/폭발 마법 증강을 적용한다. SpawnProjectile이 반환한 인스턴스에
+        /// 대고 스폰 직후(같은 프레임, 아직 FixedUpdateNetwork가 안 돈 시점) 호출한다.
+        /// 두 효과는 동시에 켤 수 없다 — 폭발이 우선(켜져 있으면 바운스 횟수는 무시된다).</summary>
+        public void ConfigureAugmentBehavior(int bounceCount, bool explodeOnWall, float explodeDamageMultiplier)
+        {
+            NetBounceCount = Mathf.Max(0, bounceCount);
+            NetExplodeOnWall = explodeOnWall;
+            NetExplodeDamageMultiplier = Mathf.Max(0f, explodeDamageMultiplier);
         }
 
         [Obsolete("Use CharacterBase.SpawnProjectile or Initialize with a source NetworkId; legacy initialization cannot preserve damage callbacks.", true)]
@@ -135,6 +153,12 @@ namespace ProjectMS.CharacterSystem
                 bool piercesHit = hitTarget && pierceCharacters && target is CharacterBase;
                 if (!piercesHit)
                 {
+                    if (!hitTarget && TryHandleWallHit(hit.point, hit.normal))
+                    {
+                        // 바운스: 이번 틱은 여기서 이동을 멈추고, 다음 틱부터 반사된 방향으로 날아간다.
+                        return;
+                    }
+
                     Complete(
                         hitTarget ? ResolveHitReason(target) : ProjectileDespawnReason.HitWall,
                         hit.point,
@@ -201,8 +225,49 @@ namespace ProjectMS.CharacterSystem
             {
                 Vector2 hitPosition = other.ClosestPoint(transform.position);
                 Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
+                if (TryHandleWallHit(hitPosition, hitNormal))
+                    return;
                 Complete(ProjectileDespawnReason.HitWall, hitPosition, hitNormal, null, true);
             }
+        }
+
+        /// <summary>벽에 맞았을 때 증강(바운스 마법/폭발 마법)을 처리한다. true를 반환하면 이번엔
+        /// 소멸하지 않고 계속 날아간다(바운스). 폭발은 항상 그대로 소멸한다(false 반환).</summary>
+        private bool TryHandleWallHit(Vector2 hitPoint, Vector2 hitNormal)
+        {
+            if (NetExplodeOnWall)
+            {
+                ExplodeAtPoint(hitPoint);
+                return false;
+            }
+
+            if (NetBounceCount > 0)
+            {
+                NetBounceCount--;
+                Vector2 normal = hitNormal.sqrMagnitude > 0.001f ? hitNormal.normalized : -NetDirection;
+                NetDirection = Vector2.Reflect(NetDirection, normal).normalized;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void ExplodeAtPoint(Vector2 position)
+        {
+            CharacterBase source = ResolveSource();
+            source?.DetonateProjectileExplosion(position, NetDamage * NetExplodeDamageMultiplier, explodeRadius, NetTargetLayerMask);
+
+            if (explodeVfxPrefab != null)
+                Rpc_PlayExplodeVfx(position);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayExplodeVfx(Vector2 position)
+        {
+            if (explodeVfxPrefab == null)
+                return;
+
+            Destroy(Instantiate(explodeVfxPrefab, position, Quaternion.identity), 2f);
         }
 
         private int CastAlongDelta(Vector2 delta)

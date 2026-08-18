@@ -60,29 +60,44 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isFirstBasicAttack = true;
         private bool lastRenderedEmpowered;
 
+        /// <summary>기본기 발사각 사이 간격(갈래 마법 증강으로 추가 투사체가 나갈 때 씀).</summary>
+        private const float ForkAngleStep = 12f;
+
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
             if (bulletProjectilePrefab == null)
                 return false;
 
+            // 과충전 탄창/고속 재장전 증강을 반영한 실제 탄창 크기/재장전 시간.
+            int effectiveMagazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
 
             if (isFirstBasicAttack)
             {
-                SetActionCharges(CharacterActionType.BasicAttack, magazineSize);
+                SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize);
                 isFirstBasicAttack = false;
             }
 
             bool empowered = NetEmpowered;
             float damage = empowered ? context.Damage * empoweredDamageMultiplier : context.Damage;
 
-            SpawnProjectile(
-                bulletProjectilePrefab,
-                ProjectileOrigin.position,
-                context.AimDirection,
-                bulletProjectileSpeed,
-                damage,
-                targetLayer);
+            Vector2 aimDirection = context.AimDirection.sqrMagnitude > 0.0001f
+                ? context.AimDirection.normalized
+                : new Vector2(FacingDirection, 0f);
+
+            FireBullet(aimDirection, damage);
+
+            // 갈래 마법: 스택 수만큼 추가 투사체를 좌우로 살짝 벌려서 쏜다(감소된 피해).
+            int forkCount = ForkedProjectileCount;
+            if (forkCount > 0)
+            {
+                float forkDamage = damage * ForkedProjectileDamageMultiplier;
+                for (int i = 0; i < forkCount; i++)
+                {
+                    float angleOffset = ForkAngleStep * (i / 2 + 1) * (i % 2 == 0 ? 1f : -1f);
+                    FireBullet(Rotate(aimDirection, angleOffset), forkDamage);
+                }
+            }
 
             if (empowered)
                 NetEmpowered = false;
@@ -91,8 +106,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
             if (shouldReload)
             {
-                SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration);
-                SetActionCharges(CharacterActionType.BasicAttack, magazineSize + 1);
+                SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration * ReloadSpeedMultiplier);
+                SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize + 1);
             }
             else
             {
@@ -100,6 +115,34 @@ namespace ProjectMS.CharacterSystem.Examples
             }
 
             return true;
+        }
+
+        /// <summary>총알 한 발을 쏘고, 바운스 마법/폭발 마법 증강을 그 총알에 설정한다.
+        /// 두 증강 다 있으면 폭발이 우선한다(CharacterProjectile.ConfigureAugmentBehavior 참고).</summary>
+        private void FireBullet(Vector2 direction, float damage)
+        {
+            CharacterProjectile projectile = SpawnProjectile(
+                bulletProjectilePrefab,
+                ProjectileOrigin.position,
+                direction,
+                bulletProjectileSpeed,
+                damage,
+                targetLayer);
+
+            if (projectile == null)
+                return;
+
+            bool explosive = HasExplosiveProjectile;
+            int bounces = explosive ? 0 : ProjectileBounceCount;
+            projectile.ConfigureAugmentBehavior(bounces, explosive, ExplosiveProjectileDamageMultiplier);
+        }
+
+        private static Vector2 Rotate(Vector2 v, float degrees)
+        {
+            float rad = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(rad);
+            float sin = Mathf.Sin(rad);
+            return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
         }
 
         /// <summary>즉발 판정. 투사체가 날아가는 게 아니라, 캐스팅 순간 정면 사각형 범위 안의

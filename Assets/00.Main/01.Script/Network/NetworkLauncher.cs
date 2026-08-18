@@ -136,11 +136,23 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         isMatching = false;
         playerSpawnedInGameScene = false;
 
-        if (runner != null && !runner.IsShutdown)
-            await runner.Shutdown();
+        try
+        {
+            if (runner != null && !runner.IsShutdown)
+                await runner.Shutdown();
 
-        SceneManager.LoadScene(lobbySceneName);
-        isReturningToLobby = false;
+            SceneManager.LoadScene(lobbySceneName);
+        }
+        catch (Exception ex)
+        {
+            // 여기서 예외로 빠지면 isReturningToLobby 가 영원히 true 로 남아 이후 모든
+            // ReturnToLobby() 호출이 조용히 무시된다 — finally 로 반드시 풀어준다.
+            Debug.LogError($"[NetworkLauncher] 로비 복귀 중 예외 발생: {ex}");
+        }
+        finally
+        {
+            isReturningToLobby = false;
+        }
     }
 
     // ---------------- 매칭(세션) 처리 ----------------
@@ -164,35 +176,49 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // 종료됐던 러너는 재사용할 수 없으므로, 매 시도마다 확인해서 필요하면 새로 만든다.
-        PrepareRunner();
-
-        string sessionName = "quickmatch-" + slotIndex;
-        StartGameResult result = await runner.StartGame(new StartGameArgs
+        // try/catch로 감싸는 이유: 여기서 예외가 나면(예: 방금 상대가 튕겨서 서버 쪽 이전
+        // 세션 정리가 아직 안 끝난 상태에서 같은 이름의 세션을 다시 잡으려다 생기는 타이밍
+        // 이슈 등) isMatching 이 true 로 영원히 갇혀버린다 — 그러면 StartMatchmaking() 이
+        // 맨 위 가드(if (isMatching) return;)에서 계속 조용히 아무것도 안 하고 끝나서,
+        // 재매칭 버튼/포탈을 눌러도 반응이 없는 것처럼 보인다.
+        try
         {
-            GameMode = GameMode.Shared,
-            SessionName = sessionName,
-            PlayerCount = playerCount,
-            SceneManager = GetOrAddSceneManager()
-        });
+            PrepareRunner();
 
-        if (!isMatching)
-            return;
+            string sessionName = "quickmatch-" + slotIndex;
+            StartGameResult result = await runner.StartGame(new StartGameArgs
+            {
+                GameMode = GameMode.Shared,
+                SessionName = sessionName,
+                PlayerCount = playerCount,
+                SceneManager = GetOrAddSceneManager()
+            });
 
-        if (result.Ok)
-        {
-            SetStatus("상대 찾는 중...");
-            return;
+            if (!isMatching)
+                return;
+
+            if (result.Ok)
+            {
+                SetStatus("상대 찾는 중...");
+                return;
+            }
+
+            // 그 슬롯이 이미 꽉 찼거나(GameIsFull) 닫혀있으면(GameClosed) 다음 슬롯을 시도한다.
+            if (result.ShutdownReason == ShutdownReason.GameIsFull || result.ShutdownReason == ShutdownReason.GameClosed)
+            {
+                await TryJoinQuickMatchSlot(slotIndex + 1);
+                return;
+            }
+
+            SetStatus($"접속 실패: {result.ShutdownReason}");
+            isMatching = false;
         }
-
-        // 그 슬롯이 이미 꽉 찼거나(GameIsFull) 닫혀있으면(GameClosed) 다음 슬롯을 시도한다.
-        if (result.ShutdownReason == ShutdownReason.GameIsFull || result.ShutdownReason == ShutdownReason.GameClosed)
+        catch (Exception ex)
         {
-            await TryJoinQuickMatchSlot(slotIndex + 1);
-            return;
+            Debug.LogError($"[NetworkLauncher] 매칭 시도 중 예외 발생(slot {slotIndex}): {ex}");
+            SetStatus("매칭 중 오류가 발생했습니다. 다시 시도해주세요.");
+            isMatching = false;
         }
-
-        SetStatus($"접속 실패: {result.ShutdownReason}");
-        isMatching = false;
     }
 
     private NetworkSceneManagerDefault GetOrAddSceneManager()
