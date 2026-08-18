@@ -176,7 +176,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override float ModifyOutgoingDamage(CharacterBase target, float damage, CharacterDamageSource source)
         {
-            bool isBackOfTarget = IsBehindTarget(target, Mathf.Min(360, carnivalBackAttackCriterionAngle));
+            bool isBackOfTarget = IsBehindTargetAimDirection(target, Mathf.Clamp(0f, carnivalBackAttackCriterionAngle, 360f));
             
             return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
         }
@@ -244,6 +244,17 @@ namespace ProjectMS.CharacterSystem.Examples
             SetActionEnabled(CharacterActionType.SkillQ, canUse);
             SetActionEnabled(CharacterActionType.SkillE, canUse);
             SetActionEnabled(CharacterActionType.Dash, canUse);
+        }
+
+        protected bool IsBehindTargetAimDirection(CharacterBase target, float rearArcAngle)
+        {
+            if (target == null)
+                return false;
+
+            Vector2 targetForward = target.AimDirection.x >= 0 ? Vector2.right : Vector2.left;
+            Vector2 targetToAttacker = ((Vector2)transform.position - (Vector2)target.transform.position).normalized;
+            float rearHalfAngle = Mathf.Clamp(rearArcAngle, 0f, 360f) * 0.5f;
+            return Vector2.Angle(-targetForward, targetToAttacker) <= rearHalfAngle;
         }
 
         private CharacterProjectile ResolveDualRevolverPrefab(CharacterProjectile fallback)
