@@ -4,13 +4,17 @@ using UnityEngine;
 
 /// <summary>
 /// 라운드가 끝나는(=누군가 죽는) 순간의 "피니시" 연출: 히트스톱 → 슬로우모션 → 정상 속도 복귀,
-/// 그리고 그 동안 카메라를 죽은 캐릭터로 줌인/포커스한다.
+/// 그리고 그 동안 카메라를 죽은 캐릭터로 줌인/포커스한다. 추가로 데스 볼륨/라운드 시작 플래시도
+/// 같이 관리한다.
 ///
 /// [트리거]
 ///   - MatchManager.Phase 가 Fighting → RoundEnd 로 바뀌는 걸 매 프레임 감지한다([Networked]라
 ///     모든 클라에서 동일하게 관찰됨). RoundEnd 에 들어온 뒤에도 죽은 캐릭터(CharacterBase.IsDead)가
 ///     아직 안 보이면(NetDead 동기화가 Phase 보다 한두 프레임 늦게 도착하는 경우) 매 프레임
 ///     다시 찾아본다 — RoundEnd 인 동안은 계속 재시도하다가 찾으면 그때 1회 재생한다.
+///   - deathVolume: 피니시 연출이 시작되는 순간(FinishRoutine 진입) 켜지고, 다음 라운드가 시작되는
+///     순간(AugmentSelect → Fighting 전환 감지) 꺼진다.
+///   - flashObject: 다음 라운드가 시작되는 순간(AugmentSelect → Fighting) 켜진다.
 ///
 /// [로컬 전용 연출]
 ///   - Time.timeScale 을 직접 건드리지만 이건 각 클라이언트의 로컬 렌더링/애니메이션에만
@@ -57,6 +61,14 @@ public class RoundFinishController : MonoBehaviour
     [SerializeField] private float koShakeMagnitude = 0.3f;
     [SerializeField] private float koShakeDuration = 0.25f;
 
+    [Header("데스 볼륨")]
+    [Tooltip("죽는(피니시) 연출이 시작되면 켜지고, 다음 라운드가 시작되면 꺼지는 오브젝트(포스트프로세스 볼륨 등).")]
+    [SerializeField] private GameObject deathVolume;
+
+    [Header("라운드 시작 플래시")]
+    [Tooltip("다음 라운드가 시작될 때(AugmentSelect → Fighting) 켜지는 플래시 오브젝트.")]
+    [SerializeField] private GameObject flashObject;
+
     private TwoPlayerCamera twoPlayerCamera;
     private MatchPhase lastObservedPhase = MatchPhase.Fighting;
     private bool playedThisRoundEnd;
@@ -78,6 +90,16 @@ public class RoundFinishController : MonoBehaviour
     {
         MatchManager match = MatchManager.Instance;
         MatchPhase phase = match != null ? match.Phase : MatchPhase.Fighting;
+
+        if (lastObservedPhase == MatchPhase.AugmentSelect && phase == MatchPhase.Fighting)
+        {
+            // 다음 라운드 시작: 데스 볼륨을 끄고 플래시를 켠다.
+            if (deathVolume != null)
+                deathVolume.SetActive(false);
+
+            if (flashObject != null)
+                flashObject.SetActive(true);
+        }
 
         if (phase != MatchPhase.RoundEnd)
         {
@@ -123,6 +145,9 @@ public class RoundFinishController : MonoBehaviour
 
     private IEnumerator FinishRoutine(Transform loserTransform)
     {
+        if (deathVolume != null)
+            deathVolume.SetActive(true);
+
         twoPlayerCamera.SetFocusOverride(loserTransform, focusZoomSize);
         SoundManager.Instance?.PlaySfx(koClip);
 
@@ -155,5 +180,9 @@ public class RoundFinishController : MonoBehaviour
         finishRoutine = null;
         Time.timeScale = 1f;
         twoPlayerCamera.ClearFocusOverride();
+
+        // 연출이 중간에 끊겨도(제한시간이 아주 짧은 경우 등) 데스 볼륨이 켜진 채로 안 남게 정리한다.
+        if (deathVolume != null)
+            deathVolume.SetActive(false);
     }
 }

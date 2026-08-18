@@ -3319,6 +3319,8 @@ MonoBehaviour:
   koClip: {fileID: 0}
   koShakeMagnitude: 0.3
   koShakeDuration: 0.25
+  deathVolume: {fileID: 915535264}
+  flashObject: {fileID: 6971120539330799929}
 --- !u!1 &559007627
 GameObject:
   m_ObjectHideFlags: 0
@@ -5452,6 +5454,55 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!1 &915535264
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 915535266}
+  - component: {fileID: 915535265}
+  m_Layer: 0
+  m_Name: Death Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &915535265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 915535264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: c9c6aefbed5e24445affc9f9cc3c808c, type: 2}
+--- !u!4 &915535266
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 915535264}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.7166235, y: -1.9296106, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &920838701
 GameObject:
   m_ObjectHideFlags: 0
@@ -16632,7 +16683,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 652793779395098968, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1309508365166153491, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: m_IsActive
@@ -16866,6 +16917,7 @@ SceneRoots:
   - {fileID: 1774131253}
   - {fileID: 1722130397}
   - {fileID: 1388849289}
+  - {fileID: 915535266}
   - {fileID: 1446138944}
   - {fileID: 943449752}
   - {fileID: 669845290}

@@ -54,10 +54,35 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Networked] private int TeslaTickCounter { get; set; }
         private int lastRenderedTickCount = -1;
+        private bool wasTeslaRunning; // UpdateTeslaVisual에서 "새 시전 시작"을 모든 클라에서 감지하기 위한 상태
 
-        // effectPrefab을 지정 위치에 생성하고, 스킬의 실제 반경(radius)에 맞춰 크기를 맞추는 범위 이펙트 메서드
-        private void PlayRangeEffect(GameObject effectPrefab, Vector3 position, float radius, float duration = 1.0f)
+        // GameObject 프리팹 참조는 RPC로 직렬화해서 보낼 수 없어서, 어떤 프리팹을 쓸지는 enum으로만 보내고
+        // 각 클라가 자기 SPARK 인스펙터에 연결된 프리팹을 로컬에서 그대로 사용한다(양쪽 클라에 프리팹이
+        // 동일하게 세팅돼 있어야 한다).
+        private enum RangeEffectKind : byte
         {
+            Overload,
+            TeslaField
+        }
+
+        // effectKind에 해당하는 프리팹을 모든 클라에서 생성하고, 스킬의 실제 반경(radius)에 맞춰 크기를 맞추는
+        // 범위 이펙트 메서드. RPC로 브로드캐스트하므로 상대(관전) 클라에서도 보인다.
+        private void PlayRangeEffect(RangeEffectKind effectKind, Vector3 position, float radius, float duration = 1.0f)
+        {
+            if (Object != null && Object.HasStateAuthority)
+                Rpc_PlayRangeEffect(effectKind, position, radius, duration);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayRangeEffect(RangeEffectKind effectKind, Vector3 position, float radius, float duration)
+        {
+            GameObject effectPrefab = effectKind switch
+            {
+                RangeEffectKind.Overload => overloadEffectPrefab,
+                RangeEffectKind.TeslaField => teslaFieldEffectPrefab,
+                _ => null
+            };
+
             if (effectPrefab == null) return;
 
             GameObject instance = Instantiate(effectPrefab, position, Quaternion.identity);
@@ -247,16 +272,26 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void UpdateTeslaVisual()
         {
-            if (TeslaTimer.IsRunning && !TeslaTimer.Expired(Runner))
-            {
-                if (TeslaTickCounter > lastRenderedTickCount)
-                {
-                    lastRenderedTickCount = TeslaTickCounter;
-                    PlayActionEffect(CharacterActionType.Ultimate, transform.position, transform.eulerAngles.z);
+            bool isRunning = TeslaTimer.IsRunning && !TeslaTimer.Expired(Runner);
 
-                    //  궁극기 범위(teslaRadius) 크기에 맞춰 자기장 범위 이펙트 프리팹 출력
-                    PlayRangeEffect(teslaFieldEffectPrefab, transform.position, teslaRadius, 0.4f);
-                }
+            if (isRunning && !wasTeslaRunning)
+            {
+                // 새 궁극기 시전 시작을 모든 클라(상대/관전 포함)에서 감지해 카운터 기준점을 리셋한다.
+                // OnUltimate의 리셋(lastRenderedTickCount = -1)은 StateAuthority 클라에서만 실행되므로,
+                // 여기서 안 맞춰주면 두 번째 시전부터 TeslaTickCounter가 이전 시전보다 낮은 값으로
+                // 리셋됐을 때 "새 값 > 마지막 렌더값" 비교가 계속 false가 되어 상대 화면에서
+                // 이펙트가 다시는 안 보이게 된다.
+                lastRenderedTickCount = -1;
+            }
+            wasTeslaRunning = isRunning;
+
+            if (isRunning && TeslaTickCounter > lastRenderedTickCount)
+            {
+                lastRenderedTickCount = TeslaTickCounter;
+                PlayActionEffect(CharacterActionType.Ultimate, transform.position, transform.eulerAngles.z);
+
+                //  궁극기 범위(teslaRadius) 크기에 맞춰 자기장 범위 이펙트 프리팹 출력
+                PlayRangeEffect(RangeEffectKind.TeslaField, transform.position, teslaRadius, 0.4f);
             }
         }
 
@@ -286,7 +321,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 PlayActionEffect(context.Action, nodePos, 0f);
 
                 //  E스킬 과부하 범위(overloadRadius) 크기에 맞춰 폭발 범위 이펙트 프리팹 출력
-                PlayRangeEffect(overloadEffectPrefab, nodePos, overloadRadius, 0.5f);
+                PlayRangeEffect(RangeEffectKind.Overload, nodePos, overloadRadius, 0.5f);
             }
 
             return true;
@@ -314,7 +349,7 @@ namespace ProjectMS.CharacterSystem.Examples
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
 
             //  궁극기 최초 시전 시 넓은 범위(teslaRadius)로 퍼지는 테슬라 필드 범위 이펙트 프리팹 출력
-            PlayRangeEffect(teslaFieldEffectPrefab, transform.position, teslaRadius, 0.6f);
+            PlayRangeEffect(RangeEffectKind.TeslaField, transform.position, teslaRadius, 0.6f);
 
             return true;
         }
