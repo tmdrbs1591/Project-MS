@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1fab3400db39db47882c2cb785e3e67, type: 3}
   m_Name: ChaserCharacterDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
-  displayName: Chaser
+  displayName: 체이서
   maxHealth: 900
   basicAttackDamage: 50
   skillQDamage: 15

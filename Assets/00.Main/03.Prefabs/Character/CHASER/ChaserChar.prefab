@@ -1,5 +1,72 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3931630049691103474
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2801275082029570851}
+    m_Modifications:
+    - target: {fileID: 2851131569538263223, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_Name
+      value: vfx_Ultimate
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+--- !u!198 &3518891499378882113 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 457794446630078131, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+  m_PrefabInstance: {fileID: 3931630049691103474}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5498487332497007679 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8845484921354900685, guid: ba3533f1f4cb2b447840036e8a41d67d, type: 3}
+  m_PrefabInstance: {fileID: 3931630049691103474}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8956191304802897522
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -191,7 +258,10 @@ PrefabInstance:
     m_RemovedComponents:
     - {fileID: 351130389269276740, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 6533289649576514897, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      insertIndex: 0
+      addedObject: {fileID: 5498487332497007679}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 853357108902157338, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       insertIndex: 5
@@ -208,6 +278,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5e690b5fb1084f5ab1c86457af401d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody2D
+--- !u!4 &2801275082029570851 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6533289649576514897, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+  m_PrefabInstance: {fileID: 8956191304802897522}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &5855201591818793765 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
@@ -249,6 +324,7 @@ MonoBehaviour:
     weaponRoot: {fileID: 8892872073989034078}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
+  ultimateFlashEffect: {fileID: 3518891499378882113}
   targetLayer:
     serializedVersion: 2
     m_Bits: 128

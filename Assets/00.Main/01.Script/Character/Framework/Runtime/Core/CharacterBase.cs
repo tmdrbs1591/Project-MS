@@ -26,6 +26,10 @@ namespace ProjectMS.CharacterSystem
         [Tooltip("비워두면 로컬 캐릭터에서 Camera.main을 사용합니다.")]
         [SerializeField] private Camera inputCamera;
 
+        [Header("Common Ultimate Effect")]
+        [Tooltip("궁극기 사용 성공 시 공통으로 재생되는 반짝임 파티클. 캐릭터 프리팹에 미리 배치해두고 연결한다(비워두면 재생 안 함).")]
+        [SerializeField] private ParticleSystem ultimateFlashEffect;
+
         [Networked] private float NetHealth { get; set; }
         [Networked] private NetworkBool NetDead { get; set; }
         [Networked] private NetworkBool NetGameplayLocked { get; set; }
@@ -413,6 +417,19 @@ namespace ProjectMS.CharacterSystem
         private void Rpc_PlayActionEffect(CharacterActionType action, Vector2 position, float angle)
         {
             visual?.SpawnActionEffect(action, position, angle);
+        }
+
+        // 궁극기 사용 성공 시 공통 반짝임 파티클(ultimateFlashEffect)을 전체 클라이언트에서 재생
+        private void PlayUltimateFlashEffect()
+        {
+            if (Object != null && Object.HasStateAuthority)
+                Rpc_PlayUltimateFlashEffect();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayUltimateFlashEffect()
+        {
+            ultimateFlashEffect?.Play();
         }
 
         protected void DealDamage(CharacterBase target, float amount)
@@ -1112,6 +1129,9 @@ namespace ProjectMS.CharacterSystem
 
             if (!executed)
                 return;
+
+            if (action == CharacterActionType.Ultimate)
+                PlayUltimateFlashEffect();
 
             actionState.ConsumeCharge(action);
             if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode)

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1fab3400db39db47882c2cb785e3e67, type: 3}
   m_Name: GunnerDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
-  displayName: Gunner
+  displayName: 거너
   maxHealth: 1000
   basicAttackDamage: 50
   skillQDamage: 100
