@@ -254,12 +254,13 @@ MonoBehaviour:
   burstArcAngle: 45
   burstReloadingDuration: 2.5
   burstCharges: 4
-  dualRevolverProjectilePrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
+  dualRevolverProjectilePrefab: {fileID: 7811597853570981533, guid: 39368bfdd1e62a94494c5c915ac212db, type: 3}
   dualRevolverProjectileSpeed: 45
   techJumpAngle: 60
   techJumpPower: 30
   techJumpDuration: 0.08
-  techJumpFlashBangPrefab: {fileID: 7811597853570981533, guid: ee78cced820113a4a9294bf52a35589b, type: 3}
+  techJumpFlashBangPrefab: {fileID: -654922866199395279, guid: ddd786da885a4124a88ee0d2403f7e26, type: 3}
+  techJumpFlashBangDropImageAngle: 30
   techJumpFlashBangSpeed: 8
   techJumpFlashBangRange: 0.8
   techJumpFlashBangSlowDuration: 0.5

@@ -31,7 +31,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)] [SerializeField] private float techJumpAngle = 60f;
         [Min(0f)] [SerializeField] private float techJumpPower = 30f;
         [Min(0f)] [SerializeField] private float techJumpDuration = 0.08f;
-        [SerializeField] private CharacterProjectile techJumpFlashBangPrefab;
+        [SerializeField] private CharacterThrowable techJumpFlashBangPrefab;
+        [Tooltip("던지는 섬광탄이 떨어질 때 보이는 이미지의 각도 (던져지는 방향과는 상관 없음)")]
+        [Min(0f)] [SerializeField] private float techJumpFlashBangDropImageAngle = 30f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSpeed = 8f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangRange = 0.8f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSlowDuration = 0.5f;
@@ -47,14 +49,14 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Passive - Dirty Carnival")]
         [Tooltip("캐릭터 등 기준, 0 ~ 360 사이로 입력")]
         [Min(0f)] [SerializeField] private float carnivalBackAttackCriterionAngle = 90f;
-        [Min(1f)] [SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f; // 추후 CharacterBase에 들어가면 좋을 듯함
+        [Min(1f)] [SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f;
 
         private bool isSniping = false;
         private CharacterTimerHandle deadEyeSnipingTimeTimer;
 
         private bool isFirstBurst = true;
 
-        private bool isFlashBangFired = false;
+        private CharacterThrowable currentFlashBangEntity;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -140,28 +142,23 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnSkillE(CharacterActionContext context)
         {
-            SpawnProjectile(
-                techJumpFlashBangPrefab,
-                AttackOrigin.position,
-                Vector2.down,
-                techJumpFlashBangSpeed,
-                context.Damage,
-                targetLayer);
+            Vector2 flashBangVelocity = Vector2.down * techJumpFlashBangSpeed;
 
-            float techJumpAngleRad = Mathf.Min(180, techJumpAngle) * Mathf.Deg2Rad;
+            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
+                ProjectileOrigin.position,
+                Quaternion.Euler(0f, 0f, techJumpFlashBangDropImageAngle),
+                new OwnedEntityGroupId(DamageTeamId), // 임시?
+                initialVelocity: flashBangVelocity
+                );
 
-            // 빗변 길이 1 기준 연산
-            float jumpDirectionX = Mathf.Cos(techJumpAngleRad);
-            if (context.AimDirection.x > 0) 
-                jumpDirectionX = -1 * Mathf.Cos(techJumpAngleRad);
-            
-            float jumpDirectionY = Mathf.Sin(techJumpAngleRad);
-            
-            Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
+            OwnedEntitySpawnResult<CharacterThrowable> result = SpawnThrowable(techJumpFlashBangPrefab, request);
+            if (!result.Success) 
+            {
+                Debug.LogWarning($"[ChaserCharacter] 섬광탄 소환 실패, 사유 : {result.FailureReason}");
+                return false;
+            }
 
-            Movement.StartDash(jumpDirection, techJumpPower, techJumpDuration);
-
-            isFlashBangFired = true;
+            BackJump(context.AimDirection);
 
             PlayActionEffect(CharacterActionType.SkillE, AttackOrigin.position, AimAngle);
             return true;
@@ -181,16 +178,34 @@ namespace ProjectMS.CharacterSystem.Examples
             return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
         }
 
-        // 후에 섬광탄인지 검사할 수 있어야 함 (프리팹으로 검사 불가)
-        protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
+        protected override void OnOwnedEntityDestroyed(CharacterOwnedEntity entity, OwnedEntityDestroyReason reason)
         {
-            if (!isFlashBangFired) return;
-            isFlashBangFired = false;
+            if (reason != OwnedEntityDestroyReason.FuseExpired || 
+                entity != currentFlashBangEntity) return;
 
-            OnFlashBangBoomed(projectile);
+            OnFlashBangExpired(currentFlashBangEntity);
         }
 
-        private void OnFlashBangBoomed(CharacterProjectile flashBang)
+        private void BackJump(Vector2 AimDirection)
+        {
+            float techJumpAngleRad = Mathf.Min(180, techJumpAngle) * Mathf.Deg2Rad;
+
+            float jumpDirectionX = default;
+
+            // 빗변 길이 1 기준 연산
+            if (AimDirection.x <= 0)
+                jumpDirectionX = Mathf.Cos(techJumpAngleRad);
+            else 
+                jumpDirectionX = -1 * Mathf.Cos(techJumpAngleRad);
+
+            float jumpDirectionY = Mathf.Sin(techJumpAngleRad);
+
+            Vector2 jumpDirection = new Vector2(jumpDirectionX, jumpDirectionY).normalized;
+
+            Movement.StartDash(jumpDirection, techJumpPower, techJumpDuration);
+        }
+
+        private void OnFlashBangExpired(CharacterThrowable flashBang)
         {
             List<CharacterBase> foundEnemies = FindEnemiesInCircle(flashBang.transform.position, techJumpFlashBangRange, targetLayer);
 
