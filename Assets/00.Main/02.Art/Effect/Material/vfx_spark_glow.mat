@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: vfx_UI_Fight 6
+  m_Name: vfx_spark_glow
   m_Shader: {fileID: 4800000, guid: fe945ff95459d6147beacd73bf356745, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -32,7 +32,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 9d6b8a3b2a3522c4c9e188f5d49eb42c, type: 3}
+        m_Texture: {fileID: 2800000, guid: ebfb664149767ce49a1218901804496c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
@@ -90,7 +90,7 @@ Material:
     - _Fresnel_AlphaClipPower: 1.5
     - _Fresnel_AlphaClipStepMax: 0.6125
     - _Fresnel_AlphaClipStepMin: 0.05
-    - _Hue: -0.72
+    - _Hue: 0
     - _MainTex_ColorMode: 0
     - _Main_Alpha_Ch: 0
     - _Main_Pan_ParticleCustom1Z: 1
@@ -106,12 +106,12 @@ Material:
     - _Mask_Strength: 1
     - _Mask_Strength_Mode: 0
     - _Mask_Use: 0
-    - _Pixelate: 1000
-    - _Saturation: 1
+    - _Pixelate: 256
+    - _Saturation: 0.89
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
     - _Use_Dissolve_Edge: 0
-    - _Value: 2
+    - _Value: 1.62
     m_Colors:
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}
@@ -121,7 +121,7 @@ Material:
     - _Dissolve_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Dissolve_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Main_Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Main_Color: {r: 1, g: 0.99128205, b: 0.6509433, a: 1}
     - _Main_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Main_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
     - _OriginalSize: {r: 0, g: 0, b: 0, a: 0}
