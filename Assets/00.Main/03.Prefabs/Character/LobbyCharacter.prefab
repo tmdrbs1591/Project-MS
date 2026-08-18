@@ -5174,7 +5174,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uB9E4\uCE6D"
+  m_text: "\uC120\uD0DD"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: bb933b0fff0f7d04bb9958d876c7d0c5, type: 2}
   m_sharedMaterial: {fileID: -1398760431886462106, guid: bb933b0fff0f7d04bb9958d876c7d0c5, type: 2}
@@ -6145,6 +6145,10 @@ MonoBehaviour:
   dustEffect: {fileID: 4565742249275102782}
   animator: {fileID: 6567219767070541839}
   actionEffects: []
+  damagedShakeMagnitude: 0.1
+  damagedShakeDuration: 0.15
+  commonSounds: {fileID: 0}
+  actionSounds: []
   jiggleTargets: []
   counterFlipTargets: []
 --- !u!1 &8765218398283827918

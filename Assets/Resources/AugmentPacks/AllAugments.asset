@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6786f983173331f48b4e35ae0fb1a43f, type: 3}
+  m_Name: AllAugments
+  m_EditorClassIdentifier: Assembly-CSharp::AugmentPackData
+  packIndex: 0
+  displayName: 전체 증강
+  description: 팩 구분 없이 13종 증강 전부가 담긴 단일 풀(팩 선택 단계가 비활성화된 동안 사용).
+  icon: {fileID: 0}
+  augments:
+  - {fileID: 11400000, guid: b371c53b05cc98cc867a5bca9156d7b0, type: 2}
+  - {fileID: 11400000, guid: c229be5a2707d4d8ac907c662b314427, type: 2}
+  - {fileID: 11400000, guid: 0aa45427d37ae2debe305252a4fa7aa4, type: 2}
+  - {fileID: 11400000, guid: 85b1d3a72eff0b0f42af4a7f1d75e0ef, type: 2}
+  - {fileID: 11400000, guid: 037b5de070513ac5da392b236290cb5b, type: 2}
+  - {fileID: 11400000, guid: fa36c70cb51aacd19d00992f5b0644e3, type: 2}
+  - {fileID: 11400000, guid: e30605eec42193a67bf553cb3049f98b, type: 2}
+  - {fileID: 11400000, guid: 561ed9948a5391cae147c0517f5784d0, type: 2}
+  - {fileID: 11400000, guid: 78861c3a3a916e7744105f500a9cb513, type: 2}
+  - {fileID: 11400000, guid: ef0fbf9c3bf5cdd40989ccb798400c73, type: 2}
+  - {fileID: 11400000, guid: 5adc2cdcd3c6fbdcdf27fe31ee165749, type: 2}
+  - {fileID: 11400000, guid: 3a62dd1c498c4091eaa1030b6670a044, type: 2}
+  - {fileID: 11400000, guid: 31ab9bdc877fa8e8bf8793b74e3a722e, type: 2}

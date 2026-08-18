@@ -39,6 +39,9 @@ namespace ProjectMS.CharacterSystem
         public bool IsDashing { get; private set; }
         public bool MovementEnabled { get; private set; } = true;
         public float MovementSpeedMultiplier { get; private set; } = 1f;
+        /// <summary>슬로우(MovementSpeedMultiplier)와는 별개로 곱해지는 지속형 배율(예: 신속의
+        /// 신발 증강). 슬로우가 걸려도 증강 배율은 유지되고, 둘 다 곱해서 최종 속도가 나온다.</summary>
+        public float BaseSpeedMultiplier { get; private set; } = 1f;
         public int FacingDirection { get; private set; } = 1;
         public float MoveInput { get; private set; }
         public Vector2 CurrentVelocity { get; private set; }
@@ -92,6 +95,11 @@ namespace ProjectMS.CharacterSystem
         public void SetMovementSpeedMultiplier(float multiplier)
         {
             MovementSpeedMultiplier = Mathf.Max(0f, multiplier);
+        }
+
+        public void SetBaseSpeedMultiplier(float multiplier)
+        {
+            BaseSpeedMultiplier = Mathf.Max(0f, multiplier);
         }
 
         public void CancelDash()
@@ -177,7 +185,7 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             float targetX = MovementEnabled
-                ? MoveInput * definition.MoveSpeed * MovementSpeedMultiplier
+                ? MoveInput * definition.MoveSpeed * BaseSpeedMultiplier * MovementSpeedMultiplier
                 : 0f;
             float acceleration = IsGrounded ? definition.GroundAcceleration : definition.AirAcceleration;
             float nextX = Mathf.MoveTowards(rigidbody.linearVelocity.x, targetX, acceleration * deltaTime);

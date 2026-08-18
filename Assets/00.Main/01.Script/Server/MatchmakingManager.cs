@@ -27,7 +27,12 @@ public class MatchmakingManager : MonoBehaviour
     private void Start()
     {
         if (matchButton != null)
+        {
             matchButton.onClick.AddListener(StartMatching);
+            // 이전 매칭 도중(interactable = false 인 상태)에 씬이 저장/리로드됐을 가능성에 대비해
+            // 로비 진입 시 항상 눌러지는 상태로 명시적으로 되돌린다.
+            matchButton.interactable = true;
+        }
 
         if (cancelButton != null)
             cancelButton.onClick.AddListener(CancelMatching);
