@@ -338,7 +338,15 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        isMatching = false;
+        // GameIsFull/GameClosed는 TryJoinQuickMatchSlot이 다음 슬롯으로 재시도하는 도중
+        // 정상적으로 거치는 중간 셧다운이다(실패한 StartGame이 내부적으로 OnShutdown도
+        // 같이 호출시킴). 여기서 isMatching을 꺼버리면 재시도 로직이 "취소됨"으로 오판해서
+        // await 직후의 가드(if (!isMatching) return;)에 걸려 다음 슬롯 시도 자체를 못 하고
+        // 멈춰버린다 — 그래서 이 두 사유는 isMatching을 건드리지 않고 TryJoinQuickMatchSlot이
+        // 알아서 처리하게 둔다. 그 외(진짜 연결 끊김/취소 등)는 기존대로 정리한다.
+        if (shutdownReason != ShutdownReason.GameIsFull && shutdownReason != ShutdownReason.GameClosed)
+            isMatching = false;
+
         playerSpawnedInGameScene = false;
         SetStatus($"세션 종료: {shutdownReason}");
     }
