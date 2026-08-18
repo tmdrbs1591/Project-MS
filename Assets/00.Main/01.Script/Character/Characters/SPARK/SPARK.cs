@@ -14,11 +14,13 @@ namespace ProjectMS.CharacterSystem.Examples
     {
         [Header("E 스킬 (과부하)")]
         [SerializeField] private float overloadRadius = 3.5f; // 노드 중심 폭발 범위 반지름
+        [SerializeField] private GameObject overloadEffectPrefab; // 과부하 폭발 범위 이펙트 프리팹
 
         [Header("궁극기 (테슬라 필드)")]
         [SerializeField] private float teslaRadius = 5f; // 전자기장 범위 반지름
         [SerializeField] private float teslaDuration = 3f; // 전자기장 지속 시간 (초)
         [SerializeField] private float tickInterval = 0.5f; // 데미지 주기 (초)
+        [SerializeField] private GameObject teslaFieldEffectPrefab; // 테슬라 필드 범위 이펙트 프리팹
 
         [Header("Basic Attack")]
         [SerializeField] private CharacterProjectile projectilePrefab;
@@ -27,11 +29,14 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Skill Q - ElectricNode")]
         [SerializeField] private GameObject electricNodePrefab = null;
-        [SerializeField] private LineRenderer lineRenderer;
+        [SerializeField] private GameObject electricLinkPrefab; // 두 노드를 잇는 연결 비주얼 프리팹 (X축 스케일로 신축시켜 연결)
         [Min(0f)][SerializeField] private float throwSpeed = 10f;
         [SerializeField] private float electricLineWidth = 0.8f;
         [SerializeField] private float lineDamagePerSecond = 20f;
         private List<NetworkObject> plantedElectricNodes = new List<NetworkObject>();
+
+        private Transform electricLinkInstance; // electricLinkPrefab을 한 번만 생성해 재사용
+        private float electricLinkBaseWidth = 1f; // 프리팹 원본(스케일 1) 기준 가로 폭
 
         [SerializeField] private float lineTickInterval = 0.5f; // 데미지 주기 (0.5초)
         [SerializeField] private float lineTickDamage = 20f;
@@ -50,40 +55,31 @@ namespace ProjectMS.CharacterSystem.Examples
         [Networked] private int TeslaTickCounter { get; set; }
         private int lastRenderedTickCount = -1;
 
-        // 지정한 범위(반지름) 크기의 원형으로 퍼져나가는 범위 이펙트 메서드
-        private void PlayRangeEffect(Vector3 position, float radius, Color startColor, float duration = 1.0f)
+        // effectPrefab을 지정 위치에 생성하고, 스킬의 실제 반경(radius)에 맞춰 크기를 맞추는 범위 이펙트 메서드
+        private void PlayRangeEffect(GameObject effectPrefab, Vector3 position, float radius, float duration = 1.0f)
         {
-            GameObject particleObj = new GameObject("SkillRangeEffect");
-            particleObj.transform.position = position;
+            if (effectPrefab == null) return;
 
-            ParticleSystem ps = particleObj.AddComponent<ParticleSystem>();
+            GameObject instance = Instantiate(effectPrefab, position, Quaternion.identity);
 
-            var main = ps.main;
-            main.duration = duration;
-            main.startLifetime = 0.5f;
-            main.startSpeed = 0.1f;
-            main.startSize = 0.5f;
-            main.startColor = startColor;
-            main.maxParticles = 100;
-            main.stopAction = ParticleSystemStopAction.Destroy;
-            main.playOnAwake = false;
+            if (instance.TryGetComponent<ParticleSystem>(out var ps))
+            {
+                // 파티클 프리팹이면 Shape Radius를 직접 range 반경에 맞춤
+                var shape = ps.shape;
+                shape.radius = radius;
+                ps.Play();
+            }
+            else
+            {
+                // 스프라이트 기반 프리팹이면 원본(스케일 1) 가로 폭 대비 스케일을 계산해서 지름(radius*2)에 맞춤
+                SpriteRenderer sr = instance.GetComponentInChildren<SpriteRenderer>();
+                float baseDiameter = (sr != null && sr.sprite != null && sr.sprite.bounds.size.x > 0f)
+                    ? sr.sprite.bounds.size.x
+                    : 1f;
+                instance.transform.localScale = Vector3.one * ((radius * 2f) / baseDiameter);
+            }
 
-            var emission = ps.emission;
-            emission.rateOverTime = 0;
-            emission.burstCount = 1;
-            emission.SetBurst(0, new ParticleSystem.Burst(0f, 60));
-
-            // 스킬의 실제 반경(Radius)에 맞춰 원형 테두리 형태로 파티클 생성
-            var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = radius;
-            shape.radiusThickness = 0.1f; // 테두리 선 형태로 선명하게 표시
-
-            var renderer = particleObj.GetComponent<ParticleSystemRenderer>();
-            renderer.material = new Material(Shader.Find("Sprites/Default"));
-
-            ps.Play();
-            Destroy(particleObj, duration + 0.5f);
+            Destroy(instance, duration);
         }
 
         protected override bool OnBasicAttack(CharacterActionContext context)
@@ -194,9 +190,29 @@ namespace ProjectMS.CharacterSystem.Examples
             UpdateTeslaVisual();
         }
 
+        // electricLinkPrefab을 최초 1회만 생성해서 electricLinkInstance에 캐싱
+        private void EnsureElectricLinkInstance()
+        {
+            if (electricLinkInstance != null || electricLinkPrefab == null) return;
+
+            GameObject obj = Instantiate(electricLinkPrefab);
+            electricLinkInstance = obj.transform;
+
+            // 스프라이트의 원본(스케일 1) 가로 폭을 기준 폭으로 저장 -> 이후 거리에 맞춰 X축 스케일 계산에 사용
+            SpriteRenderer sr = obj.GetComponentInChildren<SpriteRenderer>();
+            electricLinkBaseWidth = (sr != null && sr.sprite != null && sr.sprite.bounds.size.x > 0f)
+                ? sr.sprite.bounds.size.x
+                : 1f;
+
+            obj.SetActive(false);
+        }
+
         private void UpdateLineVisual()
         {
-            if (lineRenderer == null || Runner == null) return;
+            if (electricLinkPrefab == null || Runner == null) return;
+
+            EnsureElectricLinkInstance();
+
             List<Transform> myNodes = new List<Transform>();
             foreach (var netObj in Runner.GetAllNetworkObjects())
             {
@@ -205,23 +221,27 @@ namespace ProjectMS.CharacterSystem.Examples
                 {
                     myNodes.Add(netObj.transform);
                 }
-                if (myNodes.Count >= 2)
-                {
-                    if (myNodes[1].GetComponent<Spark_Q>().isStop == true)
-                    {
-                        lineRenderer.enabled = true;
-                        lineRenderer.SetPosition(0, myNodes[0].position);
-                        lineRenderer.SetPosition(1, myNodes[1].position);
-                    }
-                    else
-                    {
-                        lineRenderer.enabled = false;
-                    }
-                }
-                else
-                {
-                    lineRenderer.enabled = false;
-                }
+            }
+
+            if (myNodes.Count >= 2 && myNodes[1].GetComponent<Spark_Q>().isStop == true)
+            {
+                Vector2 posA = myNodes[0].position;
+                Vector2 posB = myNodes[1].position;
+                Vector2 delta = posB - posA;
+                float distance = delta.magnitude;
+
+                electricLinkInstance.gameObject.SetActive(true);
+                electricLinkInstance.position = (Vector3)((posA + posB) * 0.5f); // 두 노드의 중점
+                electricLinkInstance.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg); // 두 노드를 잇는 각도
+
+                // 중점 기준으로 X축을 거리만큼 늘려서 양쪽 노드에 정확히 걸치도록 함
+                Vector3 scale = electricLinkInstance.localScale;
+                scale.x = distance / electricLinkBaseWidth;
+                electricLinkInstance.localScale = scale;
+            }
+            else if (electricLinkInstance != null)
+            {
+                electricLinkInstance.gameObject.SetActive(false);
             }
         }
 
@@ -234,8 +254,8 @@ namespace ProjectMS.CharacterSystem.Examples
                     lastRenderedTickCount = TeslaTickCounter;
                     PlayActionEffect(CharacterActionType.Ultimate, transform.position, transform.eulerAngles.z);
 
-                    //  궁극기 범위(teslaRadius) 크기에 맞춰 푸른색 원형 자기장 범위 이펙트 출력
-                    PlayRangeEffect(transform.position, teslaRadius, Color.cyan, 0.4f);
+                    //  궁극기 범위(teslaRadius) 크기에 맞춰 자기장 범위 이펙트 프리팹 출력
+                    PlayRangeEffect(teslaFieldEffectPrefab, transform.position, teslaRadius, 0.4f);
                 }
             }
         }
@@ -265,8 +285,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
                 PlayActionEffect(context.Action, nodePos, 0f);
 
-                //  E스킬 과부하 범위(overloadRadius) 크기에 맞춰 노란색 폭발 범위 이펙트 출력
-                PlayRangeEffect(nodePos, overloadRadius, Color.yellow, 0.5f);
+                //  E스킬 과부하 범위(overloadRadius) 크기에 맞춰 폭발 범위 이펙트 프리팹 출력
+                PlayRangeEffect(overloadEffectPrefab, nodePos, overloadRadius, 0.5f);
             }
 
             return true;
@@ -293,8 +313,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
 
-            //  궁극기 최초 시전 시 넓은 범위(teslaRadius)로 퍼지는 테슬라 필드 범위 이펙트 출력
-            PlayRangeEffect(transform.position, teslaRadius, new Color(0f, 0.8f, 1f, 1f), 0.6f);
+            //  궁극기 최초 시전 시 넓은 범위(teslaRadius)로 퍼지는 테슬라 필드 범위 이펙트 프리팹 출력
+            PlayRangeEffect(teslaFieldEffectPrefab, transform.position, teslaRadius, 0.6f);
 
             return true;
         }
@@ -347,6 +367,15 @@ namespace ProjectMS.CharacterSystem.Examples
             TeslaNextTickTimer = TickTimer.None;
             TeslaTickCounter = 0;
             lastRenderedTickCount = -1;
+        }
+
+        private void OnDestroy()
+        {
+            // 로컬로 생성해둔 연결 비주얼 인스턴스 정리
+            if (electricLinkInstance != null)
+            {
+                Destroy(electricLinkInstance.gameObject);
+            }
         }
 
         private IReadOnlyList<Vector3> GetActiveNodePositions()
