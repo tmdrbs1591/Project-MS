@@ -42,6 +42,17 @@ Photon Fusion 2 Shared Mode용 공통 캐릭터 프레임워크입니다.
 
 `CharacterOwnedEntity`는 캐릭터 스킬이 전투 중 생성하는 오브젝트의 공통 기반입니다. 맵에 원래 배치되는 `StructureBase`와는 별개입니다.
 
+이 공통 기반은 다음 정보를 캐릭터마다 따로 구현하지 않고 같은 방식으로 관리하기 위해 사용합니다.
+
+- 누가 생성했는지와 어느 캐릭터가 소유하는지
+- 어느 팀의 오브젝트인지
+- 동시에 유지할 수 있는 최대 개수와 제한 초과 처리
+- HP와 남은 수명
+- 소유자 사망·퇴장 시 제거 또는 유지 정책
+- 적·아군·자기 자신에 대한 피해 판정
+- 네트워크 생성과 제거 동기화
+- 제거 사유와 파괴 후 실행할 콜백
+
 공통 스폰 오브젝트 스크립트는 역할에 따라 다음 폴더에 둡니다.
 
 ```text
@@ -70,7 +81,28 @@ Runtime/SpawnedObjects
 5. 공격, 연결, 이동, 폭발 같은 고유 동작은 프리팹의 파생 스크립트에 작성합니다.
 6. 프리팹 검증 후 2인 Shared 환경에서 생성·동작·제거를 확인합니다.
 
-### 설치물 예제: SPARK Q 형태의 전기 노드
+### 설치물 생성
+
+설치물 프리팹은 `CharacterDeployable` 파생 스크립트를 사용합니다. 고정된 위치에 바로 만들 때는 생성 위치만 전달합니다.
+
+```csharp
+[SerializeField] private MyDeployable deployablePrefab;
+
+protected override bool OnSkillQ(CharacterActionContext context)
+{
+    MyDeployable deployable = SpawnOwnedEntity(
+        deployablePrefab,
+        context.Action,
+        context.AimWorldPosition,
+        maxCount: 1);
+
+    return deployable != null;
+}
+```
+
+프리팹 루트에는 `NetworkObject`, `CharacterDeployable` 파생 스크립트와 필요한 Collider를 둡니다. 고정된 설치물의 위치를 계속 동기화해야 하면 `NetworkTransform`을 사용합니다. 던진 뒤 설치되는 오브젝트는 Dynamic `Rigidbody2D`와 `NetworkRigidbody2D`를 사용하고 `initialVelocity`를 전달합니다.
+
+### 설치물 예제 1: SPARK Q 형태의 전기 노드
 
 이 예제는 노드를 던져 생성하고 최대 2개를 유지하는 부분만 보여 줍니다. 두 노드 연결과 선 데미지는 노드 스크립트에 별도로 추가합니다.
 
@@ -108,7 +140,7 @@ public sealed class SparkQNode : CharacterDeployable
 }
 ```
 
-### 설치물 예제: 일정 시간마다 공격하는 포탑
+### 설치물 예제 2: 일정 시간마다 공격하는 포탑
 
 캐릭터는 포탑을 생성하고, 탐지와 공격은 포탑 스크립트가 처리합니다. 포탑 프리팹 루트에는 `NetworkObject`, `SimpleTurret`, 피격용 Collider를 둡니다.
 
@@ -158,15 +190,76 @@ public sealed class SimpleTurret : CharacterDeployable
 
 소환체 프리팹은 `CharacterSummon` 파생 스크립트를 사용합니다. 생성 코드는 설치물과 같고, 이동·추적·공격은 소환체 스크립트에 작성합니다.
 
-```csharp
-CharacterSummon summon = SpawnOwnedEntity(
-    summonPrefab,
-    context.Action,
-    context.AimWorldPosition,
-    maxCount: 1);
+프리팹 루트에는 다음 컴포넌트를 둡니다.
 
-return summon != null;
+- `NetworkObject`
+- `SimpleDroneSummon : CharacterSummon`
+- 피격 또는 충돌용 `Collider2D`
+- Transform 이동을 동기화할 `NetworkTransform`
+- 외형 오브젝트
+
+```csharp
+[SerializeField] private SimpleDroneSummon summonPrefab;
+
+protected override bool OnSkillQ(CharacterActionContext context)
+{
+    SimpleDroneSummon summon = SpawnOwnedEntity(
+        summonPrefab,
+        context.Action,
+        context.AimWorldPosition,
+        maxCount: 1);
+
+    return summon != null;
+}
 ```
+
+소환체 파생 스크립트에는 소유자 따라가기와 공격처럼 소환체 자신이 실행할 행동을 작성합니다.
+
+```csharp
+public sealed class SimpleDroneSummon : CharacterSummon
+{
+    [SerializeField] private float followSpeed = 3f;
+    [SerializeField] private float followDistance = 1.5f;
+    [SerializeField] private float attackInterval = 1f;
+    [SerializeField] private float attackRadius = 4f;
+    [SerializeField] private float damage = 8f;
+    [SerializeField] private LayerMask targetLayer;
+
+    public override void FixedUpdateNetwork()
+    {
+        base.FixedUpdateNetwork();
+
+        if (!Object.HasStateAuthority || !IsActive || IsDestroying)
+            return;
+
+        CharacterBase owner = OwnerCharacter;
+        if (owner == null)
+            return;
+
+        Vector2 ownerPosition = owner.transform.position;
+        if (Vector2.Distance(transform.position, ownerPosition) > followDistance)
+        {
+            transform.position = Vector2.MoveTowards(
+                transform.position,
+                ownerPosition,
+                followSpeed * Runner.DeltaTime);
+        }
+
+        if (!TryUseInterval(attackInterval))
+            return;
+
+        IDamageable target = FindFirstDamageableInCircle(
+            transform.position,
+            attackRadius,
+            targetLayer);
+
+        if (target != null)
+            DealDamage(target, damage);
+    }
+}
+```
+
+이 예제는 State Authority만 이동과 공격을 결정합니다. `NetworkTransform`은 계산된 위치를 다른 클라이언트에 동기화하고, `DealDamage`는 소유 캐릭터와 팀 정보를 사용하는 공통 피해 경로를 통과합니다.
 
 ### 물리 투척체 생성
 
