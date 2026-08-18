@@ -12,9 +12,11 @@ using UnityEngine;
 ///     모든 클라에서 동일하게 관찰됨). RoundEnd 에 들어온 뒤에도 죽은 캐릭터(CharacterBase.IsDead)가
 ///     아직 안 보이면(NetDead 동기화가 Phase 보다 한두 프레임 늦게 도착하는 경우) 매 프레임
 ///     다시 찾아본다 — RoundEnd 인 동안은 계속 재시도하다가 찾으면 그때 1회 재생한다.
-///   - deathVolume: 피니시 연출이 시작되는 순간(FinishRoutine 진입) 켜지고, 다음 라운드가 시작되는
-///     순간(AugmentSelect → Fighting 전환 감지) 꺼진다.
-///   - flashObject: 다음 라운드가 시작되는 순간(AugmentSelect → Fighting) 켜진다.
+///   - deathVolume: 피니시 연출이 시작되는 순간(FinishRoutine 진입) 켜지고, 증강 선택 화면이
+///     뜨기 직전(RoundEnd → AugmentSelect 전환 감지) 꺼진다.
+///   - flashObject: 다음 라운드가 시작되는 순간(AugmentSelect → Fighting) 켜지고, 다음 피니시
+///     연출이 시작될 때(FinishRoutine 진입) 다시 꺼져서 재사용을 준비한다(SetActive(true)는
+///     이미 켜져 있으면 파티클/애니메이션을 재시작시키지 않기 때문).
 ///
 /// [로컬 전용 연출]
 ///   - Time.timeScale 을 직접 건드리지만 이건 각 클라이언트의 로컬 렌더링/애니메이션에만
@@ -62,11 +64,11 @@ public class RoundFinishController : MonoBehaviour
     [SerializeField] private float koShakeDuration = 0.25f;
 
     [Header("데스 볼륨")]
-    [Tooltip("죽는(피니시) 연출이 시작되면 켜지고, 다음 라운드가 시작되면 꺼지는 오브젝트(포스트프로세스 볼륨 등).")]
+    [Tooltip("죽는(피니시) 연출이 시작되면 켜지고, 증강 선택 화면이 뜨기 직전(RoundEnd → AugmentSelect)에 꺼지는 오브젝트(포스트프로세스 볼륨 등).")]
     [SerializeField] private GameObject deathVolume;
 
     [Header("라운드 시작 플래시")]
-    [Tooltip("다음 라운드가 시작될 때(AugmentSelect → Fighting) 켜지는 플래시 오브젝트.")]
+    [Tooltip("다음 라운드가 시작될 때(AugmentSelect → Fighting) 켜지고, 다음 피니시 연출 시작 시 다시 꺼지는 플래시 오브젝트.")]
     [SerializeField] private GameObject flashObject;
 
     private TwoPlayerCamera twoPlayerCamera;
@@ -91,14 +93,20 @@ public class RoundFinishController : MonoBehaviour
         MatchManager match = MatchManager.Instance;
         MatchPhase phase = match != null ? match.Phase : MatchPhase.Fighting;
 
-        if (lastObservedPhase == MatchPhase.AugmentSelect && phase == MatchPhase.Fighting)
+        if (phase != lastObservedPhase)
         {
-            // 다음 라운드 시작: 데스 볼륨을 끄고 플래시를 켠다.
-            if (deathVolume != null)
-                deathVolume.SetActive(false);
-
-            if (flashObject != null)
-                flashObject.SetActive(true);
+            if (phase == MatchPhase.AugmentSelect)
+            {
+                // 증강 선택 화면이 뜨기 전에 데스 볼륨을 끈다.
+                if (deathVolume != null)
+                    deathVolume.SetActive(false);
+            }
+            else if (phase == MatchPhase.Fighting && lastObservedPhase == MatchPhase.AugmentSelect)
+            {
+                // 다음 라운드 시작: 플래시를 켠다.
+                if (flashObject != null)
+                    flashObject.SetActive(true);
+            }
         }
 
         if (phase != MatchPhase.RoundEnd)
@@ -147,6 +155,11 @@ public class RoundFinishController : MonoBehaviour
     {
         if (deathVolume != null)
             deathVolume.SetActive(true);
+
+        // 다음 라운드 시작 때 다시 켤 수 있도록 리셋해둔다(SetActive(true)는 이미 켜져 있으면
+        // 파티클/애니메이션을 재시작시키지 않는다 — 꺼야 다음 번에 다시 재생된다).
+        if (flashObject != null)
+            flashObject.SetActive(false);
 
         twoPlayerCamera.SetFocusOverride(loserTransform, focusZoomSize);
         SoundManager.Instance?.PlaySfx(koClip);
