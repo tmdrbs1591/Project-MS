@@ -205,7 +205,7 @@ MonoBehaviour:
   teslaRadius: 5
   teslaDuration: 3
   tickInterval: 0.5
-  teslaFieldEffectPrefab: {fileID: 3191008303372850262, guid: 536c7d7b6adb44f4fb9aacb6282cd88e, type: 3}
+  teslaFieldEffectPrefab: {fileID: 3191008303372850262, guid: ad983230bc48e864fa7e74ca8be5e854, type: 3}
   projectilePrefab: {fileID: 4312595785935445242, guid: 2f857482da1f348438f758074b19d733, type: 3}
   projectileSpeed: 20
   targetLayer:
