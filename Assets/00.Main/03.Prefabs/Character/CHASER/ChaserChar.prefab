@@ -37,8 +37,12 @@ PrefabInstance:
       value: 0.9587955
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: aimVisualMode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: jumpClip
-      value: 
+      value:
       objectReference: {fileID: 8300000, guid: d111a03e1e489d340853e5744f4710e1, type: 3}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: landClip

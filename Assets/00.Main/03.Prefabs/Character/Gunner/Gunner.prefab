@@ -26,8 +26,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: commonSounds
-      value: 
+      value:
       objectReference: {fileID: 11400000, guid: 3d38635552a7b794ca24b50aeed315c7, type: 2}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: aimVisualMode
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionEffects.Array.size
       value: 1
