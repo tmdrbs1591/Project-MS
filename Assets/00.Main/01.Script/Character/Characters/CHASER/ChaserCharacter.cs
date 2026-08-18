@@ -158,6 +158,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 return false;
             }
 
+            currentFlashBangEntity = result.Entity;
             BackJump(context.AimDirection);
 
             PlayActionEffect(CharacterActionType.SkillE, AttackOrigin.position, AimAngle);

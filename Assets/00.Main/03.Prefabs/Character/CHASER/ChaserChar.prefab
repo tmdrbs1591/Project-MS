@@ -37,12 +37,8 @@ PrefabInstance:
       value: 0.9587955
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
-      propertyPath: aimVisualMode
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: jumpClip
-      value:
+      value: 
       objectReference: {fileID: 8300000, guid: d111a03e1e489d340853e5744f4710e1, type: 3}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: landClip
@@ -64,6 +60,10 @@ PrefabInstance:
       propertyPath: commonSounds
       value: 
       objectReference: {fileID: 11400000, guid: 3d38635552a7b794ca24b50aeed315c7, type: 2}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: aimVisualMode
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.size
       value: 4
@@ -266,7 +266,7 @@ MonoBehaviour:
   techJumpFlashBangPrefab: {fileID: -654922866199395279, guid: ddd786da885a4124a88ee0d2403f7e26, type: 3}
   techJumpFlashBangDropImageAngle: 30
   techJumpFlashBangSpeed: 8
-  techJumpFlashBangRange: 0.8
+  techJumpFlashBangRange: 2
   techJumpFlashBangSlowDuration: 0.5
   techJumpFlashBangSlowRatio: 0.4
   deadEyeProjectilePrefab: {fileID: 7811597853570981533, guid: 5ffe8d35bf7c83f419e326d8dee79b16, type: 3}
