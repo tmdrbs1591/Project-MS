@@ -30,6 +30,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private NetworkBool NetDestroying { get; set; }
         [Networked] private float NetHealth { get; set; }
         [Networked] private TickTimer NetLifetimeTimer { get; set; }
+        [Networked] private TickTimer NetActionIntervalTimer { get; set; }
         [Networked] private TickTimer NetDespawnTimer { get; set; }
         [Networked] private OwnedEntityDestroyReason NetDestroyReason { get; set; }
 
@@ -285,6 +286,37 @@ namespace ProjectMS.CharacterSystem
             LayerMask targetLayer)
         {
             return CharacterCombatQuery2D.DamageablesInCircle(ResolveOwner(), center, radius, targetLayer);
+        }
+
+        /// <summary>
+        /// State Authority에서 활성 상태일 때 반복 실행 간격이 지났는지 확인한다.
+        /// true를 반환한 순간 다음 간격을 시작한다.
+        /// 포탑 공격이나 장판의 주기 효과처럼 일정 시간마다 한 번 실행할 때 사용한다.
+        /// </summary>
+        protected bool TryUseInterval(float seconds)
+        {
+            if (Object == null || Runner == null || !Object.HasStateAuthority ||
+                !IsActive || IsDestroying)
+            {
+                return false;
+            }
+
+            if (NetActionIntervalTimer.IsRunning && !NetActionIntervalTimer.Expired(Runner))
+                return false;
+
+            NetActionIntervalTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0f, seconds));
+            return true;
+        }
+
+        /// <summary>범위 안에서 처음 찾은 공격 가능한 대상을 반환한다. 대상이 없으면 null이다.</summary>
+        protected IDamageable FindFirstDamageableInCircle(
+            Vector2 center,
+            float radius,
+            LayerMask targetLayer)
+        {
+            System.Collections.Generic.List<IDamageable> targets =
+                FindDamageablesInCircle(center, radius, targetLayer);
+            return targets.Count > 0 ? targets[0] : null;
         }
 
         protected System.Collections.Generic.List<IDamageable> FindDamageablesInBox(

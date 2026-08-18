@@ -34,39 +34,157 @@ Photon Fusion 2 Shared Mode용 공통 캐릭터 프레임워크입니다.
 
 다른 캐릭터의 현재 조준 방향은 공개 읽기 전용 `CharacterBase.AimDirection`으로 확인합니다. 이 값은 동기화된 `NetAimAngle`에서 계산되므로 상대 캐릭터의 백어택 판정에도 사용할 수 있습니다. 상대 입력이나 네트워크 필드를 직접 읽지 않습니다.
 
-### 물리형 투척체
+직접 공격과 발사자를 확인할 수 있는 투사체 공격은 모두 `OnDamageDealt`로 결과를 전달합니다. 캐릭터 스크립트에서는 `Runner.Spawn` 대신 `CharacterBase.SpawnProjectile`을 사용하며, 발사자 정보가 없는 예전 5개 인자 초기화 함수는 사용하지 않습니다. 투사체 제거 사유는 `HitCharacter`, `HitOwnedEntity`, `HitWall`, `LifetimeExpired`, `Manual`로 구분합니다.
 
-직선 총알은 `CharacterProjectile`, 수류탄·섬광탄·연막탄처럼 중력과 충돌이 필요한 오브젝트는 `CharacterThrowable`을 사용합니다. 투척체도 캐릭터 소유 오브젝트이므로 캐릭터 코드에서 `Runner.Spawn`을 직접 호출하지 않고 `SpawnThrowable`을 사용합니다.
+캐릭터 고유 상태에 `[Networked]` 또는 `[Rpc]`가 필요해 보이면 먼저 공통 API로 구현할 수 있는지 확인합니다. 꼭 필요한 경우에만 공통 시스템 담당자 검토 후 최소 범위로 추가합니다.
 
-```csharp
-private static readonly OwnedEntityGroupId FlashGroup = new OwnedEntityGroupId(2101);
+## 설치물·소환체·물리 투척체 제작 순서
 
-OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
-    ProjectileOrigin.position,
-    Quaternion.identity,
-    FlashGroup,
-    maxCount: 1,
-    overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
-    initialVelocity: context.AimDirection * throwSpeed);
+`CharacterOwnedEntity`는 캐릭터 스킬이 전투 중 생성하는 오브젝트의 공통 기반입니다. 맵에 원래 배치되는 `StructureBase`와는 별개입니다.
 
-OwnedEntitySpawnResult<MyFlashThrowable> result =
-    SpawnThrowable(flashPrefab, request);
+공통 스폰 오브젝트 스크립트는 역할에 따라 다음 폴더에 둡니다.
+
+```text
+Runtime/SpawnedObjects
+├─ CharacterOwnedEntity.cs
+├─ CharacterOwnedEntityRegistry.cs
+├─ OwnedEntityGroupId.cs
+├─ OwnedEntityPolicies.cs
+├─ OwnedEntitySpawnRequest.cs
+├─ OwnedEntitySpawnResult.cs
+├─ Deployables/
+├─ Summons/
+└─ Throwables/
 ```
 
-초기 속도는 State Authority의 `Rigidbody2D.linearVelocity`에 한 번 적용됩니다. 이후 포물선, 낙하, 바운스와 구름은 Rigidbody2D 중력·Collider2D·Physics Material이 처리하고 Fusion의 `NetworkRigidbody2D`가 위치와 회전을 동기화합니다. 바닥에 닿았다는 이유만으로 디스폰되지 않습니다.
+- `CharacterDeployable`: 노드, 지뢰, 장판, 포탑처럼 필드에 설치하는 오브젝트
+- `CharacterSummon`: 펫, 분신, 드론처럼 스스로 이동하거나 행동하는 소환체
+- `CharacterThrowable`: 수류탄, 섬광탄, 연막탄처럼 중력과 충돌을 사용하는 투척체
 
-`CharacterThrowable` Inspector에서 퓨즈를 설정합니다.
+캐릭터 제작자는 Fusion의 생성·제거·권한 코드를 직접 작성하지 않습니다. `CharacterBase`의 API를 통해서만 생성하고 제거합니다.
 
-- `Fuse Seconds`: 퓨즈 시작 후 동작까지의 시간. 0이면 다음 네트워크 틱에 즉시 만료
-- `OnSpawn`: 던진 순간부터 퓨즈 시작
-- `OnGroundContact`: `Ground Layer`에 처음 접촉한 순간부터 퓨즈 시작
-- `Manual`: 소유 캐릭터가 `StartThrowableFuse(throwable)`을 호출할 때 시작
+1. 만들 오브젝트 종류에 맞는 기반 클래스를 고릅니다.
+2. 프리팹 루트에 `NetworkObject`와 해당 파생 스크립트를 추가합니다.
+3. Inspector에서 HP, 제한시간, 충돌 레이어를 설정합니다.
+4. 캐릭터 스킬 함수에서 `SpawnOwnedEntity` 또는 `SpawnThrowable`을 호출합니다.
+5. 공격, 연결, 이동, 폭발 같은 고유 동작은 프리팹의 파생 스크립트에 작성합니다.
+6. 프리팹 검증 후 2인 Shared 환경에서 생성·동작·제거를 확인합니다.
 
-퓨즈가 만료되면 State Authority에서 `OnFuseExpiredAuthority`가 한 번 호출되고 `FuseExpired` 사유로 공통 제거됩니다. 섬광, 폭발, 연막 같은 캐릭터별 효과는 `CharacterThrowable` 파생 클래스에서 이 훅만 재정의합니다. BASE는 특정 효과나 피해량을 알지 않습니다.
+### 설치물 예제: SPARK Q 형태의 전기 노드
 
-파생 투척체는 `FindDamageablesInCircle`/`FindDamageablesInBox`와 `DealDamage`를 사용할 수 있습니다. 이 경로는 소유 캐릭터의 피해 보정과 실제 적용량 확인, 궁극기 게이지, 피해 콜백을 그대로 거칩니다. 스킬마다 다른 피해량·반경 같은 생성 시점 값은 `SpawnThrowable(prefab, request, throwable => throwable.InitializePayload(...))` 초기화 콜백으로 전달하고, 파생 클래스의 값은 필요한 경우 `[Networked]`로 보관합니다.
+이 예제는 노드를 던져 생성하고 최대 2개를 유지하는 부분만 보여 줍니다. 두 노드 연결과 선 데미지는 노드 스크립트에 별도로 추가합니다.
 
-투척체 프리팹에는 다음 컴포넌트가 필요합니다.
+프리팹 루트에는 다음 컴포넌트를 둡니다.
+
+- `NetworkObject`
+- `SparkQNode : CharacterDeployable`
+- Dynamic `Rigidbody2D`
+- Trigger가 아닌 `Collider2D`
+- Fusion Physics Addon의 `NetworkRigidbody2D`
+- 외형 오브젝트
+
+```csharp
+[SerializeField] private SparkQNode nodePrefab;
+[SerializeField] private float nodeThrowSpeed = 10f;
+
+protected override bool OnSkillQ(CharacterActionContext context)
+{
+    SparkQNode node = SpawnOwnedEntity(
+        nodePrefab,
+        context.Action,
+        ProjectileOrigin.position,
+        maxCount: 2,
+        initialVelocity: context.AimDirection * nodeThrowSpeed);
+
+    return node != null;
+}
+```
+
+`maxCount: 2`이면 세 번째 노드를 만들 때 가장 오래된 노드가 제거됩니다. `context.Action`을 전달하면 Q 스킬로 만든 오브젝트끼리 자동으로 묶이므로 별도 그룹 번호를 만들 필요가 없습니다.
+
+```csharp
+public sealed class SparkQNode : CharacterDeployable
+{
+}
+```
+
+### 설치물 예제: 일정 시간마다 공격하는 포탑
+
+캐릭터는 포탑을 생성하고, 탐지와 공격은 포탑 스크립트가 처리합니다. 포탑 프리팹 루트에는 `NetworkObject`, `SimpleTurret`, 피격용 Collider를 둡니다.
+
+```csharp
+[SerializeField] private SimpleTurret turretPrefab;
+
+protected override bool OnSkillE(CharacterActionContext context)
+{
+    SimpleTurret turret = SpawnOwnedEntity(
+        turretPrefab,
+        context.Action,
+        context.AimWorldPosition);
+
+    return turret != null;
+}
+```
+
+```csharp
+public sealed class SimpleTurret : CharacterDeployable
+{
+    [SerializeField] private float attackInterval = 1f;
+    [SerializeField] private float attackRadius = 4f;
+    [SerializeField] private float damage = 10f;
+    [SerializeField] private LayerMask targetLayer;
+
+    public override void FixedUpdateNetwork()
+    {
+        base.FixedUpdateNetwork();
+
+        if (!TryUseInterval(attackInterval))
+            return;
+
+        IDamageable target = FindFirstDamageableInCircle(
+            transform.position,
+            attackRadius,
+            targetLayer);
+
+        if (target != null)
+            DealDamage(target, damage);
+    }
+}
+```
+
+`TryUseInterval`은 State Authority에서 공격 간격이 지났을 때만 `true`를 반환합니다. `FindFirstDamageableInCircle`은 범위 안의 첫 공격 대상을 찾고, `DealDamage`는 소유 캐릭터의 공통 피해 처리 경로를 사용합니다.
+
+### 소환체 생성
+
+소환체 프리팹은 `CharacterSummon` 파생 스크립트를 사용합니다. 생성 코드는 설치물과 같고, 이동·추적·공격은 소환체 스크립트에 작성합니다.
+
+```csharp
+CharacterSummon summon = SpawnOwnedEntity(
+    summonPrefab,
+    context.Action,
+    context.AimWorldPosition,
+    maxCount: 1);
+
+return summon != null;
+```
+
+### 물리 투척체 생성
+
+직선 총알은 `CharacterProjectile`, 중력과 충돌이 필요한 수류탄·섬광탄·연막탄은 `CharacterThrowable`을 사용합니다.
+
+```csharp
+MyFlashThrowable flash = SpawnThrowable(
+    flashPrefab,
+    context.Action,
+    ProjectileOrigin.position,
+    context.AimDirection,
+    throwSpeed,
+    maxCount: 1);
+
+return flash != null;
+```
+
+투척체 프리팹 루트에는 다음 컴포넌트를 둡니다.
 
 - `NetworkObject`
 - `CharacterThrowable` 파생 컴포넌트
@@ -74,48 +192,33 @@ OwnedEntitySpawnResult<MyFlashThrowable> result =
 - Trigger가 아닌 `Collider2D`
 - Fusion Physics Addon의 `NetworkRigidbody2D`
 
-`OnGroundContact`를 선택했다면 `Ground Layer`가 비어 있으면 생성이 거부됩니다. 위치 동기화 컴포넌트는 `NetworkRigidbody2D` 하나만 두며 `NetworkTransform`을 함께 붙이지 않습니다.
+초기 속도는 State Authority의 `Rigidbody2D.linearVelocity`에 한 번 적용됩니다. 이후 포물선, 낙하, 바운스와 구름은 Rigidbody2D와 Collider2D가 처리하고 `NetworkRigidbody2D`가 위치와 회전을 동기화합니다. `NetworkTransform`을 함께 붙이지 않습니다.
 
-총 비행시간 제한도 필요하면 `CharacterOwnedEntity`의 생존 방식을 `Duration` 또는 `HealthOrDuration`으로 설정할 수 있습니다. 이 제한시간과 투척체 퓨즈는 독립적이며 먼저 만료된 조건이 제거를 결정합니다.
+`CharacterThrowable` Inspector에서 퓨즈 시작 방식을 설정합니다.
 
-`OnDamageDealt`는 직접 공격과 발사자 `CharacterBase`를 찾을 수 있는 투사체 공격 모두에서 호출됩니다. `OnProjectileDespawned`의 `reason`은 `HitCharacter`, `HitOwnedEntity`, `HitWall`, `LifetimeExpired`, `Manual` 중 하나입니다.
+- `OnSpawn`: 생성 직후 시작
+- `OnGroundContact`: `Ground Layer`에 처음 접촉한 뒤 시작
+- `Manual`: `StartThrowableFuse(throwable)`을 호출할 때 시작
 
-`SpawnProjectile`은 생성된 `CharacterProjectile`을 반환하고 선택적인 `skillId`를 받습니다. 여러 발사체를 동시에 쓰는 캐릭터는 전역 불리언 하나로 종류를 추측하지 말고 반환 참조, `CharacterProjectile.SkillId`, 디스폰 콜백의 발사체 인스턴스로 구분합니다.
+`Fuse Seconds`가 지나면 `OnFuseExpiredAuthority`가 한 번 호출됩니다. 폭발, 섬광, 연막 효과는 투척체 파생 클래스에서 이 함수를 재정의해 구현합니다. `OnGroundContact`를 사용하면 `Ground Layer`를 반드시 설정합니다.
 
-캐릭터 스크립트에서는 `Runner.Spawn`을 직접 호출하지 않습니다. 캐릭터 고유 상태에 `[Networked]`나 `[Rpc]`가 꼭 필요하면 공통 API로 표현할 수 있는지 먼저 검토하고, 공통 시스템 담당자의 리뷰를 거쳐 최소 범위로 추가합니다.
+### 생성한 오브젝트 조회와 제거
 
-## 캐릭터 소유 오브젝트 API
-
-`CharacterOwnedEntity`는 캐릭터 스킬이 전투 중 생성하는 오브젝트의 공통 기반입니다. 맵에 원래 배치되는 `StructureBase`와는 별개입니다.
-
-- `CharacterDeployable`: 노드, 지뢰, 장판, 포탑처럼 필드에 설치하는 오브젝트
-- `CharacterSummon`: 향후 펫, 분신, AI 소환수를 위한 확장 기반
-
-캐릭터 제작자는 Fusion의 생성·제거·권한 코드를 직접 작성하지 않습니다. `CharacterBase`의 API를 통해서만 생성하고 제거합니다.
+같은 스킬로 만든 오브젝트는 행동 종류로 조회하거나 한 번에 제거할 수 있습니다.
 
 ```csharp
-private static readonly OwnedEntityGroupId NodeGroup = new OwnedEntityGroupId(1);
+IReadOnlyList<SparkQNode> nodes =
+    GetOwnedEntities<SparkQNode>(CharacterActionType.SkillQ);
 
-[SerializeField] private CharacterDeployable nodePrefab;
+if (nodes.Count > 0)
+    DestroyOwnedEntity(nodes[0]);
 
-protected override bool OnSkillQ(CharacterActionContext context)
-{
-    OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
-        context.Origin,
-        Quaternion.identity,
-        NodeGroup,
-        maxCount: 2,
-        overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
-        ownerExitPolicy: OwnedEntityOwnerExitPolicy.Destroy,
-        initialVelocity: context.AimDirection * 10f);
-
-    OwnedEntitySpawnResult<CharacterDeployable> result =
-        SpawnOwnedEntity(nodePrefab, request);
-    return result.Success;
-}
+DestroyOwnedEntities(CharacterActionType.SkillQ);
 ```
 
-그룹 ID는 한 캐릭터 안에서 스킬별 소유 오브젝트를 구분하는 양의 정수입니다. 오브젝트 이름이나 `Runner.GetAllNetworkObjects()` 검색으로 소유물을 찾지 않습니다.
+모든 제거는 공통 파괴 경로를 통과합니다. 캐릭터 스크립트에서 `Runner.Spawn`과 `Runner.Despawn`을 직접 호출하지 않습니다.
+
+## 상세 설정
 
 ### 개수 제한
 
@@ -124,15 +227,9 @@ protected override bool OnSkillQ(CharacterActionContext context)
 - `DestroyNewest`: 가장 최근 오브젝트를 제거한 뒤 생성합니다.
 - `Unlimited`: 개수 제한을 사용하지 않습니다.
 
-```csharp
-IReadOnlyList<CharacterDeployable> nodes =
-    GetOwnedEntities<CharacterDeployable>(NodeGroup);
+기본 생성 함수는 `replaceOldest: true`이므로 제한을 넘으면 가장 오래된 오브젝트를 교체합니다. 제한에 도달했을 때 생성을 실패시키려면 `replaceOldest: false`를 전달합니다.
 
-DestroyOwnedEntity(nodes[0], OwnedEntityDestroyReason.SkillTriggered);
-DestroyOwnedEntities(NodeGroup, OwnedEntityDestroyReason.Manual);
-```
-
-모든 제거는 공통 파괴 경로를 통과합니다. `Runner.Despawn`을 직접 호출하지 않습니다.
+한 행동에서 서로 다른 오브젝트 그룹을 따로 관리하거나 세부 실패 이유가 필요할 때만 `OwnedEntityGroupId`, `OwnedEntitySpawnRequest`, `OwnedEntitySpawnResult`를 사용하는 상세 생성 함수를 사용합니다.
 
 ### HP와 제한시간
 

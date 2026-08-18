@@ -920,6 +920,38 @@ namespace ProjectMS.CharacterSystem
             return OwnedEntitySpawnResult<T>.Succeeded(spawnedEntity);
         }
 
+        /// <summary>
+        /// 스킬 종류를 그룹으로 사용해 소유 오브젝트를 생성한다.
+        /// OwnedEntityGroupId와 OwnedEntitySpawnRequest는 내부에서 구성한다.
+        /// 생성에 실패하면 null을 반환한다. 실패 이유가 필요하면 상세 SpawnOwnedEntity 오버로드를 사용한다.
+        /// </summary>
+        protected T SpawnOwnedEntity<T>(
+            T prefab,
+            CharacterActionType action,
+            Vector2 position,
+            int maxCount = 1,
+            bool replaceOldest = true,
+            Vector2 initialVelocity = default,
+            Action<T> initialize = null)
+            where T : CharacterOwnedEntity
+        {
+            if (action == CharacterActionType.None)
+                return null;
+
+            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
+                position,
+                Quaternion.identity,
+                GetOwnedEntityGroup(action),
+                maxCount,
+                replaceOldest
+                    ? OwnedEntityOverflowPolicy.DestroyOldest
+                    : OwnedEntityOverflowPolicy.RejectNew,
+                OwnedEntityOwnerExitPolicy.Destroy,
+                initialVelocity);
+
+            return SpawnOwnedEntity(prefab, request, initialize).Entity;
+        }
+
         protected OwnedEntitySpawnResult<T> SpawnThrowable<T>(
             T prefab,
             in OwnedEntitySpawnRequest request,
@@ -940,6 +972,43 @@ namespace ProjectMS.CharacterSystem
             return SpawnOwnedEntity(prefab, request, initialize);
         }
 
+        /// <summary>
+        /// direction과 speed로 초기 속도를 계산해 물리 투척체를 생성한다.
+        /// 스킬 종류별 개수 제한과 초과 처리 방식을 적용한다.
+        /// 생성에 실패하면 null을 반환한다.
+        /// </summary>
+        protected T SpawnThrowable<T>(
+            T prefab,
+            CharacterActionType action,
+            Vector2 position,
+            Vector2 direction,
+            float speed,
+            int maxCount = 1,
+            bool replaceOldest = true,
+            Action<T> initialize = null)
+            where T : CharacterThrowable
+        {
+            if (action == CharacterActionType.None)
+                return null;
+
+            Vector2 normalized = direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : new Vector2(NetFacing >= 0 ? 1f : -1f, 0f);
+
+            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
+                position,
+                Quaternion.identity,
+                GetOwnedEntityGroup(action),
+                maxCount,
+                replaceOldest
+                    ? OwnedEntityOverflowPolicy.DestroyOldest
+                    : OwnedEntityOverflowPolicy.RejectNew,
+                OwnedEntityOwnerExitPolicy.Destroy,
+                normalized * Mathf.Max(0f, speed));
+
+            return SpawnThrowable(prefab, request, initialize).Entity;
+        }
+
         protected bool StartThrowableFuse(CharacterThrowable throwable)
         {
             return throwable != null && ownedEntityRegistry != null &&
@@ -956,12 +1025,27 @@ namespace ProjectMS.CharacterSystem
             return entity.RequestDestroy(reason);
         }
 
+        /// <summary>스킬로 생성한 소유 오브젝트 하나를 제거한다.</summary>
+        protected bool DestroyOwnedEntity(CharacterOwnedEntity entity)
+        {
+            return DestroyOwnedEntity(entity, OwnedEntityDestroyReason.SkillTriggered);
+        }
+
         protected IReadOnlyList<T> GetOwnedEntities<T>(OwnedEntityGroupId group)
             where T : CharacterOwnedEntity
         {
             return ownedEntityRegistry != null
                 ? ownedEntityRegistry.Get<T>(group)
                 : new List<T>().AsReadOnly();
+        }
+
+        /// <summary>해당 행동이 생성한 소유 오브젝트를 조회한다.</summary>
+        protected IReadOnlyList<T> GetOwnedEntities<T>(CharacterActionType action)
+            where T : CharacterOwnedEntity
+        {
+            return action == CharacterActionType.None
+                ? new List<T>().AsReadOnly()
+                : GetOwnedEntities<T>(GetOwnedEntityGroup(action));
         }
 
         protected int DestroyOwnedEntities(
@@ -977,6 +1061,21 @@ namespace ProjectMS.CharacterSystem
             }
 
             return destroyed;
+        }
+
+        /// <summary>해당 행동이 생성한 소유 오브젝트를 모두 제거한다.</summary>
+        protected int DestroyOwnedEntities(
+            CharacterActionType action,
+            OwnedEntityDestroyReason reason = OwnedEntityDestroyReason.SkillTriggered)
+        {
+            return action == CharacterActionType.None
+                ? 0
+                : DestroyOwnedEntities(GetOwnedEntityGroup(action), reason);
+        }
+
+        private static OwnedEntityGroupId GetOwnedEntityGroup(CharacterActionType action)
+        {
+            return new OwnedEntityGroupId((int)action);
         }
 
         internal void RegisterOwnedEntityFromSpawn(CharacterOwnedEntity entity)
