@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1fab3400db39db47882c2cb785e3e67, type: 3}
   m_Name: ZipperCharacterDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
-  displayName: New Character
-  maxHealth: 100
-  basicAttackDamage: 10
-  skillQDamage: 20
-  skillEDamage: 20
-  ultimateDamage: 50
-  basicAttackCooldown: 0.3
-  skillQCooldown: 5
-  skillECooldown: 7
+  displayName: Zipper
+  maxHealth: 850
+  basicAttackDamage: 50
+  skillQDamage: 75
+  skillEDamage: 0
+  ultimateDamage: 150
+  basicAttackCooldown: 8
+  skillQCooldown: 60
+  skillECooldown: 150
   dashCooldown: 3
   ultimateCooldown: 30
   knockbackBaseForce: 3
   knockbackDuration: 0.15
   knockbackUpwardBias: 0.35
-  moveSpeed: 5
+  moveSpeed: 12
   groundAcceleration: 45
   airAcceleration: 28
   jumpForce: 8
@@ -34,7 +34,7 @@ MonoBehaviour:
   groundCheckDistance: 0.08
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   coyoteTime: 0.1
   jumpBufferTime: 0.12
   fallGravityMultiplier: 2.2

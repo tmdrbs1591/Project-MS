@@ -5498,6 +5498,26 @@ PrefabInstance:
       propertyPath: aimVisualRoot
       value: 
       objectReference: {fileID: 8882887773443724602}
+    - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: actionEffects.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: actionEffects.Array.data[0].action
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: actionEffects.Array.data[0].prefab
+      value: 
+      objectReference: {fileID: 919132149155446097, guid: dd5273aea5071c549817e19ca94fb615, type: 3}
+    - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: actionEffects.Array.data[0].lifetime
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: actionEffects.Array.data[0].angleOffset
+      value: -90
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2264767874839770031, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
     m_RemovedGameObjects:
@@ -5522,6 +5542,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2248225502348264044, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
   m_PrefabInstance: {fileID: 728887286844651784}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &1903038239243507720 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1185981697568825600, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+  m_PrefabInstance: {fileID: 728887286844651784}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1973257100290894166 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1260987833417945182, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
@@ -5542,12 +5567,15 @@ MonoBehaviour:
   definition: {fileID: 11400000, guid: 3f8727be36b479b4296497a7b35b65f5, type: 2}
   visual: {fileID: 6328694032274543494}
   sockets:
-    attackOrigin: {fileID: 0}
+    attackOrigin: {fileID: 1903038239243507720}
     projectileOrigin: {fileID: 0}
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
-  ultimateFlashEffect: {fileID: 0}
+  ultimateFlashEffect: {fileID: 2027365545232346718}
+  slashDistance: 3
+  slashAngle: 90
+  reloadCount: 3
 --- !u!114 &6328694032274543494 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}

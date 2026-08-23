@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using ProjectMS.CharacterSystem;
+using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
 {
@@ -8,9 +10,34 @@ namespace ProjectMS.CharacterSystem.Examples
     /// </summary>
     public class ZipperCharacter : CharacterBase
     {
+        [Header("Basic Attack")]
+        [SerializeField] private float slashDistance = 0;
+        [SerializeField] private float slashAngle = 0;
+        [SerializeField] private int reloadCount = 3;
+
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            // 예: FindEnemiesInArc 또는 SpawnProjectile을 사용해 평타를 구현한다.
+            var targets = FindEnemiesInArc(
+                AttackOrigin.position,
+                context.AimDirection,
+                slashDistance,
+                slashAngle,
+                LayerMask.GetMask("Player")
+            );
+
+            foreach (IDamageable target in targets)
+            {
+                DealDamage(target, context.Damage, CharacterDamageSource.Direct);
+            }
+
+            PlayActionEffect(context.Action, AttackOrigin.position, context.AimAngle);
+
+            if (reloadCount <= 0)
+            {
+                reloadCount = 3;
+                return true;
+            }
+            reloadCount--;
             return false;
         }
 
