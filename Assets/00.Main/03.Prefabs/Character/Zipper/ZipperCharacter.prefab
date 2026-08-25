@@ -5576,6 +5576,13 @@ MonoBehaviour:
   slashDistance: 3
   slashAngle: 90
   reloadCount: 3
+  qDashPower: 12
+  qDashDuration: 0.2
+  qDashWidth: 3
+  qRechargeTime: 10
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!114 &6328694032274543494 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}

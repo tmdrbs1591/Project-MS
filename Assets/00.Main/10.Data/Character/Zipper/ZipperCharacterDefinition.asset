@@ -19,7 +19,7 @@ MonoBehaviour:
   skillEDamage: 0
   ultimateDamage: 150
   basicAttackCooldown: 8
-  skillQCooldown: 60
+  skillQCooldown: 10
   skillECooldown: 150
   dashCooldown: 3
   ultimateCooldown: 30
