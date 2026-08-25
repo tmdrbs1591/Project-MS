@@ -1,43 +1,113 @@
-using System;
+﻿using System;
 using ProjectMS.CharacterSystem;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
 {
     /// <summary>
-    /// 팝업 캐릭터의 스킬 로직을 담당하는 클래스
+    /// 팝업 캐릭터의 스킬 로직을 담당하는 클래스.
     /// </summary>
     public class PopupCharacter : CharacterBase
     {
         [Header("Common")]
-        [SerializeField] private LayerMask layerMask;
-        [Header("Basic Attack - Throw Error")]
-        [SerializeField] private CharacterProjectile errorProjectilePrefab;
-        [SerializeField] private float errorProjectileSpeed = 5;
+        [SerializeField] private LayerMask targetLayer;
+        [SerializeField] private int baseAttackPower;
 
-        
+        [Header("Basic Attack - Throw Error")]
+        [SerializeField] private PopupErrorThrowable errorThrowablePrefab;
+        [Min(1)][SerializeField] private int errorThrowableFireCount = 5;
+        [Min(0f)][SerializeField] private float errorReloadingDuration = 1.2f;
+        [Min(0f)] [SerializeField] private float errorProjectileSpeed = 5;
+        [Min(0f)] [SerializeField] private float errorThrowAngle = 50f;
+
+        [Header("Skill Q - Occur Aiming Bug")]
+        [SerializeField] private CharacterProjectile aimingBugHackingCDProjectile;
+        [SerializeField] private float aimingBugHackingCDSpeed = 1.5f;
+
+        [Header("Skill E - Occur Moving Bug")]
+        [SerializeField] private float movingBugArcAngle = 60f;
+        [SerializeField] private float movingBugArcRadius = 6f;
+        [SerializeField] private float movingBugSlowRatio = 0.3f;
+        [SerializeField] private float movingBugSlowDuration = 0.75f;
+
+        [Header("Skill R - System Error Popup Appeared")]
+        // 궁극기용 변수
+
+        [Header("Passive - Glitch Occured")]
+        [SerializeField] private float glitchDuration = 3f;
+        [SerializeField] private float glitchDamageTimes = 3f;
+        [SerializeField] private float glitchDamageRatio = 0.3f;
+
+        private CharacterProjectile currentHackingCD;
+        private int currentGlitchDealedCount;
+        private CharacterBase currentGlitchTarget;
+        private bool isGlitchOccuring = false;
+
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            SpawnProjectile(
-                errorProjectilePrefab,
+            float errorAngleRad = Mathf.Min(180, errorThrowAngle) * Mathf.Deg2Rad;
+
+            float errorDirectionX = default;
+
+            // 빗변 길이 1 기준 연산
+            if (AimDirection.x <= 0)
+                errorDirectionX = Mathf.Cos(errorAngleRad);
+            else
+                errorDirectionX = -1 * Mathf.Cos(errorAngleRad);
+
+            float errorDirectionY = Mathf.Sin(errorAngleRad);
+
+            Vector2 errorDirection = new Vector2(errorDirectionX, errorDirectionY).normalized;
+
+            SpawnThrowable(
+                errorThrowablePrefab,
+                context.Action,
                 ProjectileOrigin.position,
-                context.AimDirection,
-                errorProjectileSpeed,
-                context.Damage,
-                layerMask
-            );
-            // 예: FindEnemiesInArc 또는 SpawnProjectile을 사용해 평타를 구현한다.
-            return false;
+                errorDirection,
+                errorProjectileSpeed);
+
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
+            if (shouldReload)
+            {
+                SetCooldownDuration(CharacterActionType.BasicAttack, errorReloadingDuration);
+                SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount + 1);
+            }
+            else
+                ResetCooldownDuration(CharacterActionType.BasicAttack);
+
+            return true;
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
         {
-            return false;
+            currentHackingCD = SpawnProjectile(
+                aimingBugHackingCDProjectile,
+                ProjectileOrigin.position,
+                context.AimDirection,
+                aimingBugHackingCDSpeed,
+                context.Damage,
+                targetLayer);
+
+            return true;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
         {
-            return false;
+            List<CharacterBase> enimies = FindEnemiesInArc(
+                ProjectileOrigin.position,
+                context.AimDirection,
+                movingBugArcRadius,
+                movingBugArcAngle,
+                targetLayer);
+
+            foreach (CharacterBase enemy in enimies)
+            {
+                DealDamage(enemy, context.Damage);
+                ApplySlow(enemy, movingBugSlowRatio, movingBugSlowDuration);
+            }
+
+            return true;
         }
 
         protected override bool OnUltimate(CharacterActionContext context)
@@ -45,36 +115,45 @@ namespace ProjectMS.CharacterSystem.Examples
             return false;
         }
 
-        protected override void OnPassiveTick(float deltaTime)
+        protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
         {
-            // 매 네트워크 Simulation 틱에 필요한 패시브만 구현한다.
+            if (projectile != currentHackingCD || reason != ProjectileDespawnReason.HitCharacter)
+                return;
+
+            // 이동 방해 로직
         }
 
-        protected override float ModifyOutgoingDamage(
-            CharacterBase target,
-            float damage,
-            CharacterDamageSource source)
+        protected override void OnDamageDealt(CharacterBase target, float requestedDamage)
         {
-            // 예: 뒤에서 맞힌 공격만 데미지를 높인다.
-            return damage;
+            currentGlitchTarget = target;
+            currentGlitchDealedCount = 0;
+
+            if (isGlitchOccuring) return;
+
+            SetContinuousGlitch();
         }
 
-        protected override void OnProjectileDespawned(
-            CharacterProjectile projectile,
-            ProjectileDespawnReason reason,
-            CharacterBase hitTarget)
+        private void DealGlitchDamage()
         {
-            // 예: 명중, 벽 충돌, 시간 종료, 수동 종료에 맞는 효과를 추가한다.
+            DealDamage(currentGlitchTarget, baseAttackPower * glitchDamageRatio / glitchDamageTimes);
+            currentGlitchDealedCount++;
         }
 
-        protected override void OnResetCharacter()
+        private void SetContinuousGlitch()
         {
-            // 조준 모드, 변신, 연속기처럼 캐릭터 스크립트가 가진 로컬 상태를 초기화한다.
-        }
+            if (currentGlitchDealedCount >= glitchDamageTimes)
+            {
+                isGlitchOccuring = false;
+                return;
+            }
 
-        protected override void OnCharacterDespawned()
-        {
-            // 외부 이벤트 구독이나 캐릭터별 런타임 참조가 있다면 여기서 해제한다.
+            isGlitchOccuring = true;
+
+            ScheduleTimer(glitchDuration / glitchDamageTimes, () =>
+            {
+                DealGlitchDamage();
+                SetContinuousGlitch();
+            });
         }
     }
 }

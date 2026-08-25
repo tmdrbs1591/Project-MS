@@ -151,6 +151,24 @@ MonoBehaviour:
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
   ultimateFlashEffect: {fileID: 0}
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  baseAttackPower: 45
+  errorThrowablePrefab: {fileID: -1961173916970641905, guid: b0013d4671996d947ba2297517dc8f12, type: 3}
+  errorThrowableFireCount: 5
+  errorReloadingDuration: 2.5
+  errorProjectileSpeed: 5
+  errorThrowAngle: 50
+  aimingBugHackingCDProjectile: {fileID: 1316549817603537388, guid: 249ff7b2ed603184b8fd53dea9178c5f, type: 3}
+  aimingBugHackingCDSpeed: 1.5
+  movingBugArcAngle: 60
+  movingBugArcRadius: 6
+  movingBugSlowRatio: 0.3
+  movingBugSlowDuration: 0.75
+  glitchDuration: 3
+  glitchDamageTimes: 3
+  glitchDamageRatio: 0.3
 --- !u!114 &3802085077676277300 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
