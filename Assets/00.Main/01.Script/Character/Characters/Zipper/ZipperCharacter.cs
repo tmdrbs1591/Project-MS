@@ -8,8 +8,8 @@ namespace ProjectMS.CharacterSystem.Examples
     public class ZipperCharacter : CharacterBase
     {
         [Header("Basic Attack Settings")]
-        [SerializeField] private float slashDistance = 0f;
-        [SerializeField] private float slashAngle = 0f;
+        [SerializeField] private CharacterProjectile projectilePrefab;
+        [SerializeField] private float slashSpeed = 20f;
         [SerializeField] private int reloadCount = 3;
 
         [Header("Q Skill Custom Settings")]
@@ -66,20 +66,16 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            var targets = FindEnemiesInArc(
-                AttackOrigin.position,
-                context.AimDirection,
-                slashDistance,
-                slashAngle,
-                LayerMask.GetMask("Player")
+            CharacterProjectile projectile = SpawnProjectile(
+                 projectilePrefab,
+                 AttackOrigin.position,
+                 context.AimDirection,
+                 slashSpeed,
+                 context.Damage,
+                 LayerMask.GetMask("Player")
             );
 
-            foreach (IDamageable target in targets)
-            {
-                DealDamage(target, context.Damage, CharacterDamageSource.Direct);
-            }
-
-            PlayActionEffect(context.Action, AttackOrigin.position, context.AimAngle);
+            // CharacterProjectile의 LifeTime으로 Distance구현
 
             if (reloadCount <= 0)
             {
@@ -87,6 +83,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 return true;
             }
             reloadCount--;
+
             return false;
         }
 
@@ -161,7 +158,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnPassiveTick(float deltaTime)
         {
-            
+
         }
 
         private IEnumerator ProcessDashCollision(float duration)
