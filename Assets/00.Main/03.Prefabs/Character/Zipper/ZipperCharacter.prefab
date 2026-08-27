@@ -5574,13 +5574,13 @@ MonoBehaviour:
   inputCamera: {fileID: 0}
   ultimateFlashEffect: {fileID: 2027365545232346718}
   projectilePrefab: {fileID: 3913160785262376401, guid: 4d78a5a0efa588b43b4e5e3869ee881d, type: 3}
-  slashDistance: 3
   slashSpeed: 20
   reloadCount: 3
   qDashPower: 12
   qDashDuration: 0.2
   qDashWidth: 3
   qRechargeTime: 10
+  E_SkillPrefab: {fileID: -7315203500075794664, guid: 8a9e463fd9f65be43a89ce107e2ce2e5, type: 3}
   ultimateTeleportDelay: 0.5
   ultimateBlastRadius: 3
 --- !u!114 &6328694032274543494 stripped

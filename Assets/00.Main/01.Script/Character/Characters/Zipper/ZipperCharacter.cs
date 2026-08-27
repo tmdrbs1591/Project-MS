@@ -18,6 +18,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float qDashWidth = 4f;
         [SerializeField] private float qRechargeTime = 10f;
 
+        [Header("E Skill Custom Settings")]
+        [SerializeField] private CharacterDeployable E_SkillPrefab;
+
         [Header("Ultimate (위상 돌파) Settings")]
         [SerializeField] private float ultimateTeleportDelay = 0.5f;
         [SerializeField] private float ultimateBlastRadius = 3f; // 시트에 값이 없어 임의 지정, 실제 값으로 조정 필요
@@ -131,7 +134,23 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnSkillE(CharacterActionContext context)
         {
-            return false;
+            if (E_SkillPrefab == null) return false;
+
+            Vector2 spawnPosition = (Vector2)transform.position + (context.AimDirection * 1.5f);
+
+            CharacterDeployable ownedEntity = SpawnOwnedEntity(
+                E_SkillPrefab,
+                context.Action,
+                spawnPosition,
+                maxCount: 1,
+                replaceOldest: true,
+                initialize: entity =>
+                {
+                    entity.transform.rotation = Quaternion.Euler(0f, 0f, context.AimAngle);
+                }
+            );
+
+            return true;
         }
 
         protected override bool OnUltimate(CharacterActionContext context)
