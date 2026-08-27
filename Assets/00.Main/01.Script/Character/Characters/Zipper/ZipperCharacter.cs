@@ -22,11 +22,21 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float ultimateTeleportDelay = 0.5f;
         [SerializeField] private float ultimateBlastRadius = 3f; // 시트에 값이 없어 임의 지정, 실제 값으로 조정 필요
 
+        [Header("Passive (차원 표식) Settings")]
+        [Tooltip("표식 유지 시간 (초)")]
+        [SerializeField] private float markDuration = 4f;
+        [Tooltip("기본기로 표식을 소모했을 때 다이브(Q) 남은 재충전 시간 감소 비율")]
+        [SerializeField] private float diveRechargeReductionRatio = 0.6f;
+
         private float qRechargeTimer = 0f;
         private bool isDashing = false;
         private float currentQDamage = 0f;
         private HashSet<IDamageable> dashedHitTargets = new HashSet<IDamageable>();
         private CharacterTimerHandle ultimateTimer;
+
+        // 패시브: 차원 표식 - 대상별 남은 유지 시간 보관 (OnPassiveTick에서 매 프레임 감소)
+        private Dictionary<IDamageable, float> dimensionalMarks = new Dictionary<IDamageable, float>();
+        private List<IDamageable> expiredMarksBuffer = new List<IDamageable>();
 
         private Coroutine dashCoroutine;
         private Coroutine qRechargeCoroutine;
@@ -50,6 +60,9 @@ namespace ProjectMS.CharacterSystem.Examples
             // 라운드 리셋 시 진행 중이던 궁극기 이동 예약 취소
             CancelTimer(ultimateTimer);
             SetMovementEnabled(true);
+
+            // 패시브: 라운드 리셋 시 남아있는 표식 전부 제거
+            ClearAllDimensionalMarks();
         }
 
         private void InitQCharges()
@@ -147,6 +160,9 @@ namespace ProjectMS.CharacterSystem.Examples
                 foreach (IDamageable target in targets)
                 {
                     DealDamage(target, ultimateDamage, CharacterDamageSource.Direct);
+
+                    // 패시브: 궁극기로 피해를 입힌 대상에게 차원 표식 부여
+                    ApplyDimensionalMark(target);
                 }
 
                 SetMovementEnabled(true);
@@ -158,7 +174,29 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnPassiveTick(float deltaTime)
         {
+            // 패시브: 차원 표식 - 남은 유지 시간을 매 틱 감소시키고, 만료된 표식을 제거한다.
+            if (dimensionalMarks.Count == 0) return;
 
+            expiredMarksBuffer.Clear();
+
+            List<IDamageable> keys = new List<IDamageable>(dimensionalMarks.Keys);
+            foreach (IDamageable target in keys)
+            {
+                float remaining = dimensionalMarks[target] - deltaTime;
+                if (remaining <= 0f)
+                {
+                    expiredMarksBuffer.Add(target);
+                }
+                else
+                {
+                    dimensionalMarks[target] = remaining;
+                }
+            }
+
+            for (int i = 0; i < expiredMarksBuffer.Count; i++)
+            {
+                dimensionalMarks.Remove(expiredMarksBuffer[i]);
+            }
         }
 
         private IEnumerator ProcessDashCollision(float duration)
@@ -217,6 +255,9 @@ namespace ProjectMS.CharacterSystem.Examples
                 if (dashedHitTargets.Add(target))
                 {
                     DealDamage(target, currentQDamage, CharacterDamageSource.Direct);
+
+                    // 패시브: Q(다이브)로 피해를 입힌 대상에게 차원 표식 부여
+                    ApplyDimensionalMark(target);
                 }
             }
         }
@@ -228,6 +269,53 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
         {
+            // 기본 공격 투사체가 대상을 맞혔을 때, 표식이 있으면 소모하고 다이브 재충전을 단축
+            if (reason == ProjectileDespawnReason.HitCharacter && hitTarget != null)
+            {
+                TryConsumeDimensionalMark(hitTarget);
+            }
+        }
+
+        private void ApplyDimensionalMark(IDamageable target)
+        {
+            if (target == null) return;
+
+            // 이미 표식이 있어도 없어도 동일하게 남은 시간을 4초로 (재)설정한다 (표식 갱신)
+            dimensionalMarks[target] = markDuration;
+        }
+
+        private void TryConsumeDimensionalMark(IDamageable target)
+        {
+            if (target == null) return;
+            if (!dimensionalMarks.ContainsKey(target)) return;
+
+            // 표식 소모
+            dimensionalMarks.Remove(target);
+
+            // 다이브(Q) 남은 재충전 시간 60% 감소
+            ReduceDiveRemainingRecharge(diveRechargeReductionRatio);
+        }
+
+        private void ReduceDiveRemainingRecharge(float ratio)
+        {
+            int currentCharges = GetActionCharges(CharacterActionType.SkillQ);
+
+            // 이미 잔탄이 가득 차 있으면(재충전 중이 아니면) 줄일 시간이 없음
+            if (currentCharges >= 2) return;
+
+            float remaining = qRechargeTime - qRechargeTimer;
+            if (remaining <= 0f) return;
+
+            qRechargeTimer += remaining * ratio;
+            if (qRechargeTimer > qRechargeTime)
+            {
+                qRechargeTimer = qRechargeTime;
+            }
+        }
+
+        private void ClearAllDimensionalMarks()
+        {
+            dimensionalMarks.Clear();
         }
     }
 }
