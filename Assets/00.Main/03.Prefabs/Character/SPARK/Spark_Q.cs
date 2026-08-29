@@ -1,7 +1,10 @@
+using ProjectMS.CharacterSystem;
 using UnityEngine;
 
-public class Spark_Q : MonoBehaviour
+public class SparkQNode : CharacterDeployable
 {
+    public bool IsValid => Object != null && Object.IsValid && !IsDestroying;
+
     [Header("Overlap Setting")]
     [SerializeField] private float overlapRadius = 0.1f;
     [SerializeField] private float stopOverlapRadius = 0.1f;

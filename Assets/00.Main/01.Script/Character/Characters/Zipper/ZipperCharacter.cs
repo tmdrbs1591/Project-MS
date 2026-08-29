@@ -49,7 +49,6 @@ namespace ProjectMS.CharacterSystem.Examples
             base.OnCharacterSpawned();
             InitQCharges();
         }
-
         protected override void OnResetCharacter()
         {
             base.OnResetCharacter();

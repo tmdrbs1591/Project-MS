@@ -28,12 +28,12 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private LayerMask targetLayer; // 피격 대상 레이어
 
         [Header("Skill Q - ElectricNode")]
-        [SerializeField] private GameObject electricNodePrefab = null;
+        [SerializeField] private SparkQNode electricNodePrefab = null;
         [SerializeField] private GameObject electricLinkPrefab; // 두 노드를 잇는 연결 비주얼 프리팹 (X축 스케일로 신축시켜 연결)
         [Min(0f)][SerializeField] private float throwSpeed = 10f;
         [SerializeField] private float electricLineWidth = 0.8f;
         [SerializeField] private float lineDamagePerSecond = 20f;
-        private List<NetworkObject> plantedElectricNodes = new List<NetworkObject>();
+        private List<SparkQNode> plantedElectricNodes = new List<SparkQNode>();
 
         private Transform electricLinkInstance; // electricLinkPrefab을 한 번만 생성해 재사용
         private float electricLinkBaseWidth = 1f; // 프리팹 원본(스케일 1) 기준 가로 폭
@@ -139,33 +139,23 @@ namespace ProjectMS.CharacterSystem.Examples
             if (electricNodePrefab == null)
                 return false;
 
-            NetworkObject node = Runner.Spawn(
+            plantedElectricNodes.RemoveAll(n => n == null || !n.IsValid);
+
+            SparkQNode node = SpawnOwnedEntity<SparkQNode>(
                 electricNodePrefab,
+                context.Action,
                 ProjectileOrigin.position,
-                Quaternion.identity,
-                Object.InputAuthority
+                maxCount: 2,
+                initialVelocity: context.AimDirection * throwSpeed
             );
 
-            if (node != null && node.TryGetComponent<Rigidbody2D>(out var rb))
+            if (node != null)
             {
-                rb.linearVelocity = context.AimDirection.normalized * throwSpeed;
+                plantedElectricNodes.Add(node);
             }
 
-            plantedElectricNodes.Add(node);
+            if (plantedElectricNodes.Count >= 2) return true;
 
-            if (plantedElectricNodes.Count == 2)
-            {
-                return true;
-            }
-            else if (plantedElectricNodes.Count >= 3)
-            {
-                if (plantedElectricNodes[0] != null && plantedElectricNodes[0].IsValid)
-                {
-                    Runner.Despawn(plantedElectricNodes[0]);
-                }
-                plantedElectricNodes.RemoveAt(0);
-                return true;
-            }
             return false;
         }
 
@@ -248,7 +238,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 }
             }
 
-            if (myNodes.Count >= 2 && myNodes[1].GetComponent<Spark_Q>().isStop == true)
+            if (myNodes.Count >= 2 && myNodes[1].GetComponent<SparkQNode>().isStop == true)
             {
                 Vector2 posA = myNodes[0].position;
                 Vector2 posB = myNodes[1].position;
