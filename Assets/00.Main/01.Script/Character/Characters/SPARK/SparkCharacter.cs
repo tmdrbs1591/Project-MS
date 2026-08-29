@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using Fusion;
 using ProjectMS.CharacterSystem;
@@ -10,7 +10,7 @@ namespace ProjectMS.CharacterSystem.Examples
     /// 신규 캐릭터 시작 템플릿.
     /// 필요한 스킬과 패시브 훅만 override하고 Fusion API는 직접 사용하지 않는다.
     /// </summary>
-    public class SPARK : CharacterBase
+    public class SparkCharacter : CharacterBase
     {
         [Header("E 스킬 (과부하)")]
         [SerializeField] private float overloadRadius = 3.5f; // 노드 중심 폭발 범위 반지름
