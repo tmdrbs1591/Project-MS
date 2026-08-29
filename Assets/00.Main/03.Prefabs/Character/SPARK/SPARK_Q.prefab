@@ -14,8 +14,9 @@ GameObject:
   - component: {fileID: 2297937548139665669}
   - component: {fileID: 4507379730588882779}
   - component: {fileID: 5163196538136971691}
-  - component: {fileID: -626298945238706235}
-  m_Layer: 0
+  - component: {fileID: 1130064139778819271}
+  - component: {fileID: 5648076269895567892}
+  m_Layer: 7
   m_Name: SPARK_Q
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -187,6 +188,8 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 5163196538136971691}
+  - {fileID: 1130064139778819271}
+  - {fileID: 5648076269895567892}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &5163196538136971691
 MonoBehaviour:
@@ -211,7 +214,26 @@ MonoBehaviour:
     Position: 0.01
     Rotation: 0.01
     Scale: 0.01
---- !u!114 &-626298945238706235
+--- !u!114 &1130064139778819271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3595553388960100342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28fbca830f876417696c716c90e9e029, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDeployable
+  lifetimeMode: 1
+  maxHealth: 1
+  duration: 0
+  allowSelfDamage: 0
+  allowFriendlyDamage: 0
+  destroyWhenOwnerDies: 1
+  activateOnSpawn: 1
+--- !u!114 &5648076269895567892
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -222,12 +244,19 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17b690925080dbf449e8a237afc35445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Spark_Q
-  overlapRadius: 0.03
-  stopOverlapRadius: 0.07
-  rightPos: {x: 0.09, y: 0}
-  leftPos: {x: -0.09, y: 0}
-  topPos: {x: -0, y: 0.03}
+  m_EditorClassIdentifier: Assembly-CSharp::SparkQNode
+  lifetimeMode: 1
+  maxHealth: 10
+  duration: 0
+  allowSelfDamage: 0
+  allowFriendlyDamage: 0
+  destroyWhenOwnerDies: 1
+  activateOnSpawn: 1
+  overlapRadius: 0.1
+  stopOverlapRadius: 0.1
+  rightPos: {x: 0, y: 0}
+  leftPos: {x: 0, y: 0}
+  topPos: {x: 0, y: 0}
   stopPos: {x: 0, y: 0}
   isRight: 0
   isLeft: 0

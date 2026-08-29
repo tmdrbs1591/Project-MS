@@ -353,7 +353,7 @@ MonoBehaviour:
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
-  electricNodePrefab: {fileID: 3595553388960100342, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
+  electricNodePrefab: {fileID: 5648076269895567892, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
   electricLinkPrefab: {fileID: 6000556252433244920, guid: 586c53fb05358ef4d9fb3905607ef2c6, type: 3}
   throwSpeed: 10
   electricLineWidth: 0.18
