@@ -32,8 +32,6 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)] [SerializeField] private float techJumpPower = 30f;
         [Min(0f)] [SerializeField] private float techJumpDuration = 0.08f;
         [SerializeField] private CharacterThrowable techJumpFlashBangPrefab;
-        [Tooltip("던지는 섬광탄이 떨어질 때 보이는 이미지의 각도 (던져지는 방향과는 상관 없음)")]
-        [Min(0f)] [SerializeField] private float techJumpFlashBangDropImageAngle = 30f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSpeed = 8f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangRange = 0.8f;
         [Min(0f)] [SerializeField] private float techJumpFlashBangSlowDuration = 0.5f;
@@ -142,23 +140,20 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnSkillE(CharacterActionContext context)
         {
-            Vector2 flashBangVelocity = Vector2.down * techJumpFlashBangSpeed;
+            CharacterThrowable flashBang = SpawnThrowable(
+                techJumpFlashBangPrefab, 
+                CharacterActionType.SkillE, 
+                ProjectileOrigin.position, 
+                Vector2.down, 
+                techJumpFlashBangSpeed);
 
-            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
-                ProjectileOrigin.position,
-                Quaternion.Euler(0f, 0f, techJumpFlashBangDropImageAngle),
-                new OwnedEntityGroupId(DamageTeamId), // 임시?
-                initialVelocity: flashBangVelocity
-                );
-
-            OwnedEntitySpawnResult<CharacterThrowable> result = SpawnThrowable(techJumpFlashBangPrefab, request);
-            if (!result.Success) 
+            if (flashBang == null)
             {
-                Debug.LogWarning($"[ChaserCharacter] 섬광탄 소환 실패, 사유 : {result.FailureReason}");
+                Debug.LogWarning("[ChaserCharacter] 섬광탄 소환에 실패했습니다.");
                 return false;
             }
 
-            currentFlashBangEntity = result.Entity;
+            currentFlashBangEntity = flashBang;
             BackJump(context.AimDirection);
 
             PlayActionEffect(CharacterActionType.SkillE, AttackOrigin.position, AimAngle);
