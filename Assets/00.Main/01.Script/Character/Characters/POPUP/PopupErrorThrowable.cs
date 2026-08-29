@@ -9,17 +9,23 @@ namespace ProjectMS.CharacterSystem.Examples
     {
         [SerializeField] private float attackRadius = 0.5f;
         [SerializeField] private LayerMask targetLayer;
-        [SerializeField] private float damage;
+        
+        private float damage;
+
+        public void Initialize(float _damage)
+        {
+            damage = _damage;
+        }
 
         public override void FixedUpdateNetwork()
         {
             base.FixedUpdateNetwork();
 
-            IDamageable damageable = FindFirstDamageableInCircle(transform.position, attackRadius, targetLayer);
-            if (damageable == null) return;
-            if (damageable == OwnerCharacter) return;
+            IDamageable target = FindFirstDamageableInCircle(transform.position, attackRadius, targetLayer);
+            if (target == null) return;
+            if (target == OwnerCharacter) return;
 
-            DealDamage(damageable, damage);
+            DealDamage(target, damage);
             RequestDestroy(OwnedEntityDestroyReason.Manual); // Manual?
         }
     }

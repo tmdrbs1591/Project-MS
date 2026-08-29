@@ -61,7 +61,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             Vector2 errorDirection = new Vector2(errorDirectionX, errorDirectionY).normalized;
 
-            PopupErrorThrowable throwable = SpawnThrowable(
+            PopupErrorThrowable errorThrowable = SpawnThrowable(
                 errorThrowablePrefab,
                 context.Action,
                 ProjectileOrigin.position,
@@ -69,11 +69,13 @@ namespace ProjectMS.CharacterSystem.Examples
                 errorProjectileSpeed,
                 maxCount: 5);
 
-            if (throwable == null)
+            if (errorThrowable == null)
             {
                 Debug.LogWarning("[PopupCharacter] 에러 투럭!(기본 공격) 발사체를 소환하는데 실패했습니다!");
                 return false;
             }
+
+            errorThrowable.Initialize(context.Damage);
 
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
