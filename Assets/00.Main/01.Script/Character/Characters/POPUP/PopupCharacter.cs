@@ -43,6 +43,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private int currentGlitchDealedCount;
         private CharacterBase currentGlitchTarget;
         private bool isGlitchOccuring = false;
+        private bool isGlitchDamage = false;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
@@ -132,6 +133,12 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnDamageDealt(CharacterBase target, float requestedDamage)
         {
+            if (isGlitchDamage)
+            {
+                isGlitchDamage = false;;
+                return;
+            }
+
             currentGlitchTarget = target;
             currentGlitchDealedCount = 0;
 
@@ -144,6 +151,7 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             DealDamage(currentGlitchTarget, baseAttackPower * glitchDamageRatio / glitchDamageTimes);
             currentGlitchDealedCount++;
+            isGlitchDamage = true;
         }
 
         private void SetContinuousGlitch()
