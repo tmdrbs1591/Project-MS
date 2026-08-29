@@ -52,20 +52,27 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 빗변 길이 1 기준 연산
             if (AimDirection.x <= 0)
-                errorDirectionX = Mathf.Cos(errorAngleRad);
-            else
                 errorDirectionX = -1 * Mathf.Cos(errorAngleRad);
+            else
+                errorDirectionX = Mathf.Cos(errorAngleRad);
 
             float errorDirectionY = Mathf.Sin(errorAngleRad);
 
             Vector2 errorDirection = new Vector2(errorDirectionX, errorDirectionY).normalized;
 
-            SpawnThrowable(
+            PopupErrorThrowable throwable = SpawnThrowable(
                 errorThrowablePrefab,
                 context.Action,
                 ProjectileOrigin.position,
                 errorDirection,
-                errorProjectileSpeed);
+                errorProjectileSpeed,
+                maxCount: 5);
+
+            if (throwable == null)
+            {
+                Debug.LogWarning("[PopupCharacter] 에러 투럭!(기본 공격) 발사체를 소환하는데 실패했습니다!");
+                return false;
+            }
 
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
