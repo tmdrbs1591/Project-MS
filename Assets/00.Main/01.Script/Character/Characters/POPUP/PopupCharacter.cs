@@ -32,7 +32,11 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float movingBugSlowDuration = 0.75f;
 
         [Header("Skill R - System Error Popup Appeared")]
-        // 궁극기용 변수
+        [SerializeField] private CharacterProjectile popupAppearGlitchProjectile;
+        [SerializeField] private float popupAppearGlitchSpeed = 4.5f;
+        [SerializeField] private PopupErrorPopupDeployable popupAppearErrorPopupDeployable;
+        [SerializeField] private float popupAppearErrorPopupDuration = 3f;
+        [SerializeField] private int popupAppearErrorPopupDamageTimes = 3;
 
         [Header("Passive - Glitch Occured")]
         [SerializeField] private float glitchDuration = 3f;
@@ -40,6 +44,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float glitchDamageRatio = 0.3f;
 
         private CharacterProjectile currentHackingCD;
+        private CharacterProjectile currentPopupAppearGlitch;
+
         private int currentGlitchDealedCount;
         private CharacterBase currentGlitchTarget;
         private bool isGlitchOccuring = false;
@@ -67,15 +73,14 @@ namespace ProjectMS.CharacterSystem.Examples
                 ProjectileOrigin.position,
                 errorDirection,
                 errorProjectileSpeed,
-                maxCount: 5);
+                maxCount: 5,
+                initialize: (errorThrowable) => errorThrowable.Initialize(context.Damage));
 
             if (errorThrowable == null)
             {
                 Debug.LogWarning("[PopupCharacter] 에러 투럭!(기본 공격) 발사체를 소환하는데 실패했습니다!");
                 return false;
             }
-
-            errorThrowable.Initialize(context.Damage);
 
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
@@ -122,15 +127,44 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnUltimate(CharacterActionContext context)
         {
-            return false;
+            currentPopupAppearGlitch = SpawnProjectile(
+                popupAppearGlitchProjectile,
+                ProjectileOrigin.position,
+                context.AimDirection,
+                popupAppearGlitchSpeed,
+                context.Damage,
+                targetLayer);
+
+            return true;
         }
 
         protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
         {
-            if (projectile != currentHackingCD || reason != ProjectileDespawnReason.HitCharacter)
+            if (reason != ProjectileDespawnReason.HitCharacter)
                 return;
 
-            // 이동 방해 로직
+            if (projectile == currentHackingCD)
+            {
+                // 이동 방해 로직
+
+                return;
+            }
+
+            if (projectile == currentPopupAppearGlitch)
+            {
+                PopupErrorPopupDeployable popupDeployable = SpawnOwnedEntity(
+                    popupAppearErrorPopupDeployable,
+                    CharacterActionType.Ultimate,
+                    hitTarget.transform.position,
+                    maxCount: 1,
+                    initialize: (popup) => popup.Initialize(
+                        hitTarget, 
+                        popupAppearErrorPopupDuration, 
+                        Definition.GetDamage(CharacterActionType.Ultimate), 
+                        popupAppearErrorPopupDamageTimes));
+
+                return;
+            }
         }
 
         protected override void OnDamageDealt(CharacterBase target, float requestedDamage)
