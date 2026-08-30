@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 2200115549815500090}
   - component: {fileID: 7138446660221459580}
   - component: {fileID: 5461833736379275686}
+  - component: {fileID: 7863458582313883654}
   m_Layer: 0
   m_Name: PopupErrorPopupDeployable
   m_TagString: Untagged
@@ -175,6 +176,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 5461833736379275686}
+  - {fileID: 7863458582313883654}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &5461833736379275686
 MonoBehaviour:
@@ -196,3 +198,20 @@ MonoBehaviour:
   destroyWhenOwnerDies: 1
   activateOnSpawn: 1
   popupOffset: {x: 0.5, y: 0.5}
+--- !u!114 &7863458582313883654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5464947684531186840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0

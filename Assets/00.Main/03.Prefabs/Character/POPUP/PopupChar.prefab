@@ -125,6 +125,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 8610681530406842648}
   m_SourcePrefab: {fileID: 100100000, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+--- !u!198 &581551464218805498 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 1286551316285015961, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+  m_PrefabInstance: {fileID: 1857922187045110627}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1305781822789967737 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 853357108902157338, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
@@ -145,12 +150,12 @@ MonoBehaviour:
   definition: {fileID: 11400000, guid: 0766db5e1d44ae74ca105d0f181ea55f, type: 2}
   visual: {fileID: 3802085077676277300}
   sockets:
-    attackOrigin: {fileID: 3598898463497112695}
+    attackOrigin: {fileID: 0}
     projectileOrigin: {fileID: 3598898463497112695}
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
-  ultimateFlashEffect: {fileID: 0}
+  ultimateFlashEffect: {fileID: 581551464218805498}
   targetLayer:
     serializedVersion: 2
     m_Bits: 128

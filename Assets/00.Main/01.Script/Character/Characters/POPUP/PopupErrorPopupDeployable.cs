@@ -8,7 +8,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private CharacterBase target;
 
-        private float duration;
+        private float damageDuration;
         private float totalDamage;
         private int damageTimes;
 
@@ -25,13 +25,17 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             base.FixedUpdateNetwork();
 
+            if (!Object.HasStateAuthority)
+                return;
+
             transform.position = target.transform.position + (Vector3)popupOffset;
+            timers.Tick(Runner.DeltaTime);
         }
 
         public void Initialize(CharacterBase _target, float _duration, float _totalDamage, int _damageTimes)
         {
             target = _target;
-            duration = _duration;
+            damageDuration = _duration;
             totalDamage = _totalDamage;
             damageTimes = _damageTimes;
 
@@ -46,13 +50,13 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void SetContinuousDamage()
         {
+            if (!Object.HasStateAuthority)
+                return;
+
             if (currentDealedCount >= damageTimes)
                 return;
 
-            if (!HasStateAuthority)
-                return;
-
-            timers.Schedule(duration / damageTimes, () =>
+            timers.Schedule(damageDuration / damageTimes, () =>
             {
                 DealContinuosDamage();
                 SetContinuousDamage();
