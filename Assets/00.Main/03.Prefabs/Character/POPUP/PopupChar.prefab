@@ -162,9 +162,11 @@ MonoBehaviour:
   baseAttackPower: 45
   errorThrowablePrefab: {fileID: -1961173916970641905, guid: b0013d4671996d947ba2297517dc8f12, type: 3}
   errorThrowableFireCount: 5
+  errorThrowableMinFlightTime: 0.1
+  errorThrowableMaxFlightTime: 1.25
+  errorThrowableMaxDistance: 12.5
+  errorThrowableMaxCount: 5
   errorReloadingDuration: 2.5
-  errorProjectileSpeed: 7.5
-  errorThrowAngle: 70
   aimingBugHackingCDProjectile: {fileID: 1316549817603537388, guid: 249ff7b2ed603184b8fd53dea9178c5f, type: 3}
   aimingBugHackingCDSpeed: 15
   movingBugArcAngle: 60

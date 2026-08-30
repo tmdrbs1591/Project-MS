@@ -1,6 +1,7 @@
-﻿using System;
-using ProjectMS.CharacterSystem;
+﻿using ProjectMS.CharacterSystem;
+using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
@@ -17,36 +18,42 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Basic Attack - Throw Error")]
         [SerializeField] private PopupErrorThrowable errorThrowablePrefab;
         [Min(1)][SerializeField] private int errorThrowableFireCount = 5;
+        [Min(0.01f)] [SerializeField] private float errorThrowableMinFlightTime = 0.1f;
+        [Min(0.01f)] [SerializeField] private float errorThrowableMaxFlightTime = 1.25f;
+        [Min(0.01f)] [SerializeField] private float errorThrowableMaxDistance = 10f;
+        [Min(0)] [SerializeField] private int errorThrowableMaxCount = 5;
         [Min(0f)][SerializeField] private float errorReloadingDuration = 1.2f;
-        [Min(0f)] [SerializeField] private float errorProjectileSpeed = 5;
-        [Min(0f)] [SerializeField] private float errorThrowAngle = 50f;
 
         [Header("Skill Q - Occur Aiming Bug")]
         [SerializeField] private CharacterProjectile aimingBugHackingCDProjectile;
         [SerializeField] private float aimingBugHackingCDSpeed = 1.5f;
 
         [Header("Skill E - Occur Moving Bug")]
-        [SerializeField] private float movingBugArcAngle = 60f;
-        [SerializeField] private float movingBugArcRadius = 6f;
-        [SerializeField] private float movingBugSlowRatio = 0.3f;
-        [SerializeField] private float movingBugSlowDuration = 0.75f;
+        [Min(0f)][SerializeField] private float movingBugArcAngle = 60f;
+        [Min(0f)][SerializeField] private float movingBugArcRadius = 6f;
+        [Min(0f)][SerializeField] private float movingBugSlowRatio = 0.3f;
+        [Min(0f)][SerializeField] private float movingBugSlowDuration = 0.75f;
 
         [Header("Skill R - System Error Popup Appeared")]
         [SerializeField] private CharacterProjectile popupAppearGlitchProjectile;
-        [SerializeField] private float popupAppearGlitchSpeed = 4.5f;
+        [Min(0f)][SerializeField] private float popupAppearGlitchSpeed = 4.5f;
         [SerializeField] private PopupErrorPopupDeployable popupAppearErrorPopupDeployable;
-        [SerializeField] private float popupAppearErrorPopupDuration = 3f;
-        [SerializeField] private int popupAppearErrorPopupDamageTimes = 3;
+        [Min(0f)][SerializeField] private float popupAppearErrorPopupDuration = 3f;
+        [Min(0)][SerializeField] private int popupAppearErrorPopupDamageTimes = 3;
 
         [Header("Passive - Glitch Occured")]
-        [SerializeField] private float glitchDuration = 3f;
-        [SerializeField] private float glitchDamageTimes = 3f;
-        [SerializeField] private float glitchDamageRatio = 0.3f;
+        [Min(0f)][SerializeField] private float glitchDuration = 3f;
+        [Min(0f)][SerializeField] private float glitchDamageTimes = 3f;
+        [Min(0f)][SerializeField] private float glitchDamageRatio = 0.3f;
 
         private CharacterProjectile currentHackingCD;
         private CharacterProjectile currentPopupAppearGlitch;
 
         private bool isFirstThrowError = true;
+
+        private float errorThrowableGravityScale = 1f;
+        private bool isThrowableInitialized = false;
+
         private int currentGlitchDealedCount;
         private CharacterBase currentGlitchTarget;
         private bool isGlitchOccuring = false;
@@ -54,35 +61,40 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            float errorAngleRad = Mathf.Min(180, errorThrowAngle) * Mathf.Deg2Rad;
-
-            float errorDirectionX = default;
             if (isFirstThrowError)
             {
                 SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount);
                 isFirstThrowError = false;
             }
 
-            // 빗변 길이 1 기준 연산
-            if (AimDirection.x <= 0)
-                errorDirectionX = -1 * Mathf.Cos(errorAngleRad);
-            else
-                errorDirectionX = Mathf.Cos(errorAngleRad);
+            if (!isThrowableInitialized)
+            {
+                errorThrowableGravityScale = errorThrowablePrefab.GetComponent<Rigidbody2D>().gravityScale;
+                isThrowableInitialized = true;
+            }
 
-            float errorDirectionY = Mathf.Sin(errorAngleRad);
-
-            Vector2 errorDirection = new Vector2(errorDirectionX, errorDirectionY).normalized;
-
-            PopupErrorThrowable errorThrowable = SpawnThrowable(
-                errorThrowablePrefab,
-                context.Action,
+            Vector2 errorVelocity = CalculateThrowVelocity(
                 ProjectileOrigin.position,
-                errorDirection,
-                errorProjectileSpeed,
-                maxCount: 5,
+                context.AimWorldPosition,
+                errorThrowableMaxDistance,
+                errorThrowableMinFlightTime,
+                errorThrowableMaxFlightTime,
+                errorThrowableGravityScale);
+
+            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
+                ProjectileOrigin.position,
+                Quaternion.identity,
+                new OwnedEntityGroupId((int)context.Action),
+                maxCount: errorThrowableMaxCount,
+                overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
+                initialVelocity: errorVelocity);
+
+            OwnedEntitySpawnResult<PopupErrorThrowable> result = SpawnThrowable(
+                errorThrowablePrefab,
+                in request,
                 initialize: (errorThrowable) => errorThrowable.Initialize(context.Damage));
 
-            if (errorThrowable == null)
+            if (!result.Success)
             {
                 Debug.LogWarning("[PopupCharacter] 에러 투럭!(기본 공격) 발사체를 소환하는데 실패했습니다!");
                 return false;
@@ -187,6 +199,32 @@ namespace ProjectMS.CharacterSystem.Examples
             if (isGlitchOccuring) return;
 
             SetContinuousGlitch();
+        }
+
+        private Vector2 CalculateThrowVelocity(Vector2 startPosition, Vector2 targetPosition, float maxThrowDistance, float minFlightTime, float maxFlightTime, float projectileGravityScale)
+        {
+            Vector2 offsetBeforeCheck = targetPosition - startPosition;
+            Vector2 realTargetPosition = targetPosition;
+
+            if (offsetBeforeCheck.sqrMagnitude > (maxThrowDistance * maxThrowDistance))
+                realTargetPosition = startPosition + offsetBeforeCheck.normalized * maxThrowDistance;
+
+            Vector2 offset = realTargetPosition - startPosition;
+
+            // clamp01 결과에 따라 min ~ max
+            float flightTime = Mathf.Lerp(
+                minFlightTime,
+                maxFlightTime,
+                Mathf.Clamp01(offset.sqrMagnitude / maxThrowDistance * maxThrowDistance));
+
+            float gravity = Physics2D.gravity.y * projectileGravityScale;
+
+            Vector2 delta = realTargetPosition - startPosition;
+
+            float velocityX = delta.x / flightTime;
+            float velocityY = (delta.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
+
+            return new Vector2(velocityX, velocityY);
         }
 
         private void DealGlitchDamage()
