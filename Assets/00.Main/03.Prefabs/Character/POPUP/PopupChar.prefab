@@ -145,8 +145,8 @@ MonoBehaviour:
   definition: {fileID: 11400000, guid: 0766db5e1d44ae74ca105d0f181ea55f, type: 2}
   visual: {fileID: 3802085077676277300}
   sockets:
-    attackOrigin: {fileID: 0}
-    projectileOrigin: {fileID: 0}
+    attackOrigin: {fileID: 3598898463497112695}
+    projectileOrigin: {fileID: 3598898463497112695}
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
@@ -166,9 +166,19 @@ MonoBehaviour:
   movingBugArcRadius: 3
   movingBugSlowRatio: 0.3
   movingBugSlowDuration: 0.75
+  popupAppearGlitchProjectile: {fileID: 1316549817603537388, guid: 249ff7b2ed603184b8fd53dea9178c5f, type: 3}
+  popupAppearGlitchSpeed: 4.5
+  popupAppearErrorPopupDeployable: {fileID: 5461833736379275686, guid: dd9fd29324ce6254c93c0f98bad77d2d, type: 3}
+  popupAppearErrorPopupDuration: 3
+  popupAppearErrorPopupDamageTimes: 3
   glitchDuration: 3
   glitchDamageTimes: 3
   glitchDamageRatio: 0.3
+--- !u!4 &3598898463497112695 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2898472591512948500, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+  m_PrefabInstance: {fileID: 1857922187045110627}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &3802085077676277300 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
