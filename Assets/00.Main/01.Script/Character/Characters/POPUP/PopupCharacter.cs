@@ -46,6 +46,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private CharacterProjectile currentHackingCD;
         private CharacterProjectile currentPopupAppearGlitch;
 
+        private bool isFirstThrowError = true;
         private int currentGlitchDealedCount;
         private CharacterBase currentGlitchTarget;
         private bool isGlitchOccuring = false;
@@ -56,6 +57,11 @@ namespace ProjectMS.CharacterSystem.Examples
             float errorAngleRad = Mathf.Min(180, errorThrowAngle) * Mathf.Deg2Rad;
 
             float errorDirectionX = default;
+            if (isFirstThrowError)
+            {
+                SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount);
+                isFirstThrowError = false;
+            }
 
             // 빗변 길이 1 기준 연산
             if (AimDirection.x <= 0)
