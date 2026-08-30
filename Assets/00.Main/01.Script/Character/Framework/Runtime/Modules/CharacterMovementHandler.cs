@@ -16,6 +16,8 @@ namespace ProjectMS.CharacterSystem
         private float originalGravityScale;
         private bool playerJumping;
         private float autoHopTimer;
+        private float mapBounceTimer;
+        private float mapBounceVelocity;
 
         public CharacterMovementHandler(
             Rigidbody2D rigidbody,
@@ -28,6 +30,10 @@ namespace ProjectMS.CharacterSystem
 
             originalGravityScale = rigidbody.gravityScale;
             rigidbody.freezeRotation = true;
+            // Discrete(기본값) + 높은 낙하 속도(중력 배율 4배 등) 조합은 물리 스텝 사이에
+            // 얇은 트리거(OutOfBoundsZone 등)를 완전히 지나쳐버리는 터널링을 일으킨다.
+            // Continuous로 바꿔서 프리팹 설정과 무관하게 항상 안전하게 잡히도록 강제한다.
+            rigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             CurrentVelocity = rigidbody.linearVelocity;
         }
 
@@ -37,6 +43,9 @@ namespace ProjectMS.CharacterSystem
 
         public bool IsGrounded { get; private set; }
         public bool IsDashing { get; private set; }
+        /// <summary>맵 오브젝트에 의한 상승 중인지. IsDashing과 달리 좌우 이동 입력은
+        /// 그대로 살아있다 — Y축만 강제로 붕 뜨고 X축은 평소처럼 플레이어가 조작한다.</summary>
+        public bool IsMapBouncing { get; private set; }
         public bool MovementEnabled { get; private set; } = true;
         public float MovementSpeedMultiplier { get; private set; } = 1f;
         /// <summary>슬로우(MovementSpeedMultiplier)와는 별개로 곱해지는 지속형 배율(예: 신속의
@@ -58,6 +67,7 @@ namespace ProjectMS.CharacterSystem
                 FacingDirection = -1;
 
             TickDash(deltaTime);
+            TickMapBounce(deltaTime);
             Move(deltaTime);
             if (MovementEnabled)
             {
@@ -86,6 +96,7 @@ namespace ProjectMS.CharacterSystem
             if (!enabled)
             {
                 CancelDash();
+                CancelMapBounce();
                 rigidbody.linearVelocity = new Vector2(0f, rigidbody.linearVelocity.y);
                 jumpBufferTimer = 0f;
                 autoHopTimer = 0f;
@@ -140,6 +151,33 @@ namespace ProjectMS.CharacterSystem
             rigidbody.gravityScale = 0f;
         }
 
+        /// <summary>맵 오브젝트(낙사존 등 환경 요소)에 의해 위로 튕겨오른다. 전투 넉백/대시
+        /// (ForceVelocityOverride)와 달리 X/Y를 둘 다 강제로 묶지 않고 **Y축만** 붙잡아 duration
+        /// 동안 velocity로 유지한다(중력 무시) — X축은 그대로 Move()가 플레이어 입력을 받아
+        /// 처리하므로, 튕겨오르는 동안에도 좌우로 움직일 수 있다. 즉발 임펄스(예전 방식)로
+        /// 높이 튀게 하려면 중력을 이겨낼 만큼 순간 속도를 극단적으로 크게 줘야 하고, 그러면
+        /// 그 자체로 너무 빨라서 순간이동처럼 보인다 — 대신 적당한 속도로 duration 동안 붕
+        /// 뜨는 시간을 벌어주면 체공시간만큼 자연스럽게 높이 올라간다.
+        /// 이름은 전투 피격 넉백(ApplyKnockback)과 구분해뒀다.</summary>
+        public void ApplyMapBounce(float velocity, float duration)
+        {
+            mapBounceVelocity = velocity;
+            mapBounceTimer = Mathf.Max(0.01f, duration);
+            IsMapBouncing = true;
+            rigidbody.gravityScale = 0f;
+            IsGrounded = false;
+        }
+
+        public void CancelMapBounce()
+        {
+            if (!IsMapBouncing)
+                return;
+
+            IsMapBouncing = false;
+            mapBounceTimer = 0f;
+            rigidbody.gravityScale = originalGravityScale;
+        }
+
         public void ApplyRemoteVisualState(int facing, float moveInput, bool grounded, Vector2 velocity)
         {
             FacingDirection = facing >= 0 ? 1 : -1;
@@ -157,8 +195,10 @@ namespace ProjectMS.CharacterSystem
             coyoteTimer = 0f;
             dashTimer = 0f;
             autoHopTimer = 0f;
+            mapBounceTimer = 0f;
             playerJumping = false;
             IsDashing = false;
+            IsMapBouncing = false;
             IsGrounded = false;
             CurrentVelocity = Vector2.zero;
         }
@@ -243,9 +283,23 @@ namespace ProjectMS.CharacterSystem
             rigidbody.gravityScale = originalGravityScale;
         }
 
+        private void TickMapBounce(float deltaTime)
+        {
+            if (!IsMapBouncing)
+                return;
+
+            rigidbody.linearVelocity = new Vector2(rigidbody.linearVelocity.x, mapBounceVelocity);
+            mapBounceTimer -= deltaTime;
+            if (mapBounceTimer > 0f)
+                return;
+
+            IsMapBouncing = false;
+            rigidbody.gravityScale = originalGravityScale;
+        }
+
         private void ApplyBetterGravity(bool jumpHeld, float deltaTime)
         {
-            if (IsDashing)
+            if (IsDashing || IsMapBouncing)
                 return;
 
             if (rigidbody.linearVelocity.y < 0f)
@@ -262,7 +316,7 @@ namespace ProjectMS.CharacterSystem
 
         private void ClampSpeed()
         {
-            if (IsDashing)
+            if (IsDashing || IsMapBouncing)
                 return;
 
             float maxSpeed = definition.MaxSpeed;

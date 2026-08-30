@@ -23,15 +23,17 @@ public class PlayerSpawner : MonoBehaviour
     [Tooltip("NetworkObject 가 붙은 Player 프리팹")]
     [SerializeField] private NetworkObject playerPrefab;
 
-    [Tooltip("스폰 위치들. 비워두면 PlayerId 로 좌우로 자동 분배")]
-    [SerializeField] private Transform[] spawnPoints;
-
     [Header("매치")]
     [Tooltip("라운드/승패를 관리하는 MatchManager 프리팹. NetworkObject 가 붙어 있어야 한다.")]
     [SerializeField] private MatchManager matchManagerPrefab;
 
+    // MatchManager가 라운드 리셋 시 GetSpawnPosition(playerId)만으로 재호출하므로(러너를 안 넘김),
+    // 처음 SpawnLocalPlayer 때 받은 러너를 기억해뒀다가 MapManager 호출에 재사용한다.
+    private NetworkRunner currentRunner;
+
     public void SpawnLocalPlayer(NetworkRunner runner)
     {
+        currentRunner = runner;
         PlayerCharacterChange();
 
         if (playerPrefab == null)
@@ -85,17 +87,19 @@ public class PlayerSpawner : MonoBehaviour
         runner.Spawn(matchManagerPrefab, Vector3.zero, Quaternion.identity);
     }
 
-    /// <summary>PlayerId 에 대응하는 스폰 위치. MatchManager 가 라운드 리셋 시 재사용한다.</summary>
+    /// <summary>PlayerId 에 대응하는 스폰 위치. MatchManager 가 라운드 리셋 시 재사용한다.
+    /// 실제 위치는 MapManager(활성 맵의 스폰 지점)에서 가져온다 — 맵이 아직 없으면 방어적으로
+    /// 1라운드용 맵을 먼저 띄운다(멱등이라 이미 떠있으면 그냥 통과).</summary>
     public Vector3 GetSpawnPosition(int playerId)
     {
-        if (spawnPoints != null && spawnPoints.Length > 0)
+        if (MapManager.Instance == null)
         {
-            int index = Mathf.Abs(playerId - 1) % spawnPoints.Length;
-            return spawnPoints[index].position;
+            Debug.LogError("[PlayerSpawner] 씬에 MapManager 가 없습니다.");
+            float x = (playerId - 1) * 4f - 2f;
+            return new Vector3(x, 1f, 0f);
         }
 
-        // 기본: PlayerId 1 → 왼쪽(-2), 2 → 오른쪽(+2) ...
-        float x = (playerId - 1) * 4f - 2f;
-        return new Vector3(x, 1f, 0f);
+        MapManager.Instance.EnsureMapForRound(currentRunner, 1);
+        return MapManager.Instance.GetSpawnPosition(playerId);
     }
 }

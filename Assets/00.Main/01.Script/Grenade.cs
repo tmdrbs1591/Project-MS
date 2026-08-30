@@ -34,6 +34,12 @@ public class Grenade : NetworkBehaviour
     [SerializeField] private float explosionRadius = 2.5f;
     [SerializeField] private GameObject explosionVfxPrefab;
 
+    [Header("Explosion Force (구조물 등 리지드바디를 밀어내는 힘)")]
+    [Tooltip("캐릭터 데미지용 Target Layer와 별개 — 판자/박스 같은 밀 수 있는 구조물의 레이어.")]
+    [SerializeField] private LayerMask structureLayer;
+    [Tooltip("폭발 중심에서의 최대 힘. 거리에 비례해 감쇠한다(중심=explosionForce, 반경 끝=0).")]
+    [Min(0f)] [SerializeField] private float explosionForce = 8f;
+
     [Networked] private TickTimer FuseTimer { get; set; }
 
     private Rigidbody2D rb;
@@ -107,8 +113,37 @@ public class Grenade : NetworkBehaviour
             target.RequestDamage(damage, Object.InputAuthority);
         }
 
+        ApplyExplosionForceToStructures();
+
         Rpc_PlayExplosionVfx(transform.position);
         Runner.Despawn(Object);
+    }
+
+    /// <summary>흔들다리 판자(RopePlank), 밀 수 있는 구조물(PushableStructure) 등 캐릭터가 아닌
+    /// 리지드바디를 폭발 중심에서 거리에 비례해 감쇠하는 힘으로 밀어낸다. 데미지 판정(위)과
+    /// 완전히 별개의 레이어(structureLayer)를 써서, 캐릭터 타겟 레이어 설정과 안 엮인다.</summary>
+    private void ApplyExplosionForceToStructures()
+    {
+        if (explosionForce <= 0f)
+            return;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius, structureLayer);
+        foreach (Collider2D hit in hits)
+        {
+            Rigidbody2D targetBody = hit.attachedRigidbody;
+            if (targetBody == null)
+                continue;
+
+            Vector2 offset = targetBody.position - (Vector2)transform.position;
+            float distance = offset.magnitude;
+            if (distance > explosionRadius)
+                continue;
+
+            Vector2 direction = distance > 0.01f ? offset / distance : Vector2.up;
+            float falloff = 1f - Mathf.Clamp01(distance / explosionRadius);
+
+            targetBody.AddForceAtPosition(direction * explosionForce * falloff, transform.position, ForceMode2D.Impulse);
+        }
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
