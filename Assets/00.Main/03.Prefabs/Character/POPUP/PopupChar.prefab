@@ -162,8 +162,8 @@ MonoBehaviour:
   baseAttackPower: 45
   errorThrowablePrefab: {fileID: -1961173916970641905, guid: b0013d4671996d947ba2297517dc8f12, type: 3}
   errorThrowableFireCount: 5
-  errorThrowableMinFlightTime: 0.1
-  errorThrowableMaxFlightTime: 1.25
+  errorThrowableMinFlightTime: 0.2
+  errorThrowableMaxFlightTime: 2
   errorThrowableMaxDistance: 12.5
   errorThrowableMaxCount: 5
   errorReloadingDuration: 2.5
