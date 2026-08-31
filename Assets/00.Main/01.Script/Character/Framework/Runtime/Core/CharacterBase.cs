@@ -328,6 +328,18 @@ namespace ProjectMS.CharacterSystem
                 NetGameplayLocked = locked;
         }
 
+        /// <summary>맵 오브젝트(낙사존 등)에 의한 상승. 전투 피격 넉백(내부 ApplyKnockback)과는
+        /// 별개의 매커니즘 — 스킬에 맞아서 밀리는 게 아니라 환경 요소에 튕겨오르는 것임을
+        /// 호출부에서 바로 구분할 수 있게 이름을 나눠뒀다. velocity 동안 duration초만큼
+        /// 중력 없이 그 속도를 유지하다가(체공시간으로 높이를 번다) 정상 중력으로 돌아온다.</summary>
+        public void ApplyMapBounce(float velocity, float duration)
+        {
+            if (Object == null || !Object.HasStateAuthority)
+                return;
+
+            movement.ApplyMapBounce(velocity, duration);
+        }
+
         public void ResetCharacter(Vector2 position)
         {
             if (Object == null || !Object.HasStateAuthority)
@@ -1432,6 +1444,7 @@ namespace ProjectMS.CharacterSystem
             NetHitstunTimer = default;
             NetMovementEnabled = true;
             movement?.CancelDash();
+            movement?.CancelMapBounce();
             movement?.SetMovementSpeedMultiplier(1f);
             movement?.SetMovementEnabled(true);
         }

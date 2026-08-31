@@ -98,6 +98,13 @@ public class TwoPlayerCamera : MonoBehaviour
             Instance = null;
     }
 
+    /// <summary>카메라 영역 콜라이더를 런타임에 갈아끼운다(MapManager가 맵을 바꿀 때 호출).
+    /// null을 넘기면 제한 없이 자유롭게 이동/줌한다.</summary>
+    public void SetBoundsCollider(Collider2D collider)
+    {
+        boundsCollider = collider;
+    }
+
     /// <summary>두 플레이어 자동 프레이밍을 멈추고 target 하나로 포커스+줌한다.</summary>
     public void SetFocusOverride(Transform target, float zoomSize)
     {

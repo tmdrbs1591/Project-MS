@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: vfx_Basic_Ultimate
       objectReference: {fileID: 0}
+    - target: {fileID: 6516703814954888032, guid: 9a9328a361c91ad4f92b1f7e09f24858, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8719581975922946396, guid: 9a9328a361c91ad4f92b1f7e09f24858, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.6067273
