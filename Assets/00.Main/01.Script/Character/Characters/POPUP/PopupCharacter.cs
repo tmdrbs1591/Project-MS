@@ -215,7 +215,7 @@ namespace ProjectMS.CharacterSystem.Examples
             float flightTime = Mathf.Lerp(
                 minFlightTime,
                 maxFlightTime,
-                Mathf.Clamp01(offset.sqrMagnitude / maxThrowDistance * maxThrowDistance));
+                Mathf.Clamp01(offset.sqrMagnitude / (maxThrowDistance * maxThrowDistance)));
 
             float gravity = Physics2D.gravity.y * projectileGravityScale;
 
