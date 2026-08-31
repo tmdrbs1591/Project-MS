@@ -5512,6 +5512,7 @@ MonoBehaviour:
   mapPrefabs:
   - {fileID: 2920103286196289857, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
   - {fileID: 7573986007636902479, guid: f17fb212f8223c242ba5f8d5727c52ab, type: 3}
+  - {fileID: 8075848613135125221, guid: 5952e60c8d43b9b49a09e14185e05177, type: 3}
   rotateMapEachRound: 1
 --- !u!1 &1159288979
 GameObject:
