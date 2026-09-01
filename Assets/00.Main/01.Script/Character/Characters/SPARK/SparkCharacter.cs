@@ -188,7 +188,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
                     foreach (CharacterBase enemy in enemies)
                     {
-                        DealDamage(enemy, lineTickDamage);
+                        DealDamage(enemy, lineTickDamage, CharacterDamageSource.Periodic);
                     }
                 }
             }
@@ -331,7 +331,7 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
                 {
-                    DealDamage(enemy, TeslaDamagePerTick);
+                    DealDamage(enemy, TeslaDamagePerTick, CharacterDamageSource.Periodic);
                     ApplySlow(enemy, 0.2f, 0.3f); // 20% 느려짐, 0.3초 유지
                 }
             }
@@ -379,7 +379,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
                     foreach (CharacterBase enemy in FindEnemiesInCircle(transform.position, teslaRadius, targetLayer))
                     {
-                        DealDamage(enemy, TeslaDamagePerTick);
+                        DealDamage(enemy, TeslaDamagePerTick, CharacterDamageSource.Periodic);
                         ApplySlow(enemy, 0.2f, 0.3f); // 20% 느려짐, 0.3초 유지
                     }
                 }

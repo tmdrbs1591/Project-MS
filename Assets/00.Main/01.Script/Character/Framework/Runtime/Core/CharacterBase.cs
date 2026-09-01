@@ -444,13 +444,13 @@ namespace ProjectMS.CharacterSystem
             ultimateFlashEffect?.Play();
         }
 
-        protected void DealDamage(CharacterBase target, float amount)
+        protected void DealDamage(CharacterBase target, float amount, CharacterDamageSource source = CharacterDamageSource.Direct)
         {
             if (target == null || target == this || amount <= 0f)
                 return;
 
             PlayerRef attacker = DamageOwner;
-            DealDamageThroughPipeline(target, amount, attacker, CharacterDamageSource.Direct);
+            DealDamageThroughPipeline(target, amount, attacker, source);
         }
 
         internal void DealProjectileDamage(CharacterBase target, float amount)
@@ -1306,7 +1306,11 @@ namespace ProjectMS.CharacterSystem
                 // 죽는 타격이 아닐 때만 넉백을 건다 — 어차피 죽는 순간 위의 ResetCommonState()가
                 // 속도를 0으로 되돌리고 대시/넉백을 취소해버려서(그래야 사망 연출/카메라 포커스가
                 // 제자리에서 안정적으로 잡힘), 죽는 타격에 걸어봐야 바로 지워진다.
-                ApplyKnockback(request.Attacker);
+                // 틱/도트류(Periodic)는 넉백을 안 건다 — 전류 노드/패시브 도트/궁극기 지속 피해처럼
+                // 짧은 간격으로 반복되는 데미지에 매번 넉백이 걸리면 대상이 계속 밀려나서
+                // 위치가 안정되지 않는다.
+                if (request.Source != CharacterDamageSource.Periodic)
+                    ApplyKnockback(request.Attacker);
             }
 
             DamageResult result = DamageResult.Applied(request.Amount, applied, health.Current, health.IsDead);

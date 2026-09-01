@@ -229,7 +229,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void DealGlitchDamage()
         {
-            DealDamage(currentGlitchTarget, baseAttackPower * glitchDamageRatio / glitchDamageTimes);
+            DealDamage(currentGlitchTarget, baseAttackPower * glitchDamageRatio / glitchDamageTimes, CharacterDamageSource.Periodic);
             currentGlitchDealedCount++;
             isGlitchDamage = true;
         }
