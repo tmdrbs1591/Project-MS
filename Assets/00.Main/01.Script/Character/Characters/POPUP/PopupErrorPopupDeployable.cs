@@ -5,7 +5,7 @@ namespace ProjectMS.CharacterSystem.Examples
     public class PopupErrorPopupDeployable : CharacterDeployable
     {
         [SerializeField] private Vector2 popupOffset;
-        [Min(3f)][SerializeField] private float popupTabLeashRadius = 3f;
+        [Min(0.1f)][SerializeField] private float popupTabLeashRadius = 0.5f;
         private CharacterBase target;
 
         private float damageDuration;

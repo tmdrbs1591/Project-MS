@@ -41,7 +41,7 @@ MonoBehaviour:
   lowJumpMultiplier: 2
   defaultDashPower: 14
   defaultDashDuration: 0.16
-  ultimateUsesGauge: 0
+  ultimateUsesGauge: 1
   ultimateGaugeMax: 100
   ultimateGaugePerDamageDealt: 1
   autoHop: 1
