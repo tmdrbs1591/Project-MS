@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &546157030208497784
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 949096251201996064}
+  m_Layer: 7
+  m_Name: ProjectileOrigin
+  m_TagString: Untagged
+  m_Icon: {fileID: -5938655980376293919, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &949096251201996064
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 546157030208497784}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.75, y: 0.75, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6482914635821692736}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1786362081827620217
 GameObject:
   m_ObjectHideFlags: 0
@@ -297,7 +328,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -9018148900744180236, guid: 549f43c6c259a5742ab5709873bc1388, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.9686275, g: 0.7058824, b: 0.9960785, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -335,7 +366,8 @@ Transform:
   m_LocalPosition: {x: 0.65, y: -0.05, z: 0}
   m_LocalScale: {x: 0.25, y: 0.25, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 949096251201996064}
   m_Father: {fileID: 6160782502721587967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3499193105895850853
@@ -388,7 +420,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -9018148900744180236, guid: 549f43c6c259a5742ab5709873bc1388, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.859241, g: 0.5652901, b: 0.89433956, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -426,6 +458,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: -9018148900744180236, guid: 549f43c6c259a5742ab5709873bc1388, type: 3}
     - target: {fileID: 729553932704012313, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 729553932704012313, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_Color.g
+      value: 0.65471697
+      objectReference: {fileID: 0}
+    - target: {fileID: 729553932704012313, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_Color.r
+      value: 0.81142837
+      objectReference: {fileID: 0}
+    - target: {fileID: 729553932704012313, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_WasSpriteAssigned
       value: 1
       objectReference: {fileID: 0}
@@ -444,6 +488,14 @@ PrefabInstance:
     - target: {fileID: 2264767874839770031, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: sockets.attackOrigin
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -500,7 +552,7 @@ PrefabInstance:
     - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: aimVisualRoot
       value: 
-      objectReference: {fileID: 691678921152775715}
+      objectReference: {fileID: 6160782502721587967}
     - target: {fileID: 7359317963411921253, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.75
@@ -514,9 +566,10 @@ PrefabInstance:
     m_RemovedGameObjects:
     - {fileID: 7553301678698775598, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
     - {fileID: 4372853396889577421, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+    - {fileID: 9114988179871836040, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 2248225502348264044, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
-      insertIndex: 1
+      insertIndex: -1
       addedObject: {fileID: 6160782502721587967}
     - targetCorrespondingSourceObject: {fileID: 8405469865126186382, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       insertIndex: -1
@@ -532,11 +585,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1577467397353877093}
   m_SourcePrefab: {fileID: 100100000, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
---- !u!4 &691678921152775715 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5284961165800710246, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
-  m_PrefabInstance: {fileID: 4669848523576370757}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &2091689946792414411 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
@@ -548,11 +596,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 590f258fe2f61d74b9a52203be16df96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterVisualController
---- !u!4 &2805512562772770592 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7359317963411921253, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
-  m_PrefabInstance: {fileID: 4669848523576370757}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3776435634168540107 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8405469865126186382, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
@@ -579,9 +622,9 @@ MonoBehaviour:
   visual: {fileID: 2091689946792414411}
   sockets:
     attackOrigin: {fileID: 0}
-    projectileOrigin: {fileID: 691678921152775715}
+    projectileOrigin: {fileID: 6482914635821692736}
     weaponRoot: {fileID: 0}
-    effectOrigin: {fileID: 2805512562772770592}
+    effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
   ultimateFlashEffect: {fileID: 0}
   targetLayer:
