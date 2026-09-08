@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1fab3400db39db47882c2cb785e3e67, type: 3}
   m_Name: GunnerDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
-  displayName: 거너
+  displayName: "\uAC70\uB108"
   maxHealth: 1000
   basicAttackDamage: 50
   skillQDamage: 100
@@ -24,7 +24,6 @@ MonoBehaviour:
   dashCooldown: 3
   ultimateCooldown: 30
   knockbackBaseForce: 3
-  knockbackForcePerDamage: 0.1
   knockbackDuration: 0.15
   knockbackUpwardBias: 0.35
   moveSpeed: 10
@@ -49,6 +48,11 @@ MonoBehaviour:
   autoHopInterval: 0.1
   autoHopForce: 5
   autoHopMoveThreshold: 0.05
+  basicAttackIcon: {fileID: 0}
+  skillQIcon: {fileID: 1584109003567060775, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  skillEIcon: {fileID: 4056622184079890754, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  dashIcon: {fileID: 8475406714918343715, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  ultimateIcon: {fileID: -4938686240281382914, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
   moveLeft: 15
   moveRight: 18
   jump: 1

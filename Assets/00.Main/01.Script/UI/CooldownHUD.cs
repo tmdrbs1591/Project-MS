@@ -40,6 +40,13 @@ public class CooldownHUD : MonoBehaviour
     public void Bind(CharacterBase target)
     {
         character = target;
+
+        if (target == null || target.Definition == null)
+            return;
+
+        // 캐릭터가 바뀌면(스폰 시) 그 캐릭터의 CharacterDefinition에 연결된 아이콘으로 갈아끼운다.
+        foreach (CooldownSlotUI slot in slots)
+            slot.SetIcon(target.Definition.GetIcon(slot.ActionType));
     }
 
     public void Unbind()

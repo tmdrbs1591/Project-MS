@@ -62,6 +62,14 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float autoHopForce = 5f;
         [Min(0f)] [SerializeField] private float autoHopMoveThreshold = 0.05f;
 
+        [Header("Skill Icons (UI)")]
+        [Tooltip("쿨타임 HUD(CooldownSlotUI)에 표시할 아이콘. 비워두면 그 슬롯은 아이콘 없이 표시된다.")]
+        [SerializeField] private Sprite basicAttackIcon;
+        [SerializeField] private Sprite skillQIcon;
+        [SerializeField] private Sprite skillEIcon;
+        [SerializeField] private Sprite dashIcon;
+        [SerializeField] private Sprite ultimateIcon;
+
         [Header("Input")]
         [SerializeField] private Key moveLeft = Key.A;
         [SerializeField] private Key moveRight = Key.D;
@@ -126,6 +134,19 @@ namespace ProjectMS.CharacterSystem
                 CharacterActionType.Dash => dashCooldown,
                 CharacterActionType.Ultimate => ultimateCooldown,
                 _ => 0f
+            };
+        }
+
+        public Sprite GetIcon(CharacterActionType action)
+        {
+            return action switch
+            {
+                CharacterActionType.BasicAttack => basicAttackIcon,
+                CharacterActionType.SkillQ => skillQIcon,
+                CharacterActionType.SkillE => skillEIcon,
+                CharacterActionType.Dash => dashIcon,
+                CharacterActionType.Ultimate => ultimateIcon,
+                _ => null
             };
         }
     }

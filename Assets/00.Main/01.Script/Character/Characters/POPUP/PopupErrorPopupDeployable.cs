@@ -51,7 +51,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void DealContinuosDamage()
         {
-            DealDamage(target, totalDamage / damageTimes);
+            DealDamage(target, totalDamage / damageTimes, CharacterDamageSource.Periodic);
             currentDealedCount++;
         }
         
