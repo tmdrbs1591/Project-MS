@@ -9,5 +9,6 @@ public class CharacterChangeUi : MonoBehaviour
     {
         PlayerPrefs.SetInt("SelectedCharacterIndex", characterIndex);
         PlayerPrefs.Save();
+        LobbyCharacterChange.Instance.ChangeCharacterBody(characterIndex);
     }
 }

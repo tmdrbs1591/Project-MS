@@ -23,6 +23,8 @@ public class LobbyCharacterController : MonoBehaviour
     [Header("Visual (선택)")]
     [SerializeField] private CharacterVisualController visual;
 
+    public void SetVisual(CharacterVisualController newVisual) => visual = newVisual;
+
     private Rigidbody2D rb;
     private Collider2D col;
     private bool isGrounded;

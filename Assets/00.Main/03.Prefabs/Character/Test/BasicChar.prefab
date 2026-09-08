@@ -126,10 +126,9 @@ Transform:
   m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 1912895216425487437}
   - {fileID: 6218844516495763930}
-  - {fileID: 1383567571185963257}
   - {fileID: 6219626856896517405}
+  - {fileID: 66363623695644109}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &9187640356134668255
@@ -265,6 +264,7 @@ MonoBehaviour:
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
+  ultimateFlashEffect: {fileID: 0}
   projectilePrefab: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
   projectileSpeed: 14
   targetLayer:
@@ -320,7 +320,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1039487581989718057}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -328,7 +328,7 @@ Transform:
   - {fileID: 5643328434679563680}
   - {fileID: 514286130412363308}
   - {fileID: 2898472591512948500}
-  m_Father: {fileID: 6533289649576514897}
+  m_Father: {fileID: 66363623695644109}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &4990809116307640051
 Animator:
@@ -5658,6 +5658,39 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!1 &6208640627529311077
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 66363623695644109}
+  m_Layer: 7
+  m_Name: Body
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &66363623695644109
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6208640627529311077}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1912895216425487437}
+  - {fileID: 1383567571185963257}
+  m_Father: {fileID: 6533289649576514897}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6893864609132966066
 GameObject:
   m_ObjectHideFlags: 0
@@ -6022,14 +6055,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9201869439410255167}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5020993595967787381}
   - {fileID: 5928863085852777679}
-  m_Father: {fileID: 6533289649576514897}
+  m_Father: {fileID: 66363623695644109}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1736479760912405205
 SpriteRenderer:
@@ -6133,5 +6166,9 @@ MonoBehaviour:
   dustEffect: {fileID: 1286551316285015961}
   animator: {fileID: 3015419607016717045}
   actionEffects: []
+  damagedShakeMagnitude: 0.1
+  damagedShakeDuration: 0.15
+  commonSounds: {fileID: 0}
+  actionSounds: []
   jiggleTargets: []
   counterFlipTargets: []
