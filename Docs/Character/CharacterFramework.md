@@ -23,6 +23,8 @@ Photon Fusion 2 Shared Mode용 공통 캐릭터 프레임워크입니다.
 
 - 행동 설정: `SetActionEnabled`, `IsActionEnabled`, `SetActionCharges`, `AddActionCharges`, `GetActionCharges`, `SetCooldownDuration`, `ResetCooldownDuration`, `SetAutoCooldown`, `StartCooldown`, `ClearCooldown`, `GetCooldownRemaining`
 - 이동과 슬로우: `SetMovementEnabled`, `IsMovementEnabled`, `ApplySlow`, `SlowRatio`, `IsSlowed`
+- 상대 입력과 조작 방해: `WasInputPressed`, `IsInputHeld`, `GetObservedMoveDirection`, `ApplyControlSeal`
+- 조준과 조준선 방해: `ApplyAimInversion`, `ApplyAimAngleOffset`, `SetCrosshairOffset`, `SetCrosshairVisible`, `SetSystemCursorVisible`, `ReplaceCursorWithCrosshair`
 - 시간과 방향: `ScheduleTimer`, `CancelTimer`, `FacingDirection`, `IsFacingRight`, `IsFacingLeft`, `IsBehindTarget`
 - 공격과 투사체: `SpawnProjectile`, `SpawnThrowable`, `StartThrowableFuse`, `DespawnProjectile`, `ModifyOutgoingDamage`, `OnDamageDealt`, `OnProjectileDespawned`
 - 캐릭터 소유 오브젝트: `SpawnOwnedEntity`, `DestroyOwnedEntity`, `GetOwnedEntities`, `DestroyOwnedEntities`
@@ -32,11 +34,95 @@ Photon Fusion 2 Shared Mode용 공통 캐릭터 프레임워크입니다.
 
 투사체는 캐릭터 코드에서 `CharacterBase.SpawnProjectile`만 호출합니다. `CharacterProjectile.Initialize`을 직접 호출하지 않습니다. 예전 5개 인자 초기화 함수는 발사자 정보를 보장하지 못하므로 일부러 컴파일 오류가 나게 막아 두었습니다.
 
-다른 캐릭터의 현재 조준 방향은 공개 읽기 전용 `CharacterBase.AimDirection`으로 확인합니다. 이 값은 동기화된 `NetAimAngle`에서 계산되므로 상대 캐릭터의 백어택 판정에도 사용할 수 있습니다. 상대 입력이나 네트워크 필드를 직접 읽지 않습니다.
+다른 캐릭터의 현재 조준 방향은 공개 읽기 전용 `CharacterBase.AimDirection`으로 확인합니다. 이 값은 동기화된 실제 발사 방향이므로 조준 반전과 각도 변경도 반영합니다. 상대의 매핑 입력은 아래 공통 API로만 읽고 네트워크 필드를 직접 읽지 않습니다.
 
 직접 공격과 발사자를 확인할 수 있는 투사체 공격은 모두 `OnDamageDealt`로 결과를 전달합니다. 캐릭터 스크립트에서는 `Runner.Spawn` 대신 `CharacterBase.SpawnProjectile`을 사용하며, 발사자 정보가 없는 예전 5개 인자 초기화 함수는 사용하지 않습니다. 투사체 제거 사유는 `HitCharacter`, `HitOwnedEntity`, `HitWall`, `LifetimeExpired`, `Manual`로 구분합니다.
 
 캐릭터 고유 상태에 `[Networked]` 또는 `[Rpc]`가 필요해 보이면 먼저 공통 API로 구현할 수 있는지 확인합니다. 꼭 필요한 경우에만 공통 시스템 담당자 검토 후 최소 범위로 추가합니다.
+
+## 상대 입력 감지와 조작 방해
+
+입력 감지는 실제 키 이름이 아니라 캐릭터 기능 이름을 사용합니다. 예를 들어 점프 키가 Space에서 다른 키로 바뀌어도 코드는 `CharacterInputType.Jump`를 그대로 사용합니다.
+
+### 버튼을 누른 순간 감지
+
+`WasInputPressed` 결과는 새 입력이 들어온 한 번만 `true`입니다. 처음 호출할 때는 현재 순번을 기억하고 `false`를 반환하므로, 상대를 감지하기 시작할 때부터 매 틱 호출합니다.
+
+```csharp
+private bool watchingEnemyInput;
+
+protected override void OnPassiveTick(float deltaTime)
+{
+    if (!watchingEnemyInput)
+        return;
+
+    CharacterBase enemy = All.Find(character =>
+        character != null &&
+        character != this &&
+        character.DamageTeamId != DamageTeamId);
+    if (enemy != null && WasInputPressed(enemy, CharacterInputType.Jump))
+    {
+        // 상대가 점프 키를 누른 순간에 실행할 처리
+    }
+}
+```
+
+사용할 수 있는 버튼은 `Jump`, `BasicAttack`, `SkillQ`, `SkillE`, `Dash`, `Ultimate`입니다. 점프 키를 계속 누르고 있는지는 `IsInputHeld(enemy, CharacterInputType.Jump)`로 확인합니다. 이동은 `GetObservedMoveDirection(enemy)`으로 읽으며 왼쪽은 `-1`, 정지는 `0`, 오른쪽은 `1`입니다.
+
+입력은 봉인하기 전에 기록됩니다. 따라서 점프가 봉인된 상대가 점프 키를 눌러도 `WasInputPressed` 감지는 되지만 실제 점프는 실행되지 않습니다.
+
+### 이동·점프·공격·스킬 봉인
+
+```csharp
+// 점프만 2초 봉인
+ApplyControlSeal(target, CharacterControlType.Jump, 2f);
+
+// 기본 공격, Q, E, 대시, 궁극기를 3초 봉인
+ApplyControlSeal(target, CharacterControlType.AllActions, 3f);
+
+// 이동과 점프를 함께 1.5초 봉인
+ApplyControlSeal(
+    target,
+    CharacterControlType.Movement | CharacterControlType.Jump,
+    1.5f);
+```
+
+각 기능의 남은 시간은 따로 관리됩니다. 같은 봉인이 중복되면 더 긴 시간만 남기므로 기존 봉인 시간이 짧아지지 않습니다. `AllActions`는 공격과 스킬만 막으며 이동과 점프는 허용합니다. 모든 조작을 막으려면 `CharacterControlType.All`을 사용합니다.
+
+### 조준 반전과 조준 각도 변경
+
+```csharp
+// 마우스와 반대 방향을 실제 발사 방향으로 사용
+ApplyAimInversion(target, 2f);
+
+// 실제 발사 방향을 반시계 방향으로 30도 회전
+ApplyAimAngleOffset(target, 30f, 2f);
+```
+
+조준 반전은 운영체제의 마우스 포인터를 강제로 움직이지 않습니다. 캐릭터에서 마우스로 향하는 방향만 변환하며, `context.AimDirection`, `context.AimWorldPosition`, `AimDirection`과 조준 연출이 모두 변환된 방향을 사용합니다.
+
+### 조준선 UI와 마우스 커서
+
+```csharp
+// 기본 커서를 숨기고 공통 조준선을 3초 표시
+ReplaceCursorWithCrosshair(target, 3f);
+
+// 조준선만 오른쪽 100, 아래 50픽셀 이동
+SetCrosshairOffset(target, new Vector2(100f, -50f), 3f);
+
+// 필요한 상태를 개별로 설정할 때
+SetCrosshairVisible(target, false, 2f);
+SetSystemCursorVisible(target, true, 2f);
+```
+
+조준선은 해당 플레이어의 화면에만 생성되며 네트워크 오브젝트가 아닙니다. `SetCrosshairOffset`은 UI 표시 위치만 옮기고 실제 발사 방향은 바꾸지 않습니다. 효과 시간이 끝나면 표시 상태와 시스템 커서는 자동으로 복구됩니다.
+
+### 권한과 시작 조건
+
+- 위 API는 공격을 실행하는 자신의 State Authority에서 호출합니다.
+- 자기 자신, 아군, 죽은 대상에 대한 요청은 공통 검증에서 무시됩니다.
+- 효과는 죽음, 라운드 리셋, 디스폰 시 초기화됩니다.
+- `duration`은 0보다 큰 초 단위 값을 사용합니다.
 
 ## 설치물·소환체·물리 투척체 제작 순서
 

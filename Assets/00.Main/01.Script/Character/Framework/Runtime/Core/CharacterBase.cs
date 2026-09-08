@@ -162,6 +162,7 @@ namespace ProjectMS.CharacterSystem
             lastRenderedAutoHopSequence = NetAutoHopSequence;
             lastRenderedDamageSequence = NetDamageSequence;
             lastRenderedDead = NetDead;
+            InitializeControlEffects();
             OnCharacterSpawned();
             BindProjectHud();
         }
@@ -173,6 +174,7 @@ namespace ProjectMS.CharacterSystem
             timers?.CancelAll();
             ownedEntityRegistry?.Clear();
             input?.ClearGameplayInput();
+            DisposeControlEffects();
             OnCharacterDespawned();
             UnregisterProjectIntegration();
         }
@@ -182,6 +184,7 @@ namespace ProjectMS.CharacterSystem
             UnregisterProjectIntegration();
             timers?.CancelAll();
             ownedEntityRegistry?.Clear();
+            DisposeControlEffects();
             if (HasStateAuthority)
                 ResetCommonState();
 
@@ -213,6 +216,8 @@ namespace ProjectMS.CharacterSystem
             if (IsProjectInputLocked)
                 input.ClearGameplayInput();
             lastInput = input.ConsumeTick();
+            RecordObservedInput(lastInput);
+            lastInput = ApplyControlEffects(lastInput);
             UpdateAim(lastInput.AimWorldPosition);
             status.Tick();
             movement.SetMovementEnabled(NetMovementEnabled);
@@ -243,6 +248,8 @@ namespace ProjectMS.CharacterSystem
 
         public override void Render()
         {
+            RenderAimCursor();
+
             if (visual == null)
                 return;
 
@@ -1447,6 +1454,7 @@ namespace ProjectMS.CharacterSystem
             NetSlowTimer = default;
             NetHitstunTimer = default;
             NetMovementEnabled = true;
+            ResetControlEffectsAuthority();
             movement?.CancelDash();
             movement?.CancelMapBounce();
             movement?.SetMovementSpeedMultiplier(1f);
