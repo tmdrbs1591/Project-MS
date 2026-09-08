@@ -21,7 +21,17 @@ public class LobbyCharacterChange : MonoBehaviour
 
     public void ChangeCharacterBody(int index)
     {
-        Transform body = characterPrefabs[index].transform.Find(bodyRootName);
+        Transform body = null;
+        if (characterPrefabs[index].transform.Find(bodyRootName))
+        {
+            body = characterPrefabs[index].transform.Find(bodyRootName);
+        }
+        else if (characterPrefabs[index].transform.Find("VisualRoot"))
+        {
+            body = characterPrefabs[index].transform.Find("VisualRoot");
+            body = body.transform.Find(bodyRootName);
+        }
+
         if (body == null) return;
 
         if (currentBodyRoot != null) Destroy(currentBodyRoot);

@@ -1571,7 +1571,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -51.3, y: -157.8}
+  m_AnchoredPosition: {x: -51.300003, y: -157.8}
   m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &281914153
@@ -1741,6 +1741,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
   actionType: 3
+  iconImage: {fileID: 0}
   cooldownOverlay: {fileID: 1807704769}
   remainingText: {fileID: 0}
 --- !u!222 &307828118
@@ -2937,6 +2938,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
   actionType: 5
+  iconImage: {fileID: 0}
   cooldownOverlay: {fileID: 223313405}
   remainingText: {fileID: 0}
 --- !u!222 &494226555
@@ -4489,6 +4491,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
   actionType: 2
+  iconImage: {fileID: 0}
   cooldownOverlay: {fileID: 1308007745}
   remainingText: {fileID: 0}
 --- !u!222 &829741877
@@ -4608,7 +4611,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -15.3, y: -157.8}
+  m_AnchoredPosition: {x: -15.300003, y: -157.8}
   m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &866667280
@@ -5991,6 +5994,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CooldownSlotUI
   actionType: 4
+  iconImage: {fileID: 0}
   cooldownOverlay: {fileID: 1840396675}
   remainingText: {fileID: 0}
 --- !u!222 &1159288983
@@ -8566,8 +8570,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawner
   characterPrefabs:
   - {fileID: 6666027296753752054, guid: 3b0b57948783dd44588f1816250622c3, type: 3}
-  - {fileID: 763286055622807079, guid: fccaf567b735da54997f09a416794e4d, type: 3}
+  - {fileID: 1563347596835656311, guid: 93f219e34dd7c4c42bb039eb9401c399, type: 3}
   - {fileID: 1403295215939554465, guid: 770504900de23194694b3b1acca71855, type: 3}
+  - {fileID: 4630995376292401514, guid: 33c32c357711d8146aee043515a63b06, type: 3}
+  - {fileID: 763286055622807079, guid: fccaf567b735da54997f09a416794e4d, type: 3}
   playerPrefab: {fileID: 1563347596835656311, guid: 93f219e34dd7c4c42bb039eb9401c399, type: 3}
   matchManagerPrefab: {fileID: 8805618031843955233, guid: e5cca772048064b4eb79445d1ae96515, type: 3}
 --- !u!4 &1722130397

@@ -79,6 +79,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Gunner
       objectReference: {fileID: 0}
+    - target: {fileID: 1286551316285015961, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: EmissionModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1736479760912405205, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_Color.b
       value: 0.5424528

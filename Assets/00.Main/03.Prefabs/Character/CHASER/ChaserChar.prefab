@@ -79,6 +79,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ChaserChar
       objectReference: {fileID: 0}
+    - target: {fileID: 1286551316285015961, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: EmissionModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1559941826975064851, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_Color.b
       value: 1
@@ -340,7 +344,6 @@ MonoBehaviour:
   techJumpPower: 30
   techJumpDuration: 0.08
   techJumpFlashBangPrefab: {fileID: -654922866199395279, guid: ddd786da885a4124a88ee0d2403f7e26, type: 3}
-  techJumpFlashBangDropImageAngle: 30
   techJumpFlashBangSpeed: 8
   techJumpFlashBangRange: 2
   techJumpFlashBangSlowDuration: 0.5

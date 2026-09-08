@@ -289,9 +289,14 @@ MonoBehaviour:
   - {fileID: 4064092241727539519, guid: 3b0b57948783dd44588f1816250622c3, type: 3}
   - {fileID: 8166946445729877182, guid: 93f219e34dd7c4c42bb039eb9401c399, type: 3}
   - {fileID: 8619172043949265512, guid: 770504900de23194694b3b1acca71855, type: 3}
-  - {fileID: 1305781822789967737, guid: 9f8509b413b47e24f9c4788aaab1c420, type: 3}
+  - {fileID: 5886573862833993243, guid: 33c32c357711d8146aee043515a63b06, type: 3}
   - {fileID: 1973257100290894166, guid: fccaf567b735da54997f09a416794e4d, type: 3}
   bodyRootName: Body
+--- !u!4 &36290878 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5587944605542591994, guid: 59db0b3b76d9fe5499a55f67a48ba06d, type: 3}
+  m_PrefabInstance: {fileID: 646444335}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &37588277
 GameObject:
   m_ObjectHideFlags: 0
@@ -1413,6 +1418,7 @@ GameObject:
   - component: {fileID: 261270410}
   - component: {fileID: 261270409}
   - component: {fileID: 261270411}
+  - component: {fileID: 261270412}
   m_Layer: 5
   m_Name: Image (2)
   m_TagString: Untagged
@@ -1452,7 +1458,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.49056602, g: 0.49056602, b: 0.49056602, a: 1}
+  m_Color: {r: 1, g: 0.9292453, b: 0.9967745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1520,7 +1526,32 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 261270409}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 261270412}
+        m_TargetAssemblyTypeName: CharacterChangeUi, Assembly-CSharp
+        m_MethodName: OnClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &261270412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261270407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce91886b92aff5641bb32d46bb9aded3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeUi
+  characterIndex: 2
 --- !u!1 &281364083
 GameObject:
   m_ObjectHideFlags: 0
@@ -2387,7 +2418,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.6443301, b: 0, a: 1}
+  m_Color: {r: 0.8396226, g: 0.5896817, b: 0.2415895, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2480,7 +2511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce91886b92aff5641bb32d46bb9aded3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeUi
-  characterIndex: 1
+  characterIndex: 0
 --- !u!1 &592628992
 GameObject:
   m_ObjectHideFlags: 0
@@ -3384,7 +3415,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 5587944605542591994, guid: 59db0b3b76d9fe5499a55f67a48ba06d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1390135755}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6198399423561271924, guid: 59db0b3b76d9fe5499a55f67a48ba06d, type: 3}
       insertIndex: -1
@@ -3402,6 +3436,7 @@ GameObject:
   - component: {fileID: 652239511}
   - component: {fileID: 652239510}
   - component: {fileID: 652239512}
+  - component: {fileID: 652239513}
   m_Layer: 5
   m_Name: Image (4)
   m_TagString: Untagged
@@ -3441,7 +3476,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.49056602, g: 0.49056602, b: 0.49056602, a: 1}
+  m_Color: {r: 1, g: 0.9525045, b: 0.41037738, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3509,7 +3544,32 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 652239510}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 652239513}
+        m_TargetAssemblyTypeName: CharacterChangeUi, Assembly-CSharp
+        m_MethodName: OnClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &652239513
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 652239508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce91886b92aff5641bb32d46bb9aded3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeUi
+  characterIndex: 4
 --- !u!1 &658605264
 GameObject:
   m_ObjectHideFlags: 0
@@ -4678,6 +4738,7 @@ GameObject:
   - component: {fileID: 975003067}
   - component: {fileID: 975003066}
   - component: {fileID: 975003068}
+  - component: {fileID: 975003069}
   m_Layer: 5
   m_Name: Image (1)
   m_TagString: Untagged
@@ -4717,7 +4778,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.899874, b: 0, a: 1}
+  m_Color: {r: 0.59616476, g: 0, b: 0.8773585, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -4786,7 +4847,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 975003069}
         m_TargetAssemblyTypeName: CharacterChangeUi, Assembly-CSharp
         m_MethodName: OnClick
         m_Mode: 1
@@ -4798,6 +4859,19 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &975003069
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975003064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce91886b92aff5641bb32d46bb9aded3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeUi
+  characterIndex: 1
 --- !u!1 &1053371004
 GameObject:
   m_ObjectHideFlags: 0
@@ -10076,6 +10150,7 @@ GameObject:
   - component: {fileID: 1160676952}
   - component: {fileID: 1160676951}
   - component: {fileID: 1160676953}
+  - component: {fileID: 1160676954}
   m_Layer: 5
   m_Name: Image (3)
   m_TagString: Untagged
@@ -10115,7 +10190,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.49056602, g: 0.49056602, b: 0.49056602, a: 1}
+  m_Color: {r: 0.99676806, g: 0.6650944, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -10183,7 +10258,32 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1160676951}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1160676954}
+        m_TargetAssemblyTypeName: CharacterChangeUi, Assembly-CSharp
+        m_MethodName: OnClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &1160676954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160676949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce91886b92aff5641bb32d46bb9aded3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeUi
+  characterIndex: 3
 --- !u!1 &1240409291
 GameObject:
   m_ObjectHideFlags: 0
@@ -10866,17 +10966,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1390135751}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.02, y: 0.02, z: 0.02}
+  m_LocalScale: {x: 0.036363635, y: 0.036363635, z: 0.036363635}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1924534613}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 36290878}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 4.0545454}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1421835707
@@ -28411,7 +28511,6 @@ SceneRoots:
   - {fileID: 1779600755}
   - {fileID: 37588279}
   - {fileID: 64369491}
-  - {fileID: 1390135755}
   - {fileID: 646444335}
   - {fileID: 953894625}
   - {fileID: 1240409292}
