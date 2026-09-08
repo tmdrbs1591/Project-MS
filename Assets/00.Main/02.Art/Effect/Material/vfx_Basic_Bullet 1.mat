@@ -82,7 +82,7 @@ Material:
     - _Dissolve_Use: 0
     - _Dissolve_smooth: 0
     - _ERRORTOGGLE: 0
-    - _Emission: 5
+    - _Emission: 1.69
     - _Emission_Mode: 0
     - _FixedTiling: 0
     - _Fresnel_AlphaClip: 0
