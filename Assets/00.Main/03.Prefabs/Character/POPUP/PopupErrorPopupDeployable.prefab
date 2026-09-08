@@ -198,6 +198,7 @@ MonoBehaviour:
   destroyWhenOwnerDies: 1
   activateOnSpawn: 1
   popupOffset: {x: 0.5, y: 0.5}
+  popupTabLeashRadius: 0.25
 --- !u!114 &7863458582313883654
 MonoBehaviour:
   m_ObjectHideFlags: 0

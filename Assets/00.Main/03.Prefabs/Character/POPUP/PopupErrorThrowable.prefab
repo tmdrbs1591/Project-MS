@@ -61,6 +61,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: -1961173916970641905}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -188,4 +196,3 @@ MonoBehaviour:
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
-  damage: 40.5
