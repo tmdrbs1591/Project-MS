@@ -14,6 +14,7 @@ Material:
   m_ValidKeywords:
   - _DEFORM_USE_ON
   - _DISSOLVE_USE_ON
+  - _MASK_USE_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -38,7 +39,7 @@ Material:
         m_Scale: {x: 0.5, y: 0.5}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: de707b3b6de37da4ba6ebc387590b210, type: 3}
+        m_Texture: {fileID: 2800000, guid: 7d59ae2be6260054db426fe96a2f217d, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskTex:
@@ -46,7 +47,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 5b0198dc922b7df419f1a00f8893cd29, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalMap:
@@ -96,7 +97,7 @@ Material:
     - _Dissolve_Use: 1
     - _Dissolve_smooth: 1
     - _ERRORTOGGLE: 0
-    - _Emission: 4.67
+    - _Emission: 51.26
     - _Emission_Mode: 0
     - _EnableExternalAlpha: 0
     - _FixedTiling: 0
@@ -113,19 +114,19 @@ Material:
     - _Main_Rotate: 0
     - _Mask_Alpha_Ch: 1
     - _Mask_BlendMode: 0
-    - _Mask_Contrast: 1
+    - _Mask_Contrast: 0.71
     - _Mask_Rotate: 0
     - _Mask_Scale: 1
     - _Mask_ScaleOffset: 0
     - _Mask_Smooth: 0
     - _Mask_Strength: 1
     - _Mask_Strength_Mode: 0
-    - _Mask_Use: 0
+    - _Mask_Use: 1
     - _Pixelate: 0
     - _Saturation: 1
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
-    - _Use_Dissolve_Edge: 0
+    - _Use_Dissolve_Edge: 1
     - _Value: 1
     - _ZWrite: 0
     m_Colors:
@@ -133,7 +134,7 @@ Material:
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Panning: {r: 0.4, g: 0, b: 0, a: 0}
     - _Deform_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
-    - _Dissolve_Edge_Color: {r: 4, g: 0.9547434, b: 0.2641504, a: 1}
+    - _Dissolve_Edge_Color: {r: 253.0143, g: 60.39093, b: 16.708458, a: 1}
     - _Dissolve_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Dissolve_Panning: {r: 0, g: 0, b: 0, a: 0}
     - _Dissolve_Radial_Tiling: {r: 1, g: 1, b: 0, a: 0}
