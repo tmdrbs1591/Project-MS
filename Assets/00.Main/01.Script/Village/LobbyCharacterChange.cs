@@ -29,7 +29,6 @@ public class LobbyCharacterChange : MonoBehaviour
         else if (characterPrefabs[index].transform.Find("VisualRoot"))
         {
             body = characterPrefabs[index].transform.Find("VisualRoot");
-            body = body.transform.Find(bodyRootName);
         }
 
         if (body == null) return;
