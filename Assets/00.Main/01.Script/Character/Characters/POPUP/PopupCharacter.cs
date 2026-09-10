@@ -1,7 +1,4 @@
-﻿using ProjectMS.CharacterSystem;
-using System;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples

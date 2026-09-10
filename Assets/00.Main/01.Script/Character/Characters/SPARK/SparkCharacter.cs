@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Fusion;
-using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
