@@ -8,17 +8,29 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -6853174992413704043, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'Guid.RawGuidValue.Array.data[0]'
+      value: -802690079868468852
+      objectReference: {fileID: 0}
+    - target: {fileID: -6853174992413704043, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'Guid.RawGuidValue.Array.data[1]'
+      value: 8928307778247475720
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.x
+      value: -5
+      objectReference: {fileID: 0}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey
       value: 793038750
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -1.6720762
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 1.0826457
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.z
@@ -52,6 +64,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 2897050575778184920, guid: 11417088ff2282747bcb3c0de0a95c52, type: 3}
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
       value: Gunner_Bullet Variant
