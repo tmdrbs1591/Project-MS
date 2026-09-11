@@ -1,7 +1,4 @@
-﻿using ProjectMS.CharacterSystem;
-using System;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace ProjectMS.CharacterSystem.Examples
@@ -52,7 +49,6 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isFirstThrowError = true;
 
         private float errorThrowableGravityScale = 1f;
-        private bool isThrowableInitialized = false;
 
         private int currentGlitchDealedCount;
         private CharacterBase currentGlitchTarget;
@@ -64,13 +60,8 @@ namespace ProjectMS.CharacterSystem.Examples
             if (isFirstThrowError)
             {
                 SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount);
-                isFirstThrowError = false;
-            }
-
-            if (!isThrowableInitialized)
-            {
                 errorThrowableGravityScale = errorThrowablePrefab.GetComponent<Rigidbody2D>().gravityScale;
-                isThrowableInitialized = true;
+                isFirstThrowError = false;
             }
 
             Vector2 errorVelocity = CalculateThrowVelocity(
