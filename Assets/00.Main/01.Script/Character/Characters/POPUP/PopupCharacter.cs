@@ -23,7 +23,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Skill Q - Occur Aiming Bug")]
         [SerializeField] private CharacterProjectile aimingBugHackingCDProjectile;
-        [SerializeField] private float aimingBugHackingCDSpeed = 1.5f;
+        [SerializeField] private float aimingBugHackingCDSpeed = 7f;
+        [SerializeField] private float aimingBugDuration = 1f;
 
         [Header("Skill E - Occur Moving Bug")]
         [Min(0f)][SerializeField] private float movingBugArcAngle = 60f;
@@ -160,8 +161,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             if (projectile == currentHackingCD)
             {
-                // 이동 방해 로직
-
+                ApplyControlSeal(hitTarget, CharacterControlType.BasicAttack, 1f);
                 return;
             }
 
