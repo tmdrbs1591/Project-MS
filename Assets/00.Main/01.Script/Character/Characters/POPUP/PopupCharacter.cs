@@ -33,10 +33,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Skill R - System Error Popup Appeared")]
         [SerializeField] private CharacterProjectile popupAppearGlitchProjectile;
-        [Min(0f)][SerializeField] private float popupAppearGlitchSpeed = 4.5f;
+        [Min(0f)][SerializeField] private float popupAppearGlitchSpeed = 6f;
         [SerializeField] private PopupErrorPopupDeployable popupAppearErrorPopupDeployable;
         [Min(0f)][SerializeField] private float popupAppearErrorPopupDuration = 3f;
         [Min(0)][SerializeField] private int popupAppearErrorPopupDamageTimes = 3;
+        [Min(0)][SerializeField] private int popupAppearErrorPopupBreakAttemptsRequire = 10;
 
         [Header("Passive - Glitch Occured")]
         [Min(0f)][SerializeField] private float glitchDuration = 3f;
@@ -55,8 +56,13 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isGlitchOccuring = false;
         private bool isGlitchDamage = false;
 
+        private bool isErrorPopupEnabled = false;
+        private int errorPopupBreakAttempts = 0;
+        private CharacterBase errorPopupTarget;
+        private PopupErrorPopupDeployable errorPopupDeployable;
+
         protected override bool OnBasicAttack(CharacterActionContext context)
-        {
+        { 
             if (isFirstThrowError)
             {
                 SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount);
@@ -161,18 +167,43 @@ namespace ProjectMS.CharacterSystem.Examples
 
             if (projectile == currentPopupAppearGlitch)
             {
-                PopupErrorPopupDeployable popupDeployable = SpawnOwnedEntity(
+                errorPopupTarget = hitTarget;
+                ChangeErrorPopupStatus(true);
+
+                errorPopupDeployable = SpawnOwnedEntity(
                     popupAppearErrorPopupDeployable,
                     CharacterActionType.Ultimate,
-                    hitTarget.transform.position,
+                    errorPopupTarget.transform.position,
                     maxCount: 1,
                     initialize: (popup) => popup.Initialize(
-                        hitTarget, 
+                        errorPopupTarget, 
                         popupAppearErrorPopupDuration, 
                         Definition.GetDamage(CharacterActionType.Ultimate), 
-                        popupAppearErrorPopupDamageTimes));
+                        popupAppearErrorPopupDamageTimes,
+                        () => ChangeErrorPopupStatus(false)));
 
                 return;
+            }
+        }
+
+        // 패시브 틱이지만 시스템 오류 팝업 등장!(궁극기)의 팝업창 입력 감지에 사용
+        protected override void OnPassiveTick(float deltaTime)
+        {
+            if (!isErrorPopupEnabled)
+                return;
+
+            if (errorPopupTarget == null)
+                return;
+
+            bool targetAttemptsToBreakErrorPopup = WasInputPressed(errorPopupTarget, CharacterInputType.BasicAttack | CharacterInputType.Jump);
+
+            if (targetAttemptsToBreakErrorPopup)
+                errorPopupBreakAttempts++;
+
+            if (errorPopupBreakAttempts >= popupAppearErrorPopupBreakAttemptsRequire)
+            {
+                ChangeErrorPopupStatus(false);
+                DestroyOwnedEntity(errorPopupDeployable, OwnedEntityDestroyReason.Manual);
             }
         }
 
@@ -216,6 +247,19 @@ namespace ProjectMS.CharacterSystem.Examples
             float velocityY = (delta.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
 
             return new Vector2(velocityX, velocityY);
+        }
+
+        private void ChangeErrorPopupStatus(bool isEnable)
+        {
+            Collider2D collider = GetComponent<Collider2D>();
+            collider.enabled = !isEnable;
+
+            Rigidbody.bodyType = isEnable ? RigidbodyType2D.Static : RigidbodyType2D.Dynamic;
+
+            if (isEnable)
+                ApplyControlSeal(errorPopupTarget, CharacterControlType.All, popupAppearErrorPopupDuration);
+            else { }
+                // TODO: 상대 ContorlSeal 풀기
         }
 
         private void DealGlitchDamage()
