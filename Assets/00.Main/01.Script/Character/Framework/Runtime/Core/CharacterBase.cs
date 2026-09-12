@@ -103,6 +103,11 @@ namespace ProjectMS.CharacterSystem
         public float UltimateGaugeCurrent => NetUltimateGauge;
         public float UltimateGaugeMax => definition != null ? definition.UltimateGaugeMax : 0f;
 
+        // 접근 충전(UltimateGaugePerApproachDistance)이 "직전 틱보다 가까워졌는지"를 판단하는 데 쓰는
+        // 기준값이다. [Networked]가 아닌 시뮬레이션 로컬 값 — 매 틱 자기 자신이 계산해서 갱신하고,
+        // 그 결과(충전량)만 NetUltimateGauge에 반영되므로 굳이 네트워킹할 필요가 없다.
+        private float lastApproachDistanceToEnemy = float.NaN;
+
         protected Rigidbody2D Rigidbody => rigidbody2D;
         protected CharacterMovementHandler Movement => movement;
         public Vector2 AimDirection => DirectionFromAngle(NetAimAngle);
@@ -239,11 +244,47 @@ namespace ProjectMS.CharacterSystem
             NetGrounded = movement.IsGrounded;
             NetVelocity = rigidbody2D.linearVelocity;
 
+            TickApproachGauge(accruingAllowed: !gameplayLocked);
+
             if (!gameplayLocked)
             {
                 HandleActionInputs(lastInput);
                 OnPassiveTick(Runner.DeltaTime);
             }
+        }
+
+        /// <summary>게이지형 궁극기의 "적 방향 접근 이동" 충전. 좌우(X축) 거리만 본다(스펙 기준).
+        /// 스턴/사망 등으로 gameplayLocked인 동안은 충전은 막되, 기준 거리(lastApproachDistanceToEnemy)
+        /// 자체는 계속 갱신해서 — 락이 풀렸을 때 그 사이 벌어진 거리 변화가 "한 번에 확 접근한 것"처럼
+        /// 잘못 인식되어 게이지가 뻥튀기되는 걸 막는다.</summary>
+        private void TickApproachGauge(bool accruingAllowed)
+        {
+            if (!IsUltimateGaugeMode || definition.UltimateGaugePerApproachDistance <= 0f)
+            {
+                lastApproachDistanceToEnemy = float.NaN;
+                return;
+            }
+
+            CharacterBase enemy = All.Find(c => c != null && c != this && c.Object != null);
+            if (enemy == null)
+            {
+                lastApproachDistanceToEnemy = float.NaN;
+                return;
+            }
+
+            float distance = Mathf.Abs(transform.position.x - enemy.transform.position.x);
+
+            if (accruingAllowed && !float.IsNaN(lastApproachDistanceToEnemy))
+            {
+                float closedDistance = lastApproachDistanceToEnemy - distance;
+                if (closedDistance > 0f)
+                {
+                    float next = NetUltimateGauge + closedDistance * definition.UltimateGaugePerApproachDistance * UltimateGaugeRateMultiplier;
+                    NetUltimateGauge = Mathf.Clamp(next, 0f, definition.UltimateGaugeMax);
+                }
+            }
+
+            lastApproachDistanceToEnemy = distance;
         }
 
         public override void Render()
@@ -360,7 +401,8 @@ namespace ProjectMS.CharacterSystem
             if (!Mathf.Approximately(previousHealth, health.Current))
                 OnHealthChanged(previousHealth, health.Current);
             NetDead = false;
-            ResetCommonState();
+            // 궁극기 게이지는 라운드가 바뀌어도 이월되어야 하므로 라운드 리셋 시엔 초기화하지 않는다.
+            ResetCommonState(resetUltimateGauge: false);
             movement.Reset(position);
             OnResetCharacter();
         }
@@ -676,6 +718,17 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageDealt * UltimateGaugeRateMultiplier;
+            NetUltimateGauge = Mathf.Clamp(next, 0f, definition.UltimateGaugeMax);
+        }
+
+        /// <summary>게이지형 궁극기(IsUltimateGaugeMode)를 쓰는 캐릭터가 적에게 맞아 잃은 체력만큼
+        /// 게이지를 채운다. 게이지 모드가 아니면 아무 일도 안 한다.</summary>
+        private void AddUltimateGaugeFromDamageTaken(float damage)
+        {
+            if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f)
+                return;
+
+            float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageTaken * UltimateGaugeRateMultiplier;
             NetUltimateGauge = Mathf.Clamp(next, 0f, definition.UltimateGaugeMax);
         }
 
@@ -1299,12 +1352,14 @@ namespace ProjectMS.CharacterSystem
             OnDamaged(info);
             OnHealthChanged(before, health.Current);
             ApplyAugmentReflect(applied);
+            AddUltimateGaugeFromDamageTaken(applied);
 
             if (health.IsDead && !NetDead)
             {
                 NetDead = true;
                 rigidbody2D.linearVelocity = Vector2.zero;
-                ResetCommonState();
+                // 궁극기 게이지는 라운드가 바뀌어도 이월되어야 하므로 죽는 순간에도 초기화하지 않는다.
+                ResetCommonState(resetUltimateGauge: false);
                 DestroyOwnedEntitiesForOwnerDeath();
                 OnDied(request.Attacker);
             }
@@ -1441,7 +1496,10 @@ namespace ProjectMS.CharacterSystem
 
         private new bool HasStateAuthority => Object != null && Object.HasStateAuthority;
 
-        private void ResetCommonState()
+        /// <summary>resetUltimateGauge: 게이지형 궁극기 값을 같이 초기화할지 여부. 기본 true(진짜
+        /// 매치 시작/오브젝트 파괴 시점용) — 라운드 전환(ResetCharacter)과 사망 처리(ApplyDamage)
+        /// 호출부는 게이지가 라운드를 넘어 이월되어야 하므로 false를 넘긴다.</summary>
+        private void ResetCommonState(bool resetUltimateGauge = true)
         {
             if (!HasStateAuthority)
                 return;
@@ -1449,7 +1507,8 @@ namespace ProjectMS.CharacterSystem
             timers?.CancelAll();
             actionState?.Initialize();
             NetGameplayLocked = false;
-            NetUltimateGauge = 0f;
+            if (resetUltimateGauge)
+                NetUltimateGauge = 0f;
             NetSlowRatio = 0f;
             NetSlowTimer = default;
             NetHitstunTimer = default;

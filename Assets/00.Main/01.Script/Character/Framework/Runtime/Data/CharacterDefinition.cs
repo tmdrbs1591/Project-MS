@@ -55,6 +55,10 @@ namespace ProjectMS.CharacterSystem
         [Min(1f)] [SerializeField] private float ultimateGaugeMax = 100f;
         [Tooltip("적에게 데미지 1을 입힐 때마다 차는 게이지 양.")]
         [Min(0f)] [SerializeField] private float ultimateGaugePerDamageDealt = 1f;
+        [Tooltip("적에게 데미지 1을 맞을 때마다 차는 게이지 양. 0이면 미적용.")]
+        [Min(0f)] [SerializeField] private float ultimateGaugePerDamageTaken = 0f;
+        [Tooltip("적 방향(좌우, X축 기준)으로 거리 1을 좁힐 때마다 차는 게이지 양. 멀어질 땐 충전되지 않는다. 0이면 미적용.")]
+        [Min(0f)] [SerializeField] private float ultimateGaugePerApproachDistance = 0f;
 
         [Header("Auto Hop")]
         [SerializeField] private bool autoHop = true;
@@ -63,8 +67,8 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float autoHopMoveThreshold = 0.05f;
 
         [Header("Skill Icons (UI)")]
-        [Tooltip("쿨타임 HUD(CooldownSlotUI)에 표시할 아이콘. 비워두면 그 슬롯은 아이콘 없이 표시된다.")]
-        [SerializeField] private Sprite basicAttackIcon;
+        [Tooltip("쿨타임 HUD(CooldownSlotUI)에 표시할 아이콘. 비워두면 그 슬롯은 아이콘 없이 표시된다.\n" +
+            "평타(BasicAttack)는 쿨타임 HUD에 슬롯 자체가 없어 아이콘이 필요 없으므로 여기 없다.")]
         [SerializeField] private Sprite skillQIcon;
         [SerializeField] private Sprite skillEIcon;
         [SerializeField] private Sprite dashIcon;
@@ -111,6 +115,8 @@ namespace ProjectMS.CharacterSystem
         public bool UltimateUsesGauge => ultimateUsesGauge;
         public float UltimateGaugeMax => ultimateGaugeMax;
         public float UltimateGaugePerDamageDealt => ultimateGaugePerDamageDealt;
+        public float UltimateGaugePerDamageTaken => ultimateGaugePerDamageTaken;
+        public float UltimateGaugePerApproachDistance => ultimateGaugePerApproachDistance;
 
         public float GetDamage(CharacterActionType action)
         {
@@ -141,7 +147,6 @@ namespace ProjectMS.CharacterSystem
         {
             return action switch
             {
-                CharacterActionType.BasicAttack => basicAttackIcon,
                 CharacterActionType.SkillQ => skillQIcon,
                 CharacterActionType.SkillE => skillEIcon,
                 CharacterActionType.Dash => dashIcon,

@@ -61,22 +61,16 @@ public class CooldownHUD : MonoBehaviour
 
         foreach (CooldownSlotUI slot in slots)
         {
-            float remaining;
-            float total;
-
-            // 게이지형 궁극기는 "가득 찰 때까지 남은 양"을 쿨타임 슬롯과 같은 방식(overlay가
-            // 줄어들며 준비됨을 드러냄)으로 재활용해서 보여준다 — 슬롯 UI를 따로 안 만들어도 된다.
+            // 게이지형 궁극기는 실제로 차오르는 Filled 이미지(CooldownSlotUI.gaugeFillImage)로
+            // 보여준다 — 시간 기반 쿨타임 슬롯(UpdateCooldown)과는 별도 경로다.
             if (slot.ActionType == CharacterActionType.Ultimate && character.IsUltimateGaugeMode)
             {
-                total = character.UltimateGaugeMax;
-                remaining = Mathf.Max(0f, total - character.UltimateGaugeCurrent);
-            }
-            else
-            {
-                remaining = character.Cooldowns.GetRemaining(slot.ActionType);
-                total = character.Cooldowns.GetDuration(slot.ActionType);
+                slot.UpdateGauge(character.UltimateGaugeCurrent, character.UltimateGaugeMax);
+                continue;
             }
 
+            float remaining = character.Cooldowns.GetRemaining(slot.ActionType);
+            float total = character.Cooldowns.GetDuration(slot.ActionType);
             slot.UpdateCooldown(remaining, total);
         }
     }
