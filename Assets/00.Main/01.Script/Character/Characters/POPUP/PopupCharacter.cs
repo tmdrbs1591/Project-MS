@@ -195,7 +195,10 @@ namespace ProjectMS.CharacterSystem.Examples
             if (errorPopupTarget == null)
                 return;
 
-            bool targetAttemptsToBreakErrorPopup = WasInputPressed(errorPopupTarget, CharacterInputType.BasicAttack | CharacterInputType.Jump);
+            // WasInputPressed는 비트 연산 지원 X
+            bool targetAttemptsToBreakErrorPopup = 
+                WasInputPressed(errorPopupTarget, CharacterInputType.BasicAttack) || 
+                WasInputPressed(errorPopupTarget, CharacterInputType.Jump);
 
             if (targetAttemptsToBreakErrorPopup)
                 errorPopupBreakAttempts++;
@@ -251,6 +254,14 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void ChangeErrorPopupStatus(bool isEnable)
         {
+            errorPopupBreakAttempts = 0;
+            isErrorPopupEnabled = isEnable;
+            if (!isEnable)
+            {
+                errorPopupDeployable = null;
+                errorPopupTarget = null;
+            }
+
             Collider2D collider = GetComponent<Collider2D>();
             collider.enabled = !isEnable;
 

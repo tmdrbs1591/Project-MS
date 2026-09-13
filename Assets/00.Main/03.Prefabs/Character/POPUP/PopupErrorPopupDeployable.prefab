@@ -190,7 +190,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a200d501682c1ce4d81afa3801f8f974, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.Examples.PopupErrorPopupDeployable
-  lifetimeMode: 2
+  lifetimeMode: 0
   maxHealth: 1
   duration: 3
   allowSelfDamage: 0

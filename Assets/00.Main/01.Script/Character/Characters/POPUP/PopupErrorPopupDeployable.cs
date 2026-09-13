@@ -53,6 +53,9 @@ namespace ProjectMS.CharacterSystem.Examples
             damageTimes = _damageTimes;
             onErrorPopupEndByTimeOver = _onErrorPopupEndByTimeOver;
 
+            if (!Object.HasStateAuthority)
+                return;
+
             SetContinuousDamage();
 
             if (LifetimeMode != OwnedEntityLifetimeMode.Manual)
