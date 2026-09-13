@@ -161,7 +161,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             if (projectile == currentHackingCD)
             {
-                ApplyControlSeal(hitTarget, CharacterControlType.BasicAttack, 1f);
+                ApplyControlSeal(hitTarget, CharacterControlType.BasicAttack, aimingBugDuration);
                 return;
             }
 
