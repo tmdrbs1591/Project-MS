@@ -5464,6 +5464,18 @@ PrefabInstance:
       value: ZipperCharacter
       objectReference: {fileID: 0}
     - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -5502,6 +5514,10 @@ PrefabInstance:
     - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: body
@@ -5610,6 +5626,7 @@ MonoBehaviour:
   qDashDuration: 0.2
   qDashWidth: 3
   qRechargeTime: 10
+  qMaxCharges: 2
   E_SkillPrefab: {fileID: -7315203500075794664, guid: 8a9e463fd9f65be43a89ce107e2ce2e5, type: 3}
   ultimateTeleportDelay: 0.5
   ultimateBlastRadius: 3

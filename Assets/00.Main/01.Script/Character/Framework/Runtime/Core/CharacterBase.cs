@@ -56,6 +56,14 @@ namespace ProjectMS.CharacterSystem
         private NetworkArray<NetworkBool> NetAutoCooldown => default;
         [Networked, Capacity(ActionSlotCount)]
         private NetworkArray<TickTimer> NetCooldownTimers => default;
+        // 충전형 스킬(예: Zipper Q)의 UI 표시용 상태. 사용 가능 판정(CanUse)에 쓰이는 쿨타임과
+        // 일부러 분리했다 — 쿨타임이 돌면 CanUse가 막혀서 남은 충전을 못 쓰게 되기 때문이다.
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<int> NetChargeCapacities => default;
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<float> NetChargeRechargeDurations => default;
+        [Networked, Capacity(ActionSlotCount)]
+        private NetworkArray<TickTimer> NetChargeRechargeTimers => default;
         [Networked] private NetworkBool NetMovementEnabled { get; set; }
         [Networked] private float NetSlowRatio { get; set; }
         [Networked] private TickTimer NetSlowTimer { get; set; }
@@ -817,6 +825,87 @@ namespace ProjectMS.CharacterSystem
             return actionState != null ? actionState.GetCooldownRemaining(action) : 0f;
         }
 
+        // ── 충전형 스킬 표시 ────────────────────────────────────────────────
+        // 잔탄 자체는 SetActionCharges/AddActionCharges로 관리하고, 여기서는 UI가 읽을
+        // "최대 충전 수"와 "다음 충전까지 남은 시간"만 다룬다. 충전을 실제로 회복시키는 로직은
+        // 캐릭터 스크립트가 직접 구현하고(예: ZipperCharacter), 이 타이머는 표시용이다.
+
+        /// <summary>이 액션을 충전형으로 등록한다. maxCharges가 0보다 크면 UI가 충전 표시를 쓴다.
+        /// rechargeSeconds는 충전 하나가 회복되는 데 걸리는 시간(UI 오버레이의 총 시간)이다.</summary>
+        protected void SetActionChargeCapacity(CharacterActionType action, int maxCharges, float rechargeSeconds)
+        {
+            if (!HasStateAuthority || !IsActionSlot(action))
+                return;
+
+            NetChargeCapacities.Set(ActionIndex(action), Mathf.Max(0, maxCharges));
+            NetChargeRechargeDurations.Set(ActionIndex(action), Mathf.Max(0f, rechargeSeconds));
+        }
+
+        /// <summary>다음 충전까지의 타이머를 등록된 총 시간(rechargeSeconds)으로 시작한다.</summary>
+        protected void StartChargeRecharge(CharacterActionType action)
+        {
+            StartChargeRecharge(action, GetChargeRechargeDuration(action));
+        }
+
+        /// <summary>다음 충전까지 남은 시간을 remainingSeconds로 시작한다. 총 시간(UI 기준)은
+        /// 그대로라서, 재충전 단축 같은 효과에 쓰면 오버레이가 그만큼 줄어든 채로 보인다.</summary>
+        protected void StartChargeRecharge(CharacterActionType action, float remainingSeconds)
+        {
+            if (HasStateAuthority && IsActionSlot(action) && Runner != null)
+            {
+                NetChargeRechargeTimers.Set(
+                    ActionIndex(action),
+                    TickTimer.CreateFromSeconds(Runner, Mathf.Max(0f, remainingSeconds)));
+            }
+        }
+
+        protected void ClearChargeRecharge(CharacterActionType action)
+        {
+            if (HasStateAuthority && IsActionSlot(action))
+                NetChargeRechargeTimers.Set(ActionIndex(action), default);
+        }
+
+        /// <summary>충전 타이머가 시작되어 있는지(돌고 있거나 이미 끝났지만 아직 안 치웠거나).</summary>
+        protected bool IsChargeRechargeActive(CharacterActionType action)
+        {
+            return Runner != null && IsActionSlot(action) &&
+                   NetChargeRechargeTimers.Get(ActionIndex(action)).IsRunning;
+        }
+
+        /// <summary>충전 타이머가 시작된 뒤 다 돌았는지. true면 충전 하나를 회복시킬 때다.</summary>
+        protected bool HasChargeRechargeElapsed(CharacterActionType action)
+        {
+            return Runner != null && IsActionSlot(action) &&
+                   NetChargeRechargeTimers.Get(ActionIndex(action)).Expired(Runner);
+        }
+
+        /// <summary>충전형으로 등록된 최대 충전 수. 충전형이 아니면 0 (UI가 이 값으로 표시 방식을 고른다).</summary>
+        public int GetChargeCapacity(CharacterActionType action)
+        {
+            return IsActionSlot(action) ? NetChargeCapacities.Get(ActionIndex(action)) : 0;
+        }
+
+        /// <summary>충전형 스킬의 현재 충전 수 (충전형이 아니면 -1).</summary>
+        public int GetCurrentCharges(CharacterActionType action)
+        {
+            return actionState != null ? actionState.GetCharges(action) : -1;
+        }
+
+        /// <summary>다음 충전까지 남은 시간(초). 돌고 있지 않으면 0.</summary>
+        public float GetChargeRechargeRemaining(CharacterActionType action)
+        {
+            if (Runner == null || !IsActionSlot(action))
+                return 0f;
+
+            return NetChargeRechargeTimers.Get(ActionIndex(action)).RemainingTime(Runner) ?? 0f;
+        }
+
+        /// <summary>충전 하나가 회복되는 데 걸리는 총 시간(초).</summary>
+        public float GetChargeRechargeDuration(CharacterActionType action)
+        {
+            return IsActionSlot(action) ? NetChargeRechargeDurations.Get(ActionIndex(action)) : 0f;
+        }
+
         protected void SetMovementEnabled(bool enabled)
         {
             if (!HasStateAuthority)
@@ -1506,6 +1595,10 @@ namespace ProjectMS.CharacterSystem
 
             timers?.CancelAll();
             actionState?.Initialize();
+            // 충전 재생 타이머만 비운다. 최대 충전 수/총 시간은 캐릭터가 등록해 둔 고정 설정이라
+            // 유지한다 — 사망/라운드 리셋 중에도 충전형 스킬 UI가 계속 충전형으로 보이게 하기 위함.
+            for (int i = 0; i < ActionSlotCount; i++)
+                NetChargeRechargeTimers.Set(i, default);
             NetGameplayLocked = false;
             if (resetUltimateGauge)
                 NetUltimateGauge = 0f;

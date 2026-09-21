@@ -69,6 +69,18 @@ public class CooldownHUD : MonoBehaviour
                 continue;
             }
 
+            // 충전형 스킬(예: Zipper Q)은 남은 충전 수 + 다음 충전까지의 오버레이로 보여준다.
+            int maxCharges = character.GetChargeCapacity(slot.ActionType);
+            if (maxCharges > 0)
+            {
+                slot.UpdateCharges(
+                    character.GetCurrentCharges(slot.ActionType),
+                    maxCharges,
+                    character.GetChargeRechargeRemaining(slot.ActionType),
+                    character.GetChargeRechargeDuration(slot.ActionType));
+                continue;
+            }
+
             float remaining = character.Cooldowns.GetRemaining(slot.ActionType);
             float total = character.Cooldowns.GetDuration(slot.ActionType);
             slot.UpdateCooldown(remaining, total);

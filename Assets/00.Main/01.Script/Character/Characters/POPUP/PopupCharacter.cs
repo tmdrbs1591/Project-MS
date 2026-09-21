@@ -176,10 +176,11 @@ namespace ProjectMS.CharacterSystem.Examples
                     errorPopupTarget.transform.position,
                     maxCount: 1,
                     initialize: (popup) => popup.Initialize(
-                        errorPopupTarget, 
-                        popupAppearErrorPopupDuration, 
-                        Definition.GetDamage(CharacterActionType.Ultimate), 
+                        errorPopupTarget,
+                        popupAppearErrorPopupDuration,
+                        Definition.GetDamage(CharacterActionType.Ultimate),
                         popupAppearErrorPopupDamageTimes,
+                        popupAppearErrorPopupBreakAttemptsRequire,
                         () => ChangeErrorPopupStatus(false)));
 
                 return;
@@ -195,19 +196,43 @@ namespace ProjectMS.CharacterSystem.Examples
             if (errorPopupTarget == null)
                 return;
 
-            // WasInputPressed는 비트 연산 지원 X
-            bool targetAttemptsToBreakErrorPopup = 
-                WasInputPressed(errorPopupTarget, CharacterInputType.BasicAttack) || 
-                WasInputPressed(errorPopupTarget, CharacterInputType.Jump);
+            // 점프(스페이스)와 기본공격(좌클릭)만 "팝업 깨기 시도"로 센다. 한 틱에 여러 번 눌려도
+            // 누락 없이 더하도록 WasInputPressed(bool) 대신 새로 눌린 횟수를 받아온다.
+            int newAttempts =
+                ConsumeNewInputCount(errorPopupTarget, CharacterInputType.BasicAttack) +
+                ConsumeNewInputCount(errorPopupTarget, CharacterInputType.Jump);
 
-            if (targetAttemptsToBreakErrorPopup)
-                errorPopupBreakAttempts++;
+            if (newAttempts > 0)
+            {
+                errorPopupBreakAttempts += newAttempts;
+                if (errorPopupDeployable != null)
+                    errorPopupDeployable.SetBreakProgress(errorPopupBreakAttempts);
+            }
 
             if (errorPopupBreakAttempts >= popupAppearErrorPopupBreakAttemptsRequire)
-            {
-                ChangeErrorPopupStatus(false);
-                DestroyOwnedEntity(errorPopupDeployable, OwnedEntityDestroyReason.Manual);
-            }
+                BreakErrorPopup();
+        }
+
+        // 라운드 도중 리셋되면(상대 사망 등) 남아있는 팝업/봉인/도트딜 상태를 정리한다.
+        protected override void OnResetCharacter()
+        {
+            if (isErrorPopupEnabled)
+                BreakErrorPopup();
+        }
+
+        // 상대가 연타로 팝업을 깨거나 리셋으로 강제 종료될 때 쓴다. 시간이 다 돼서 끝나는 경우는
+        // 봉인이 스스로 만료되므로 여기를 거치지 않는다.
+        private void BreakErrorPopup()
+        {
+            // ChangeErrorPopupStatus(false)가 target/deployable 참조를 null로 지우므로, 그 전에
+            // 봉인 해제와 팝업창 파괴에 쓸 값을 먼저 빼둔다(예전엔 지운 뒤에 null을 넘겨서
+            // 팝업창이 안 부서지고 도트딜이 계속 들어갔다).
+            CharacterBase target = errorPopupTarget;
+            PopupErrorPopupDeployable deployable = errorPopupDeployable;
+
+            ReleaseControlSeal(target, CharacterControlType.All);
+            ChangeErrorPopupStatus(false);
+            DestroyOwnedEntity(deployable, OwnedEntityDestroyReason.Manual);
         }
 
         protected override void OnDamageDealt(CharacterBase target, float requestedDamage)
@@ -268,9 +293,15 @@ namespace ProjectMS.CharacterSystem.Examples
             Rigidbody.bodyType = isEnable ? RigidbodyType2D.Static : RigidbodyType2D.Dynamic;
 
             if (isEnable)
+            {
+                // 이전에 눌렀던 입력이 "깨기 시도"로 세어지지 않게 관찰 기준을 지금으로 맞춘다.
+                ResetInputObservation(errorPopupTarget, CharacterInputType.BasicAttack);
+                ResetInputObservation(errorPopupTarget, CharacterInputType.Jump);
+
                 ApplyControlSeal(errorPopupTarget, CharacterControlType.All, popupAppearErrorPopupDuration);
-            else { }
-                // TODO: 상대 ContorlSeal 풀기
+            }
+            // 봉인 해제: 연타로 깬 경우는 BreakErrorPopup()이 ReleaseControlSeal로 처리하고,
+            // 시간이 다 된 경우는 봉인 타이머가 스스로 만료된다.
         }
 
         private void DealGlitchDamage()

@@ -17,6 +17,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float qDashDuration = 0.16f;
         [SerializeField] private float qDashWidth = 4f;
         [SerializeField] private float qRechargeTime = 10f;
+        [Min(1)] [SerializeField] private int qMaxCharges = 2;
 
         [Header("E Skill Custom Settings")]
         [SerializeField] private CharacterDeployable E_SkillPrefab;
@@ -31,7 +32,6 @@ namespace ProjectMS.CharacterSystem.Examples
         [Tooltip("기본기로 표식을 소모했을 때 다이브(Q) 남은 재충전 시간 감소 비율")]
         [SerializeField] private float diveRechargeReductionRatio = 0.6f;
 
-        private float qRechargeTimer = 0f;
         private bool isDashing = false;
         private float currentQDamage = 0f;
         private HashSet<IDamageable> dashedHitTargets = new HashSet<IDamageable>();
@@ -69,9 +69,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void InitQCharges()
         {
-            SetActionCharges(CharacterActionType.SkillQ, 2);
+            SetActionCharges(CharacterActionType.SkillQ, qMaxCharges);
             SetAutoCooldown(CharacterActionType.SkillQ, false);
-            qRechargeTimer = 0f;
+            // 쿨타임 슬롯 UI가 잔탄 숫자와 "다음 충전까지" 오버레이를 그릴 수 있게 충전형으로 등록한다.
+            SetActionChargeCapacity(CharacterActionType.SkillQ, qMaxCharges, qRechargeTime);
+            ClearChargeRecharge(CharacterActionType.SkillQ);
             isDashing = false;
 
             // 스폰/리셋 시 재충전 코루틴 시작
@@ -123,6 +125,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 5. 잔탄 1개 차감
             AddActionCharges(CharacterActionType.SkillQ, -1);
+
+            // 재충전 중이 아니었다면(가득 차 있다가 처음 쓴 경우) 바로 타이머를 시작해서
+            // UI 오버레이가 다음 프레임 대기 없이 곧장 돌기 시작하게 한다.
+            if (!IsChargeRechargeActive(CharacterActionType.SkillQ))
+                StartChargeRecharge(CharacterActionType.SkillQ);
 
             // 6. 대시 실시간 충돌 체크 코루틴 실행
             if (dashCoroutine != null) StopCoroutine(dashCoroutine);
@@ -242,19 +249,34 @@ namespace ProjectMS.CharacterSystem.Examples
                 yield return null;
 
                 int currentCharges = GetActionCharges(CharacterActionType.SkillQ);
-                if (currentCharges < 2)
+
+                // 음수 = 잔탄 시스템이 아직 초기화되지 않은 상태(사망 직후 등). 다음 InitQCharges까지 대기.
+                if (currentCharges < 0)
+                    continue;
+
+                if (currentCharges >= qMaxCharges)
                 {
-                    qRechargeTimer += Time.deltaTime;
-                    if (qRechargeTimer >= qRechargeTime)
-                    {
-                        AddActionCharges(CharacterActionType.SkillQ, 1);
-                        qRechargeTimer = 0f;
-                    }
+                    if (IsChargeRechargeActive(CharacterActionType.SkillQ))
+                        ClearChargeRecharge(CharacterActionType.SkillQ);
+                    continue;
                 }
-                else
+
+                // 충전 타이머(네트워크 동기화되는 표시용 값)가 다 돌았으면 잔탄 1개를 회복한다.
+                // 충전은 한 번에 하나씩 순차로 회복되므로, 아직 모자라면 다음 충전 타이머를 이어서 시작한다.
+                if (HasChargeRechargeElapsed(CharacterActionType.SkillQ))
                 {
-                    qRechargeTimer = 0f;
+                    AddActionCharges(CharacterActionType.SkillQ, 1);
+                    currentCharges++;
+
+                    if (currentCharges >= qMaxCharges)
+                        ClearChargeRecharge(CharacterActionType.SkillQ);
+                    else
+                        StartChargeRecharge(CharacterActionType.SkillQ);
+                    continue;
                 }
+
+                if (!IsChargeRechargeActive(CharacterActionType.SkillQ))
+                    StartChargeRecharge(CharacterActionType.SkillQ);
             }
         }
 
@@ -319,16 +341,14 @@ namespace ProjectMS.CharacterSystem.Examples
             int currentCharges = GetActionCharges(CharacterActionType.SkillQ);
 
             // 이미 잔탄이 가득 차 있으면(재충전 중이 아니면) 줄일 시간이 없음
-            if (currentCharges >= 2) return;
+            if (currentCharges >= qMaxCharges) return;
 
-            float remaining = qRechargeTime - qRechargeTimer;
+            float remaining = GetChargeRechargeRemaining(CharacterActionType.SkillQ);
             if (remaining <= 0f) return;
 
-            qRechargeTimer += remaining * ratio;
-            if (qRechargeTimer > qRechargeTime)
-            {
-                qRechargeTimer = qRechargeTime;
-            }
+            // 남은 시간을 ratio만큼 줄여서 다시 시작한다. 총 시간(UI 기준)은 그대로라
+            // 오버레이가 그만큼 줄어든 채로 보인다.
+            StartChargeRecharge(CharacterActionType.SkillQ, remaining * (1f - ratio));
         }
 
         private void ClearAllDimensionalMarks()
