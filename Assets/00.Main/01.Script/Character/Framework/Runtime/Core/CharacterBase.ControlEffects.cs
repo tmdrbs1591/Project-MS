@@ -49,6 +49,25 @@ namespace ProjectMS.CharacterSystem
                 target.Rpc_RequestControlSeal(sanitized, duration, Object.Id, DamageOwner, DamageTeamId);
         }
 
+        /// <summary>대상에게 걸린 지정한 조작 봉인을 남은 시간과 상관없이 즉시 푼다.
+        /// 봉인은 슬롯 단위라 다른 스킬이 같은 조작에 건 봉인도 함께 풀린다.</summary>
+        protected void ReleaseControlSeal(CharacterBase target, CharacterControlType controls)
+        {
+            CharacterControlType sanitized = controls & CharacterControlType.All;
+            if (!HasStateAuthority || target == null || target == this || target.Object == null ||
+                sanitized == CharacterControlType.None)
+            {
+                return;
+            }
+
+            // 해제는 대상에게 이로운 동작이라 CanReceiveDamage(무적 등) 검사는 하지 않는다 —
+            // 그걸 걸면 무적 상태의 대상이 봉인에서 못 풀려나는 문제가 생긴다.
+            if (target.HasStateAuthority)
+                target.ReleaseControlSealAuthority(sanitized);
+            else
+                target.Rpc_RequestControlSealRelease(sanitized, Object.Id, DamageOwner, DamageTeamId);
+        }
+
         /// <summary>대상의 실제 조준 방향을 duration 초 동안 반대로 바꾼다.</summary>
         protected void ApplyAimInversion(CharacterBase target, float duration)
         {
@@ -112,6 +131,34 @@ namespace ProjectMS.CharacterSystem
 
             inputSequenceTracker ??= new CharacterInputSequenceTracker();
             return inputSequenceTracker.WasPressed(
+                target.GetInstanceID(),
+                inputType,
+                target.NetObservedInputSequences.Get((int)inputType));
+        }
+
+        /// <summary>대상의 매핑된 버튼 입력이 지난 확인 이후 몇 번 새로 들어왔는지 반환한다.
+        /// WasInputPressed와 달리 한 번에 여러 번 눌려도 전부 센다(연타 횟수 세기용).</summary>
+        protected int ConsumeNewInputCount(CharacterBase target, CharacterInputType inputType)
+        {
+            if (target == null || !CharacterControlRules.IsDefinedInput(inputType))
+                return 0;
+
+            inputSequenceTracker ??= new CharacterInputSequenceTracker();
+            return inputSequenceTracker.ConsumeNewPresses(
+                target.GetInstanceID(),
+                inputType,
+                target.NetObservedInputSequences.Get((int)inputType));
+        }
+
+        /// <summary>지금까지 들어온 대상의 입력은 이미 본 것으로 치고 기준을 현재로 맞춘다.
+        /// 연타 세기를 시작하기 직전에 호출해야, 그 전에 눌렀던 입력이 세어지지 않는다.</summary>
+        protected void ResetInputObservation(CharacterBase target, CharacterInputType inputType)
+        {
+            if (target == null || !CharacterControlRules.IsDefinedInput(inputType))
+                return;
+
+            inputSequenceTracker ??= new CharacterInputSequenceTracker();
+            inputSequenceTracker.SyncBaseline(
                 target.GetInstanceID(),
                 inputType,
                 target.NetObservedInputSequences.Get((int)inputType));
@@ -293,6 +340,18 @@ namespace ProjectMS.CharacterSystem
             }
         }
 
+        private void ReleaseControlSealAuthority(CharacterControlType controls)
+        {
+            if (!HasStateAuthority)
+                return;
+
+            for (int slot = 0; slot < ControlSealSlotCount; slot++)
+            {
+                if (CharacterControlRules.Contains(controls, CharacterControlRules.GetControlForSlot(slot)))
+                    NetControlSealTimers.Set(slot, default);
+            }
+        }
+
         private void ApplyAimInversionAuthority(float duration)
         {
             if (HasStateAuthority && ShouldReplace(NetAimInversionTimer, duration))
@@ -394,6 +453,25 @@ namespace ProjectMS.CharacterSystem
         {
             if (IsValidControlEffectRpc(sourceObjectId, attacker, attackerTeamId, info.Source))
                 ApplyControlSealAuthority(controls & CharacterControlType.All, duration);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void Rpc_RequestControlSealRelease(
+            CharacterControlType controls,
+            NetworkId sourceObjectId,
+            PlayerRef attacker,
+            int attackerTeamId,
+            RpcInfo info = default)
+        {
+            // 요청이 정말 attacker의 캐릭터에서 왔는지만 검증한다(CanReceiveDamage는 일부러 제외).
+            DamageRequest request = new DamageRequest(
+                1f,
+                attacker,
+                sourceObjectId,
+                attackerTeamId,
+                CharacterDamageSource.Direct);
+            if (IsValidDamageRpcSource(request, info.Source))
+                ReleaseControlSealAuthority(controls & CharacterControlType.All);
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]

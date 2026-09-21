@@ -31,6 +31,42 @@ namespace ProjectMS.CharacterSystem.Tests
             Assert.That(tracker.WasPressed(10, CharacterInputType.SkillQ, 1), Is.True);
         }
 
+        [Test]
+        public void InputSequenceTracker_ConsumeNewPresses_CountsEveryPressAndIgnoresHistory()
+        {
+            CharacterInputSequenceTracker tracker = new CharacterInputSequenceTracker();
+
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 4), Is.EqualTo(0));
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 4), Is.EqualTo(0));
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 7), Is.EqualTo(3));
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 7), Is.EqualTo(0));
+            Assert.That(tracker.ConsumeNewPresses(20, CharacterInputType.Jump, 7), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void InputSequenceTracker_ConsumeNewPresses_DoesNotCountSequenceReset()
+        {
+            CharacterInputSequenceTracker tracker = new CharacterInputSequenceTracker();
+
+            tracker.ConsumeNewPresses(10, CharacterInputType.BasicAttack, 5);
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.BasicAttack, 0), Is.EqualTo(0));
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.BasicAttack, 2), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void InputSequenceTracker_SyncBaseline_ExcludesInputsBeforeObservationStarts()
+        {
+            CharacterInputSequenceTracker tracker = new CharacterInputSequenceTracker();
+
+            tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 2);
+            tracker.SyncBaseline(10, CharacterInputType.Jump, 30);
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 30), Is.EqualTo(0));
+            Assert.That(tracker.ConsumeNewPresses(10, CharacterInputType.Jump, 31), Is.EqualTo(1));
+        }
+
+        [TestCase("ReleaseControlSeal", typeof(CharacterBase), typeof(CharacterControlType))]
+        [TestCase("ConsumeNewInputCount", typeof(CharacterBase), typeof(CharacterInputType))]
+        [TestCase("ResetInputObservation", typeof(CharacterBase), typeof(CharacterInputType))]
         [TestCase("ApplyControlSeal", typeof(CharacterBase), typeof(CharacterControlType), typeof(float))]
         [TestCase("ApplyAimInversion", typeof(CharacterBase), typeof(float))]
         [TestCase("ApplyAimAngleOffset", typeof(CharacterBase), typeof(float), typeof(float))]
