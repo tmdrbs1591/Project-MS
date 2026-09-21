@@ -5525,7 +5525,7 @@ PrefabInstance:
       objectReference: {fileID: 6548895530258951221}
     - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: aimVisualMode
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: aimVisualRoot

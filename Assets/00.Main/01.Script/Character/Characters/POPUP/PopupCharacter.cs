@@ -15,11 +15,19 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Basic Attack - Throw Error")]
         [SerializeField] private PopupErrorThrowable errorThrowablePrefab;
         [Min(1)][SerializeField] private int errorThrowableFireCount = 5;
+        [Min(0f)][SerializeField] private float errorReloadingDuration = 1.2f;
+        [Min(0f)][SerializeField] private float errorThrowableMaxVelocity = 3f;
+        [Min(0)] [SerializeField] private int errorThrowableMaxCount = 5;
+
+        [Header("Another Throw Error Settings")]
+        [SerializeField] private bool useAnotherErrorThrow = true;
+        [SerializeField] private float anotherErrorThrowableSpeed = 1f;
+
+        [Header("Old Throw Error Settings")]
+        [SerializeField] private bool useOldErrorThorw = false;
         [Min(0.01f)] [SerializeField] private float errorThrowableMinFlightTime = 0.1f;
         [Min(0.01f)] [SerializeField] private float errorThrowableMaxFlightTime = 1.25f;
         [Min(0.01f)] [SerializeField] private float errorThrowableMaxDistance = 10f;
-        [Min(0)] [SerializeField] private int errorThrowableMaxCount = 5;
-        [Min(0f)][SerializeField] private float errorReloadingDuration = 1.2f;
 
         [Header("Skill Q - Occur Aiming Bug")]
         [SerializeField] private CharacterProjectile aimingBugHackingCDProjectile;
@@ -71,13 +79,31 @@ namespace ProjectMS.CharacterSystem.Examples
                 isFirstThrowError = false;
             }
 
-            Vector2 errorVelocity = CalculateThrowVelocity(
-                ProjectileOrigin.position,
-                context.AimWorldPosition,
-                errorThrowableMaxDistance,
-                errorThrowableMinFlightTime,
-                errorThrowableMaxFlightTime,
-                errorThrowableGravityScale);
+            Vector2 errorVelocity = default;
+            
+            if (useOldErrorThorw)
+            {
+                errorVelocity = CalculateThrowVelocityOldVersion(
+                    ProjectileOrigin.position,
+                    context.AimWorldPosition,
+                    errorThrowableMaxDistance,
+                    errorThrowableMinFlightTime,
+                    errorThrowableMaxFlightTime,
+                    errorThrowableGravityScale);
+            }
+            else if (useAnotherErrorThrow)
+            {
+                Vector2 throwDirection = Quaternion.Euler(0, 0, AimAngle) * Vector2.right;
+                errorVelocity = throwDirection * anotherErrorThrowableSpeed;
+            }
+            else
+            {
+                errorVelocity = CalculateThrowVelocity(
+                    ProjectileOrigin.position,
+                    context.AimWorldPosition,
+                    errorThrowableMaxVelocity,
+                    errorThrowableGravityScale);
+            }
 
             OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
                 ProjectileOrigin.position,
@@ -226,7 +252,7 @@ namespace ProjectMS.CharacterSystem.Examples
             SetContinuousGlitch();
         }
 
-        private Vector2 CalculateThrowVelocity(Vector2 startPosition, Vector2 targetPosition, float maxThrowDistance, float minFlightTime, float maxFlightTime, float projectileGravityScale)
+        private Vector2 CalculateThrowVelocityOldVersion(Vector2 startPosition, Vector2 targetPosition, float maxThrowDistance, float minFlightTime, float maxFlightTime, float projectileGravityScale)
         {
             Vector2 offsetBeforeCheck = targetPosition - startPosition;
             Vector2 realTargetPosition = targetPosition;
@@ -250,6 +276,45 @@ namespace ProjectMS.CharacterSystem.Examples
             float velocityY = (delta.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
 
             return new Vector2(velocityX, velocityY);
+        }
+
+
+        private Vector2 CalculateThrowVelocity(Vector2 startPosition, Vector2 targetPosition, float maxVelocity, float projectileGravityScale)
+        {
+            Vector2 delta = targetPosition - startPosition;
+
+            float gravity = Mathf.Abs(Physics2D.gravity.y * projectileGravityScale);
+
+            float x = Mathf.Abs(delta.x);
+            float y = delta.y;
+
+            float speedSquared = maxVelocity * maxVelocity;
+
+            // 판별식
+            float discriminant = speedSquared * speedSquared - gravity * (gravity * x * x + 2f * y * speedSquared);
+
+            float directionX = Mathf.Sign(delta.x);
+
+            bool canReachInMaxVelocity = discriminant >= 0f && x > 0.001f;
+            if (canReachInMaxVelocity)
+            {
+                float tanTheta =
+                    (speedSquared - Mathf.Sqrt(discriminant))
+                    / (gravity * x);
+
+                float cosTheta = 1f / Mathf.Sqrt(1f + tanTheta * tanTheta);
+                float sinTheta = tanTheta * cosTheta;
+
+                return new Vector2(
+                    directionX * cosTheta,
+                    sinTheta
+                ) * maxVelocity;
+            }
+
+            Vector2 fallbackDirection =
+                new Vector2(directionX, 1f).normalized;
+
+            return fallbackDirection * maxVelocity;
         }
 
         private void ChangeErrorPopupStatus(bool isEnable)
