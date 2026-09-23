@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Size.x
-      value: 0.275
+      value: 0.4
       objectReference: {fileID: 0}
     - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Size.y
@@ -26,11 +26,39 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.x
-      value: 3.5
+      value: 0.06
       objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.y
-      value: 3.5
+      value: 0.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.06
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.014
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: lifetime
@@ -81,12 +109,24 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_FlipX
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_FlipY
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 6ec7f8c2a5eea5343a5849ae022c99e1, type: 3}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.b
-      value: 0.6367924
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.g
-      value: 0.93793106
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.r

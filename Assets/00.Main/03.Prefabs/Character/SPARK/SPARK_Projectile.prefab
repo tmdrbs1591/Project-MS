@@ -8,6 +8,38 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.029
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.024
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: spriteRenderer
+      value: 
+      objectReference: {fileID: 6089967243923694431}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: empoweredSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 4610994fae2a91b49a8fefa5357679af, type: 3}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey
       value: 1615063639
@@ -65,16 +97,20 @@ PrefabInstance:
       value: 0.46625423
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: fca30046f1184ae459025028e30ff942, type: 3}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.b
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.g
-      value: 0.30726337
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.r
-      value: 0.18396229
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
@@ -113,3 +149,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e386f165bf7d93448902311796db2199, type: 3}
+--- !u!212 &6089967243923694431 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+  m_PrefabInstance: {fileID: 979317435914660139}
+  m_PrefabAsset: {fileID: 0}

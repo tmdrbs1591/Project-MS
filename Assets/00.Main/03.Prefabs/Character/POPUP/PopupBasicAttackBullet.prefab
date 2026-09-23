@@ -8,6 +8,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.024
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.019
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey
       value: 3307266469
@@ -52,9 +76,29 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 8acf4620b86d99a4badfb5d9aeb09dc2, type: 3}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
       value: PopupBasicAttackBullet
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

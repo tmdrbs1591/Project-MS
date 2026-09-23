@@ -18,8 +18,32 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.x
-      value: -5
+      value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.026
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: spriteRenderer
+      value: 
+      objectReference: {fileID: 8414550700437129844}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: empoweredSprite
+      value: 
+      objectReference: {fileID: -8408751736856053385, guid: a9054ff4ecc182d45ac5adf08afb2ee8, type: 3}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey
       value: 793038750
@@ -65,6 +89,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_FlipX
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 2897050575778184920, guid: 11417088ff2282747bcb3c0de0a95c52, type: 3}
@@ -77,3 +105,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e386f165bf7d93448902311796db2199, type: 3}
+--- !u!212 &8414550700437129844 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+  m_PrefabInstance: {fileID: 3301888060627468288}
+  m_PrefabAsset: {fileID: 0}

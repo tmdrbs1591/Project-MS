@@ -20,6 +20,14 @@ namespace ProjectMS.CharacterSystem
         [Header("Owner lifecycle")]
         [SerializeField] private bool destroyWhenOwnerDies = true;
 
+        [Header("Visual")]
+        [Tooltip("전기줄 연결점, 체력바 등 이펙트가 붙는 기준 위치입니다. 오브젝트 루트(바닥/설치 " +
+            "기준점, 물리 판정용)와 스프라이트상 실제 연결 지점이 다를 때 씁니다. 비워두면 " +
+            "오브젝트 루트를 그대로 사용합니다. 자식 오브젝트를 하나 만들어 원하는 위치로 옮긴 뒤 " +
+            "여기 연결하세요 — 회전하는 오브젝트(예: 벽/천장에 붙는 노드)면 이 자식도 같이 " +
+            "회전하므로 스프라이트의 같은 지점을 계속 가리킵니다.")]
+        [SerializeField] private Transform effectAnchor;
+
         [Networked] private NetworkId NetOwnerCharacterId { get; set; }
         [Networked] private PlayerRef NetOwnerPlayer { get; set; }
         [Networked] private int NetOwnerTeamId { get; set; }
@@ -56,6 +64,7 @@ namespace ProjectMS.CharacterSystem
         public bool IsActive => NetActive;
         public bool IsDestroying => NetDestroying;
         public bool DestroyWhenOwnerDies => destroyWhenOwnerDies;
+        public Transform EffectAnchor => effectAnchor != null ? effectAnchor : transform;
         public OwnedEntityDestroyReason DestroyReason => NetDestroyReason;
         public bool AllowSelfDamage => allowSelfDamage;
         public bool AllowFriendlyDamage => allowFriendlyDamage;

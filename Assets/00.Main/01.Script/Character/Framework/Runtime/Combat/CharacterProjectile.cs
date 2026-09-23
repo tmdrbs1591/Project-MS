@@ -28,6 +28,11 @@ namespace ProjectMS.CharacterSystem
         [Header("Visual")]
         [Tooltip("투사체 프리팹의 0도 방향 보정각. 스프라이트가 +X를 바라보면 0, +Y를 바라보면 -90.")]
         [SerializeField] private float projectileAngleOffset;
+        [Tooltip("강화 상태(ConfigureEmpowered) 스프라이트 교체에 쓸 렌더러. 비워두면 자식에서 자동으로 찾는다.")]
+        [SerializeField] private SpriteRenderer spriteRenderer;
+        [Tooltip("강화된 채로 발사됐을 때 바꿔 낄 스프라이트. 비워두면 원본 스프라이트를 그대로 쓴다" +
+            "(예: SPARK 패시브로 충전된 기본공격 총알을 다른 색으로 보여줄 때 사용).")]
+        [SerializeField] private Sprite empoweredSprite;
         [SerializeField] private GameObject hitVfxPrefab;
         [Tooltip("이펙트 프리팹의 0도 방향 보정각. 프리팹이 +X를 향하면 0, +Y를 향하면 -90.")]
         [SerializeField] private float hitVfxAngleOffset = -90f;
@@ -52,6 +57,7 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetBounceCount { get; set; }
         [Networked] private NetworkBool NetExplodeOnWall { get; set; }
         [Networked] private float NetExplodeDamageMultiplier { get; set; }
+        [Networked] private NetworkBool NetEmpowered { get; set; }
 
         /// <summary>이 투사체를 쏜 플레이어. 다른 투사체/오브젝트가 "내가 쏜 게 맞는지" 확인할 때 쓴다
         /// (예: 거너 수류탄의 "본인 총알에 맞으면 조기 폭발" 판정).</summary>
@@ -68,6 +74,8 @@ namespace ProjectMS.CharacterSystem
         private void Awake()
         {
             projectileCollider = GetComponent<Collider2D>();
+            if (spriteRenderer == null)
+                spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
 
         public void Initialize(
@@ -100,6 +108,15 @@ namespace ProjectMS.CharacterSystem
             NetExplodeDamageMultiplier = Mathf.Max(0f, explodeDamageMultiplier);
         }
 
+        /// <summary>이 발이 "강화된" 상태로 발사됐는지 설정한다. true면 empoweredSprite로 바꿔
+        /// 그려서(설정돼 있을 때) 양쪽 클라이언트 모두에게 이 발이 특별하다는 걸 보여준다.
+        /// ConfigureAugmentBehavior와 마찬가지로 SpawnProjectile이 반환한 인스턴스에 스폰 직후
+        /// (같은 프레임, 아직 FixedUpdateNetwork가 안 돈 시점) 호출한다.</summary>
+        public void ConfigureEmpowered(bool empowered)
+        {
+            NetEmpowered = empowered;
+        }
+
         [Obsolete("Use CharacterBase.SpawnProjectile or Initialize with a source NetworkId; legacy initialization cannot preserve damage callbacks.", true)]
         public void Initialize(
             Vector2 direction,
@@ -120,7 +137,17 @@ namespace ProjectMS.CharacterSystem
             if (Object.HasStateAuthority)
                 LifeTimer = TickTimer.CreateFromSeconds(Runner, lifetime);
 
+            ApplyEmpoweredVisual();
             AlignToDirection();
+        }
+
+        // 스프라이트는 비행 중 안 바뀌므로 매 프레임이 아니라 Spawned() 시점에 한 번만 적용한다.
+        // NetEmpowered는 스폰 콜백(ConfigureEmpowered)에서 초기 네트워크 상태로 설정되므로,
+        // 관전/상대 클라이언트도 자기 Spawned()가 불릴 때 이미 최종값을 읽을 수 있다.
+        private void ApplyEmpoweredVisual()
+        {
+            if (spriteRenderer != null && NetEmpowered && empoweredSprite != null)
+                spriteRenderer.sprite = empoweredSprite;
         }
 
         public override void FixedUpdateNetwork()

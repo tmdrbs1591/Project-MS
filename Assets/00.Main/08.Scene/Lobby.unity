@@ -988,7 +988,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -5
   m_MaskInteraction: 0
   m_Sprite: {fileID: 3488240089490820101, guid: 7a765151a3ea4034bad58589568d4e65, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -2938,7 +2938,7 @@ MonoBehaviour:
   m_Intensity: 1
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 00000000
+  m_ApplyToSortingLayers: 000000009ddbaff2
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -4003,7 +4003,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -1
+  m_SortingOrder: -6
   m_MaskInteraction: 0
   m_Sprite: {fileID: 3488240089490820101, guid: 7a765151a3ea4034bad58589568d4e65, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -4476,7 +4476,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -5
   m_MaskInteraction: 0
   m_Sprite: {fileID: -8264301210042632668, guid: c8fd32c40e4009746b55f80de393f47f, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -26937,7 +26937,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -1
+  m_SortingOrder: -6
   m_MaskInteraction: 0
   m_Sprite: {fileID: -8264301210042632668, guid: c8fd32c40e4009746b55f80de393f47f, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -27463,7 +27463,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98dad4a338745ad41be8994bc4d7261f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkLauncher
-  playerCount: 2
+  playerCount: 1
   gameSceneName: SampleScene
   lobbySceneName: Lobby
 --- !u!114 &1910536806

@@ -33838,6 +33838,10 @@ PrefabInstance:
       propertyPath: wallLayer.m_Bits
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3940670339473201364, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.009
+      objectReference: {fileID: 0}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey
       value: 2132567821
@@ -33856,11 +33860,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.3343115
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.5842917
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.z

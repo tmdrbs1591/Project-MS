@@ -110,13 +110,17 @@ namespace ProjectMS.CharacterSystem.Examples
             if (projectilePrefab == null)
                 return false;
 
+            // 패시브(정전기 충전)로 충전된 상태면 이 발이 강화된 기본공격임을 투사체 스프라이트로
+            // 보여준다. 실제로 슬로우가 적용되는 건 OnProjectileDespawned에서 이 발이 맞았을 때다.
             SpawnProjectile(
                 projectilePrefab,
                 ProjectileOrigin.position,
                 context.AimDirection,
                 projectileSpeed,
                 context.Damage,
-                targetLayer
+                targetLayer,
+                skillId: 0,
+                empowered: isCharging
             );
 
             PlayActionEffect(context.Action, ProjectileOrigin.position, context.AimAngle);
@@ -226,20 +230,24 @@ namespace ProjectMS.CharacterSystem.Examples
 
             EnsureElectricLinkInstance();
 
-            List<Transform> myNodes = new List<Transform>();
+            List<SparkQNode> myNodes = new List<SparkQNode>();
             foreach (var netObj in Runner.GetAllNetworkObjects())
             {
                 // 자신이 인풋권한을 가지고 있는 SPARK_Q라면
                 if (netObj != null && netObj.InputAuthority == Object.InputAuthority && netObj.name.Contains("SPARK_Q"))
                 {
-                    myNodes.Add(netObj.transform);
+                    SparkQNode node = netObj.GetComponent<SparkQNode>();
+                    if (node != null)
+                        myNodes.Add(node);
                 }
             }
 
-            if (myNodes.Count >= 2 && myNodes[1].GetComponent<SparkQNode>().isStop == true)
+            if (myNodes.Count >= 2 && myNodes[1].isStop == true)
             {
-                Vector2 posA = myNodes[0].position;
-                Vector2 posB = myNodes[1].position;
+                // EffectAnchor: 노드 루트(바닥에 붙는 접지 기준점)와 전기줄이 실제로 연결돼야 할
+                // 스프라이트상 지점이 다를 수 있어서, 노드 자신의 위치 대신 이 기준점을 쓴다.
+                Vector2 posA = myNodes[0].EffectAnchor.position;
+                Vector2 posB = myNodes[1].EffectAnchor.position;
                 Vector2 delta = posB - posA;
                 float distance = delta.magnitude;
 

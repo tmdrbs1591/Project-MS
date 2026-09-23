@@ -26,11 +26,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.x
-      value: 3.5
+      value: 0.02
       objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.y
-      value: 3.5
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.0177
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.0267
+      objectReference: {fileID: 0}
+    - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: lifetime
@@ -81,12 +97,16 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: d10bed5245243de48b70f69ae728321b, type: 3}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.b
-      value: 0.6367924
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.g
-      value: 0.93793106
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Color.r
@@ -96,8 +116,7 @@ PrefabInstance:
       propertyPath: m_Name
       value: ChaserDeadEyeProjectile
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

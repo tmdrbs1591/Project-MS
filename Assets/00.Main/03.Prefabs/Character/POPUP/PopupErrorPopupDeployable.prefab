@@ -27,8 +27,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 2, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.06, y: 0.06, z: 0.06}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1422400402510456537}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -78,10 +78,10 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -433775037
-  m_SortingLayer: -1
+  m_SortingLayer: 1
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 4379871c896cb47159ca30caed15cf45, type: 3}
+  m_Sprite: {fileID: 21300000, guid: eabd95781bd1f394594d8858e24a81c3, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -121,7 +121,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3666225987236188535}
-  - {fileID: 1753153251128954786}
   m_Father: {fileID: 2200115549815500090}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5464947684531186840
@@ -156,6 +155,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1753153251128954786}
   - {fileID: 1422400402510456537}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -283,7 +283,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: 0 / 10
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ba38ce8746866f1419e4dfbc501d7100, type: 2}
   m_sharedMaterial: {fileID: -1398760431886462106, guid: ba38ce8746866f1419e4dfbc501d7100, type: 2}
@@ -387,7 +387,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2874633574336375296}
-  m_Father: {fileID: 1422400402510456537}
+  m_Father: {fileID: 2200115549815500090}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}

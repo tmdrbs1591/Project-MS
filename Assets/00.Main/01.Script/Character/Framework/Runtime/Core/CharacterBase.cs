@@ -966,7 +966,8 @@ namespace ProjectMS.CharacterSystem
             float speed,
             float damage,
             LayerMask targetLayer,
-            int skillId = 0)
+            int skillId = 0,
+            bool empowered = false)
         {
             if (projectilePrefab == null || Runner == null || Object == null || !Object.HasStateAuthority ||
                 projectilePrefab.GetComponent<NetworkObject>() == null ||
@@ -994,6 +995,7 @@ namespace ProjectMS.CharacterSystem
                         Object.Id,
                         DamageTeamId,
                         skillId);
+                    projectile?.ConfigureEmpowered(empowered);
                 });
             return spawnedProjectile;
         }

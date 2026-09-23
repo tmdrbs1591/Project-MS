@@ -84,7 +84,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 ? context.AimDirection.normalized
                 : new Vector2(FacingDirection, 0f);
 
-            FireBullet(aimDirection, damage);
+            FireBullet(aimDirection, damage, empowered);
 
             // 갈래 마법: 스택 수만큼 추가 투사체를 좌우로 살짝 벌려서 쏜다(감소된 피해).
             int forkCount = ForkedProjectileCount;
@@ -94,7 +94,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 for (int i = 0; i < forkCount; i++)
                 {
                     float angleOffset = ForkAngleStep * (i / 2 + 1) * (i % 2 == 0 ? 1f : -1f);
-                    FireBullet(Rotate(aimDirection, angleOffset), forkDamage);
+                    FireBullet(Rotate(aimDirection, angleOffset), forkDamage, empowered);
                 }
             }
 
@@ -118,7 +118,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         /// <summary>총알 한 발을 쏘고, 바운스 마법/폭발 마법 증강을 그 총알에 설정한다.
         /// 두 증강 다 있으면 폭발이 우선한다(CharacterProjectile.ConfigureAugmentBehavior 참고).</summary>
-        private void FireBullet(Vector2 direction, float damage)
+        private void FireBullet(Vector2 direction, float damage, bool empowered = false)
         {
             CharacterProjectile projectile = SpawnProjectile(
                 bulletProjectilePrefab,
@@ -126,7 +126,9 @@ namespace ProjectMS.CharacterSystem.Examples
                 direction,
                 bulletProjectileSpeed,
                 damage,
-                targetLayer);
+                targetLayer,
+                skillId: 0,
+                empowered: empowered);
 
             if (projectile == null)
                 return;
