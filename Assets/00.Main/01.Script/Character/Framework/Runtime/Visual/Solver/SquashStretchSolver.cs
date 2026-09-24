@@ -38,6 +38,13 @@ namespace ProjectMS.CharacterSystem
             stretchVelocity += profile.JumpStretch * 60f;
         }
 
+        /// <summary>오토홉 전용. 0.1초마다 반복되는 연출이라 진짜 점프와 같은 세기로 늘리면
+        /// 스프링이 회복하기 전에 다음 임펄스가 겹쳐서 걷는 내내 고무줄처럼 늘어난다.</summary>
+        public void PlayAutoHop()
+        {
+            stretchVelocity += profile.JumpStretch * profile.AutoHopStretchScale * 60f;
+        }
+
         public void PlayHit()
         {
             stretchVelocity -= profile.HitRecoilStretch * 60f;

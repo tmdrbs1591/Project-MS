@@ -15,6 +15,7 @@ MonoBehaviour:
   stiffness: 320
   damping: 14
   jumpStretch: 0.35
+  autoHopStretchScale: 0.3
   landSquash: 0.45
   airStretchFactor: 0.03
   horizontalCompensation: 0.6

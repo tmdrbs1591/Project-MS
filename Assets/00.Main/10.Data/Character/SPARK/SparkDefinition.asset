@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1fab3400db39db47882c2cb785e3e67, type: 3}
   m_Name: SparkDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
-  displayName: 스파크
+  displayName: "\uC2A4\uD30C\uD06C"
   maxHealth: 900
   basicAttackDamage: 40
   skillQDamage: 20
@@ -24,7 +24,6 @@ MonoBehaviour:
   dashCooldown: 3
   ultimateCooldown: 30
   knockbackBaseForce: 3
-  knockbackForcePerDamage: 0.1
   knockbackDuration: 0.15
   knockbackUpwardBias: 0.35
   moveSpeed: 10
@@ -49,6 +48,11 @@ MonoBehaviour:
   autoHopInterval: 0.1
   autoHopForce: 5
   autoHopMoveThreshold: 0.05
+  basicAttackIcon: {fileID: -5515836813260425313, guid: e654cb0a9b4f9354e9e27d8fc383de1b, type: 3}
+  skillQIcon: {fileID: -5789495591891876489, guid: e654cb0a9b4f9354e9e27d8fc383de1b, type: 3}
+  skillEIcon: {fileID: -8062495162976291414, guid: 3dddfdd80ef23cd45a76b48807bf00f2, type: 3}
+  dashIcon: {fileID: 2366126829493155791, guid: e89d1a49ed48aa146a4415971406d05e, type: 3}
+  ultimateIcon: {fileID: -8062495162976291414, guid: 3dddfdd80ef23cd45a76b48807bf00f2, type: 3}
   moveLeft: 15
   moveRight: 18
   jump: 1

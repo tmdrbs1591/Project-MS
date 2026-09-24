@@ -5717,12 +5717,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03a5afebd72c0d94881e3a43bd53fdac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyCharacterController
-  moveSpeed: 5
-  jumpForce: 8
+  moveSpeed: 7
+  jumpForce: 11
   groundCheckDistance: 0.08
+  coyoteTime: 0.1
+  jumpBufferTime: 0.12
+  fallGravityMultiplier: 2.2
+  lowJumpMultiplier: 2
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  autoHop: 1
+  autoHopInterval: 0.1
+  autoHopForce: 5
+  autoHopMoveThreshold: 0.05
   moveLeft: 15
   moveRight: 18
   jump: 1

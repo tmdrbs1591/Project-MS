@@ -32,7 +32,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 425ba45b0386b21459bbd13dbb3c25f2, type: 3}
+        m_Texture: {fileID: 2800000, guid: 5629a50d3f0262841b54d97fac9c9192, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask_Tex:
@@ -90,7 +90,7 @@ Material:
     - _Fresnel_AlphaClipPower: 1.5
     - _Fresnel_AlphaClipStepMax: 0.6125
     - _Fresnel_AlphaClipStepMin: 0.05
-    - _Hue: -0.72
+    - _Hue: 0
     - _MainTex_ColorMode: 0
     - _Main_Alpha_Ch: 0
     - _Main_Pan_ParticleCustom1Z: 1
@@ -111,7 +111,7 @@ Material:
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
     - _Use_Dissolve_Edge: 0
-    - _Value: 2
+    - _Value: 1
     m_Colors:
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}

@@ -141,11 +141,11 @@ namespace ProjectMS.CharacterSystem
             PlaySound(commonSounds != null ? commonSounds.JumpClip : null);
         }
 
-        /// <summary>이동 중 자동으로 통통 튀는 연출(AutoHop) 전용. 진짜 점프와 같은 스쿼시/애니메이션을
-        /// 재생하지만, 걸을 때마다 반복 재생되면 시끄러우므로 사운드는 울리지 않는다.</summary>
+        /// <summary>이동 중 자동으로 통통 튀는 연출(AutoHop) 전용. 진짜 점프보다 약하게 스쿼시하고
+        /// (profile.AutoHopStretchScale), 걸을 때마다 반복 재생되면 시끄러우므로 사운드도 울리지 않는다.</summary>
         public void PlayAutoHop()
         {
-            squashStretch?.PlayJump();
+            squashStretch?.PlayAutoHop();
             SetAnimatorTrigger("Jump");
         }
 

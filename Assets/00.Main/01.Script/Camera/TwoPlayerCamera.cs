@@ -39,6 +39,11 @@ using UnityEngine;
 ///   - 이미 흔들리는 중에 더 약한 흔들림 요청이 들어오면 무시한다(약한 타격이 강한
 ///     피니시 흔들림을 끊어버리지 않게).
 /// </summary>
+// Fusion은 Render() 단계에서 캐릭터의 Rigidbody를 "렌더 시점 위치"로 보간해 옮긴다
+// (NetworkRigidbodyBase.Render). 카메라가 그보다 먼저 위치를 읽으면 항상 한 프레임 전
+// 위치를 따라가게 되고, 그 어긋남이 프레임마다 들쭉날쭉해서 캐릭터가 부르르 떨리거나
+// 잔상처럼 겹쳐 보인다. 실행 순서를 맨 뒤로 밀어 보간이 끝난 위치를 읽게 한다.
+[DefaultExecutionOrder(10000)]
 [RequireComponent(typeof(Camera))]
 public class TwoPlayerCamera : MonoBehaviour
 {
@@ -64,6 +69,16 @@ public class TwoPlayerCamera : MonoBehaviour
     [Tooltip("줌이 목표를 따라잡는 데 걸리는 대략적인 시간(초).")]
     [SerializeField] private float zoomSmoothTime = 0.3f;
 
+    [Header("흔들림 억제 (데드존)")]
+    [Tooltip("세로 추적을 무시할 폭(월드 단위). 캐릭터는 이동 중 오토홉으로 0.1초마다 통통 튀는데,\n" +
+        "그걸 그대로 따라가면 화면 전체가 같이 떤다. 이 폭 안의 위아래 움직임은 무시한다.")]
+    [Min(0f)] [SerializeField] private float verticalDeadzone = 0.6f;
+    [Tooltip("세로 추적 스무딩 시간. 가로보다 느리게 둬야 점프/통통 튀는 움직임이 화면에 덜 옮는다.")]
+    [Min(0f)] [SerializeField] private float verticalSmoothTime = 0.45f;
+    [Tooltip("줌을 무시할 폭(orthographicSize 단위). 통통 튀느라 두 캐릭터 간 세로 거리가\n" +
+        "끊임없이 바뀌는 걸 그대로 따라가면 화면이 미세하게 늘었다 줄었다 한다.")]
+    [Min(0f)] [SerializeField] private float zoomDeadzone = 0.4f;
+
     private Camera cam;
     private float zoomVelocity;
     private float moveVelocityX;
@@ -72,6 +87,11 @@ public class TwoPlayerCamera : MonoBehaviour
     // 흔들림이 안 섞인 순수 추적 위치. SmoothDamp의 "현재 위치" 입력은 항상 이 값을 쓴다
     // (transform.position을 직접 쓰면 흔들림이 다음 프레임 스무딩에 먹혀 들어간다).
     private Vector3 smoothedPosition;
+
+    // 데드존을 적용한 뒤의 "실제로 따라갈" 세로 위치 / 줌. 목표가 데드존 밖으로 나간 만큼만 끌려간다.
+    private float verticalAnchor;
+    private float sizeAnchor;
+    private bool anchorsInitialized;
 
     private Transform focusOverrideTarget;
     private float focusOverrideSize;
@@ -143,7 +163,9 @@ public class TwoPlayerCamera : MonoBehaviour
         // 둘 다 화면 안에 담아야 해서 경계를 지켜야 하지만, 죽는 위치가 맵 가장자리에 가까우면
         // 경계 클램프가 실제 시체 위치와 화면 중심을 몇 칸씩 어긋나게 만든다. 포커스 중엔 정확한
         // 위치/줌이 더 중요하므로 이 제한을 건너뛴다(화면 일부가 맵 밖을 살짝 비쳐도 괜찮다).
-        bool hasBounds = boundsCollider != null && !hasFocusOverride;
+        // 비활성 콜라이더는 bounds가 (0,0,0)으로 나온다. 그대로 쓰면 줌이 0으로 수렴하고
+        // 카메라가 원점에 박혀서 화면이 완전히 망가지므로, 꺼져 있으면 영역이 없는 셈 친다.
+        bool hasBounds = boundsCollider != null && boundsCollider.isActiveAndEnabled && !hasFocusOverride;
         Bounds area = hasBounds ? boundsCollider.bounds : default;
         float aspect = cam.aspect > 0f ? cam.aspect : 1f;
 
@@ -163,11 +185,24 @@ public class TwoPlayerCamera : MonoBehaviour
         // 카메라가 굼떠 보인다(흔들림(Shake)은 원래도 unscaled라 이질감이 났음).
         float unscaledDeltaTime = Time.unscaledDeltaTime;
 
-        float size = Mathf.SmoothDamp(cam.orthographicSize, targetSize, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, unscaledDeltaTime);
+        if (!anchorsInitialized)
+        {
+            anchorsInitialized = true;
+            verticalAnchor = targetPos.y;
+            sizeAnchor = targetSize;
+        }
+
+        // 포커스 연출(KO 줌인 등) 중엔 데드존을 끈다 — 정확히 그 지점을 비춰야 한다.
+        float yDeadzone = hasFocusOverride ? 0f : verticalDeadzone;
+        float sDeadzone = hasFocusOverride ? 0f : zoomDeadzone;
+        verticalAnchor = ApplyDeadzone(verticalAnchor, targetPos.y, yDeadzone);
+        sizeAnchor = ApplyDeadzone(sizeAnchor, targetSize, sDeadzone);
+
+        float size = Mathf.SmoothDamp(cam.orthographicSize, sizeAnchor, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, unscaledDeltaTime);
         cam.orthographicSize = size;
 
         float x = Mathf.SmoothDamp(smoothedPosition.x, targetPos.x, ref moveVelocityX, positionSmoothTime, Mathf.Infinity, unscaledDeltaTime);
-        float y = Mathf.SmoothDamp(smoothedPosition.y, targetPos.y, ref moveVelocityY, positionSmoothTime, Mathf.Infinity, unscaledDeltaTime);
+        float y = Mathf.SmoothDamp(smoothedPosition.y, verticalAnchor, ref moveVelocityY, verticalSmoothTime, Mathf.Infinity, unscaledDeltaTime);
 
         // 영역 콜라이더 안으로 화면을 가둔다
         if (hasBounds)
@@ -181,6 +216,17 @@ public class TwoPlayerCamera : MonoBehaviour
 
         smoothedPosition = new Vector3(x, y, transform.position.z);
         transform.position = smoothedPosition + (Vector3)GetShakeOffset();
+    }
+
+    /// <summary>목표가 데드존 밖으로 나간 만큼만 따라간다. 데드존 안의 미세한 떨림(오토홉으로
+    /// 캐릭터가 통통 튀는 것 등)은 아예 무시돼서 화면에 옮지 않는다.</summary>
+    private static float ApplyDeadzone(float anchor, float target, float deadzone)
+    {
+        float delta = target - anchor;
+        if (Mathf.Abs(delta) <= deadzone)
+            return anchor;
+
+        return anchor + delta - Mathf.Sign(delta) * deadzone;
     }
 
     /// <summary>이번 프레임의 흔들림 오프셋. 시간이 지날수록 세기가 줄어든다(감쇠).</summary>

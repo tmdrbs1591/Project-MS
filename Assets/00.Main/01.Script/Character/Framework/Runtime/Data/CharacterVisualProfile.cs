@@ -9,6 +9,9 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float stiffness = 320f;
         [Min(0f)] [SerializeField] private float damping = 14f;
         [SerializeField] private float jumpStretch = 0.35f;
+        [Tooltip("오토홉(이동 중 자동으로 통통 튀는 연출)이 쓰는 스쿼시 세기 배율. 1이면 진짜 점프와 똑같이 늘어난다.\n" +
+            "오토홉은 0.1초마다 반복되므로 점프와 같은 세기로 늘리면 걷는 내내 고무처럼 늘어나 보인다.")]
+        [Range(0f, 1f)] [SerializeField] private float autoHopStretchScale = 0.3f;
         [SerializeField] private float landSquash = 0.45f;
         [SerializeField] private float airStretchFactor = 0.03f;
         [SerializeField] private float horizontalCompensation = 0.6f;
@@ -32,6 +35,7 @@ namespace ProjectMS.CharacterSystem
         public float Stiffness => stiffness;
         public float Damping => damping;
         public float JumpStretch => jumpStretch;
+        public float AutoHopStretchScale => autoHopStretchScale;
         public float LandSquash => landSquash;
         public float AirStretchFactor => airStretchFactor;
         public float HorizontalCompensation => horizontalCompensation;

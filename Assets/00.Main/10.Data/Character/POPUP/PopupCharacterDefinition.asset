@@ -44,7 +44,7 @@ MonoBehaviour:
   ultimateUsesGauge: 1
   ultimateGaugeMax: 100
   ultimateGaugePerDamageDealt: 1
-  autoHop: 1
+  autoHop: 0
   autoHopInterval: 0.1
   autoHopForce: 5
   autoHopMoveThreshold: 0.05
