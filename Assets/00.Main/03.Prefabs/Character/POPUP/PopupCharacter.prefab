@@ -396,7 +396,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1260987833417945182, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2248225502348264044, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: m_LocalScale.x
@@ -560,9 +560,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1260987833417945182, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6359839827924649329}
-    - targetCorrespondingSourceObject: {fileID: 1260987833417945182, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7407442464817606163}
     - targetCorrespondingSourceObject: {fileID: 8844421271709137994, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7440439123682583367}
@@ -662,20 +659,6 @@ MonoBehaviour:
   glitchDuration: 3
   glitchDamageTimes: 3
   glitchDamageRatio: 0.3
---- !u!114 &7407442464817606163
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5886573862833993243}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18665a86cb6f1e642bdcdaf98df05f4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HoverBob
-  amount: 0.1
-  speed: 3
 --- !u!4 &6916947743694365737 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2248225502348264044, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
