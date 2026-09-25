@@ -3768,7 +3768,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.21960786, g: 0.33333334, b: 0.882353, a: 1}
+  m_BackGroundColor: {r: 0.6784314, g: 0.54901963, b: 0.882353, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -24764,6 +24764,18 @@ PrefabInstance:
       propertyPath: looping
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 404779345308157613, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      propertyPath: InitialModule.startColor.maxColor.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 404779345308157613, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      propertyPath: InitialModule.startColor.maxColor.g
+      value: 0.64280236
+      objectReference: {fileID: 0}
+    - target: {fileID: 404779345308157613, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      propertyPath: InitialModule.startColor.maxColor.r
+      value: 0.32941175
+      objectReference: {fileID: 0}
     - target: {fileID: 459678610784418402, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: m_SortingOrder
       value: 1202
@@ -24774,7 +24786,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 652793779395098968, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1057662088377882171, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: m_IsActive
@@ -24883,6 +24895,18 @@ PrefabInstance:
     - target: {fileID: 4182127226580137352, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: randomSeed
       value: 1410719107
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182127226580137352, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      propertyPath: InitialModule.startColor.maxColor.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182127226580137352, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      propertyPath: InitialModule.startColor.maxColor.g
+      value: 0.64280236
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182127226580137352, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      propertyPath: InitialModule.startColor.maxColor.r
+      value: 0.32941175
       objectReference: {fileID: 0}
     - target: {fileID: 4182127226580137352, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       propertyPath: EmissionModule.m_Bursts.Array.data[0].countCurve.scalar
@@ -25047,7 +25071,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VsIntroUI
   player1Text: {fileID: 2067172710}
   player2Text: {fileID: 1833264927}
-  flashDelay: 5
+  flashDelay: 4.5
   flashObject: {fileID: 6971120539330799929}
   loopingParticle: {fileID: 3646246254976116559}
   controlUnlockDelay: 2
@@ -25070,8 +25094,10 @@ MonoBehaviour:
   slotWindow: {fileID: 293140874}
   duration: 3
   loops: 5
-  punchScale: 1.5
-  punchDuration: 0.35
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashInDuration: 0
+  flashOutDuration: 0.4
+  flashAlpha: 1
   tickClip: {fileID: 0}
   tickVolume: 0.5
   stopClip: {fileID: 0}

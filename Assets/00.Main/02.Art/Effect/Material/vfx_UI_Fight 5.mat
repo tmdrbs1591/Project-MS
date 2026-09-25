@@ -90,7 +90,7 @@ Material:
     - _Fresnel_AlphaClipPower: 1.5
     - _Fresnel_AlphaClipStepMax: 0.6125
     - _Fresnel_AlphaClipStepMin: 0.05
-    - _Hue: 0
+    - _Hue: 0.52
     - _MainTex_ColorMode: 0
     - _Main_Alpha_Ch: 0
     - _Main_Pan_ParticleCustom1Z: 1
@@ -107,11 +107,11 @@ Material:
     - _Mask_Strength_Mode: 0
     - _Mask_Use: 0
     - _Pixelate: 0
-    - _Saturation: 1
+    - _Saturation: 0.86
     - _Tiling_ParticleCustom1XY: 0
     - _UVSwitch: 0
     - _Use_Dissolve_Edge: 0
-    - _Value: 1
+    - _Value: 1.16
     m_Colors:
     - _Deform_Mask_OffsetStrength: {r: 0, g: 0, b: 0, a: 0}
     - _Deform_Panning: {r: 0, g: 0, b: 0, a: 0}

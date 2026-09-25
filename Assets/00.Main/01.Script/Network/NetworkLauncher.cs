@@ -44,6 +44,10 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     /// <summary>매칭 상태 메시지(연결/대기/성공/실패)를 외부 UI 로 전달한다.</summary>
     public event Action<string> StatusChanged;
 
+    /// <summary>매칭 진행 중 문구. UI 는 이 값을 받으면 뒤에 점(. .. ...)을 반복해서 붙인다.</summary>
+    public const string MatchingStatus = "매칭 중";
+    public const string MatchedStatus = "매칭 완료!";
+
     private NetworkRunner runner;
     private bool isMatching;
     private bool playerSpawnedInGameScene; // 게임 씬에서 내 캐릭터를 이미 스폰했는지
@@ -73,7 +77,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         isMatching = true;
         playerSpawnedInGameScene = false;
 
-        SetStatus("상대 찾는 중...");
+        SetStatus(MatchingStatus);
 
         // "quickmatch-0" 부터 순서대로 참가/생성을 시도한다. 방 목록을 조회해서
         // 클라이언트가 직접 판단하지 않고, 정해진 이름으로 StartGame 을 바로 호출해
@@ -199,7 +203,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
             if (result.Ok)
             {
-                SetStatus("상대 찾는 중...");
+                SetStatus(MatchingStatus);
                 return;
             }
 
@@ -239,23 +243,24 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnConnectedToServer(NetworkRunner runner)
     {
-        SetStatus("상대 찾는 중...");
+        SetStatus(MatchingStatus);
     }
 
     private void TryStartGameScene(NetworkRunner runner)
     {
-        // Shared 모드 마스터 클라이언트만 씬 로드를 트리거한다.
-        if (!runner.IsSharedModeMasterClient)
+        if (runner.SessionInfo.PlayerCount < playerCount)
             return;
 
-        if (runner.SessionInfo.PlayerCount < playerCount)
+        // 정원이 찼으면 마스터가 아니어도 완료 문구는 띄운다.
+        SetStatus(MatchedStatus);
+
+        // Shared 모드 마스터 클라이언트만 씬 로드를 트리거한다.
+        if (!runner.IsSharedModeMasterClient)
             return;
 
         // 정원이 찼으니 더 못 들어오게 막고 게임 씬 로드
         runner.SessionInfo.IsOpen = false;
         runner.SessionInfo.IsVisible = false;
-
-        SetStatus("매칭 성공! 게임 시작");
 
         int buildIndex = SceneUtility.GetBuildIndexByScenePath(gameSceneName);
         if (buildIndex < 0)
