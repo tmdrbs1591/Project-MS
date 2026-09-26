@@ -1,64 +1,64 @@
+﻿using Fusion.Addons.Physics;
 using ProjectMS.CharacterSystem;
+using ProjectMS.CharacterSystem.Examples;
 using UnityEngine;
 
 public class SparkQNode : CharacterDeployable
 {
-    public bool IsValid => Object != null && Object.IsValid && !IsDestroying;
+    [SerializeField] private LayerMask groundMask;
+    [SerializeField] private NetworkRigidbody2D netRb;
 
-    [Header("Overlap Setting")]
-    [SerializeField] private float overlapRadius = 0.1f;
-    [SerializeField] private float stopOverlapRadius = 0.1f;
-    [SerializeField] private Vector2 rightPos;
-    [SerializeField] private Vector2 leftPos;
-    [SerializeField] private Vector2 topPos;
-    [SerializeField] private Vector2 stopPos;
+    public bool IsStopped => isStopped;
+    private bool isStopped;
 
-    private Rigidbody2D rb;
+    private Vector2? contactVector;
+    private SparkCharacter ownerSpark;
 
-    private void Awake()
+    public void Initialize(SparkCharacter _ownerSpark)
     {
-        rb = GetComponent<Rigidbody2D>();
+        if (!Object.HasStateAuthority)
+            return;
+
+        ownerSpark = _ownerSpark;
+    }
+    
+    // 네트워크 틱 주기에 맞추려고 pendingNormal만 설정하고 실제 위치 변경은 FixedUpdateNetwork에서 한다.
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!Object.HasStateAuthority || Runner.IsResimulation)
+            return;
+
+        if (collision.contactCount == 0)
+            return;
+        
+        bool isCollisionGround = (groundMask.value & (1 << collision.collider.gameObject.layer)) != 0;
+        if (!isCollisionGround)
+            return;
+
+        contactVector = collision.GetContact(0).normal;
     }
 
-    public bool isRight;
-    public bool isLeft;
-    public bool isTop;
-    public bool isStop;
-
-    private void Update()
+    public override void FixedUpdateNetwork()
     {
-        isRight = Physics2D.OverlapCircle((Vector2)transform.position + rightPos, overlapRadius, LayerMask.GetMask("Ground"));
-        isLeft = Physics2D.OverlapCircle((Vector2)transform.position + leftPos, overlapRadius, LayerMask.GetMask("Ground"));
-        isTop = Physics2D.OverlapCircle((Vector2)transform.position + topPos, overlapRadius, LayerMask.GetMask("Ground"));
-        isStop = Physics2D.OverlapCircle((Vector2)transform.position + stopPos, stopOverlapRadius, LayerMask.GetMask("Ground"));
+        base.FixedUpdateNetwork();
 
-        if (isRight)
-        {
-            transform.rotation = Quaternion.Euler(0, 0, 90);
-        }
-        if (isLeft)
-        {
-            transform.rotation = Quaternion.Euler(0, 0, -90);
-        }
-        if (isTop)
-        {
-            transform.rotation = Quaternion.Euler(0, 0, 180);
-            rb.linearVelocity = Vector2.zero;
-            rb.gravityScale = 0;
-        }
-        if (isStop)
-        {
-            rb.linearVelocity = Vector2.zero;
-            rb.gravityScale = 0;
-        }
+        if (!Object.HasStateAuthority)
+            return;
+
+        if (IsStopped || !contactVector.HasValue)
+            return;
+
+        FixNodePosition();
     }
 
-    private void OnDrawGizmosSelected()
+    private void FixNodePosition()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere((Vector2)transform.position + rightPos, overlapRadius);
-        Gizmos.DrawWireSphere((Vector2)transform.position + leftPos, overlapRadius);
-        Gizmos.DrawWireSphere((Vector2)transform.position + topPos, overlapRadius);
-        Gizmos.DrawWireSphere((Vector2)transform.position + stopPos, stopOverlapRadius);
+        netRb.Rigidbody.rotation = Vector2.SignedAngle(Vector2.up, contactVector.Value);
+        netRb.Rigidbody.bodyType = RigidbodyType2D.Static;
+
+        isStopped = true;
+        
+        if (ownerSpark != null)
+            ownerSpark.OnNodeStopped();
     }
 }

@@ -235,16 +235,10 @@ MonoBehaviour:
   destroyWhenOwnerDies: 1
   effectAnchor: {fileID: 737586064614648544}
   activateOnSpawn: 1
-  overlapRadius: 0.1
-  stopOverlapRadius: 0.1
-  rightPos: {x: 0, y: 0}
-  leftPos: {x: 0, y: 0}
-  topPos: {x: 0, y: 0}
-  stopPos: {x: 0, y: 0}
-  isRight: 0
-  isLeft: 0
-  isTop: 0
-  isStop: 0
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 64
+  netRb: {fileID: 5163196538136971691}
 --- !u!58 &2811626630673370388
 CircleCollider2D:
   m_ObjectHideFlags: 0

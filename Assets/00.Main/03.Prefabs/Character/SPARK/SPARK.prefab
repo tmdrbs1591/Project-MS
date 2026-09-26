@@ -405,6 +405,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6533289649576514897, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
   m_PrefabInstance: {fileID: 8827452473790992548}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &5960540728435236784 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2898472591512948500, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+  m_PrefabInstance: {fileID: 8827452473790992548}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &6307989572108529139 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
@@ -437,27 +442,34 @@ MonoBehaviour:
   visual: {fileID: 6307989572108529139}
   sockets:
     attackOrigin: {fileID: 0}
-    projectileOrigin: {fileID: 0}
+    projectileOrigin: {fileID: 5960540728435236784}
     weaponRoot: {fileID: 0}
     effectOrigin: {fileID: 0}
   inputCamera: {fileID: 0}
   ultimateFlashEffect: {fileID: 4458164990993355567}
-  overloadRadius: 3.5
-  overloadEffectPrefab: {fileID: 3191008303372850262, guid: 536c7d7b6adb44f4fb9aacb6282cd88e, type: 3}
-  teslaRadius: 5
-  teslaDuration: 3
-  tickInterval: 0.5
-  teslaFieldEffectPrefab: {fileID: 3191008303372850262, guid: ad983230bc48e864fa7e74ca8be5e854, type: 3}
-  projectilePrefab: {fileID: 4312595785935445242, guid: 2f857482da1f348438f758074b19d733, type: 3}
-  projectileSpeed: 20
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
-  electricNodePrefab: {fileID: 5648076269895567892, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
-  electricLinkPrefab: {fileID: 6000556252433244920, guid: 586c53fb05358ef4d9fb3905607ef2c6, type: 3}
-  throwSpeed: 10
-  electricLineWidth: 0.18
-  lineDamagePerSecond: 20
-  lineTickInterval: 0.5
-  lineTickDamage: 20
-  totalCharge: 100
+  gunProjectilePrefab: {fileID: 4312595785935445242, guid: 2f857482da1f348438f758074b19d733, type: 3}
+  gunProjectileSpeed: 20
+  nodePrefab: {fileID: 5648076269895567892, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
+  nodeLinkerPrefab: {fileID: 5790439022264207492, guid: 4c0408c638d0e1e409e934a316a4cbf1, type: 3}
+  nodeThrowSpeed: 10
+  nodeLinkerWidth: 0.8
+  nodeLinkerDamageInterval: 0.5
+  overloadRadius: 3.5
+  overloadSlowDuration: 1
+  overloadSlowRatio: 0.5
+  overloadEffectPrefab: {fileID: 3191008303372850262, guid: 536c7d7b6adb44f4fb9aacb6282cd88e, type: 3}
+  overloadEffectDuration: 0.5
+  teslaRadius: 5
+  teslaDuration: 3
+  teslaExplosionInterval: 0.5
+  teslaSlowDuration: 0.3
+  teslaSlowRatio: 0.2
+  teslaEffectPrefab: {fileID: 3191008303372850262, guid: ad983230bc48e864fa7e74ca8be5e854, type: 3}
+  teslaFirstEffectDuration: 0.6
+  teslaEffectDuration: 0.4
+  electrostaticMaxCharge: 100
+  electrostaticChargeMultiplier: 1
+  electrostaticStunDuration: 0.5
