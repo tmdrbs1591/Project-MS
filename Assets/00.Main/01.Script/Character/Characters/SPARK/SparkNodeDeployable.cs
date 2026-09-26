@@ -3,7 +3,7 @@ using ProjectMS.CharacterSystem;
 using ProjectMS.CharacterSystem.Examples;
 using UnityEngine;
 
-public class SparkQNode : CharacterDeployable
+public class SparkNodeDeployable : CharacterDeployable
 {
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private NetworkRigidbody2D netRb;

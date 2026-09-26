@@ -21,7 +21,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)][SerializeField] private float gunProjectileSpeed = 20f;
 
         [Header("Skill Q - Electric Node")]
-        [SerializeField] private SparkQNode nodePrefab = null;
+        [SerializeField] private SparkNodeDeployable nodePrefab = null;
         [SerializeField] private SparkNodeLinkerDeployable nodeLinkerPrefab;
         [Min(0f)][SerializeField] private float nodeThrowSpeed = 10f;
         [SerializeField] private float nodeLinkerWidth = 0.8f;
@@ -56,7 +56,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private Vector2 lastPosition;
         
         // 현재 존재하는 모든 노드 목록 (노드가 실제로 아직 던져지고 있고 멈추지 않았어도 추가된다.)
-        private List<SparkQNode> plantedElectricNodes = new List<SparkQNode>(2);
+        private List<SparkNodeDeployable> plantedElectricNodes = new List<SparkNodeDeployable>(2);
         private SparkNodeLinkerDeployable nodeLinker;
         
         private int TeslaCurrentExplosionCount { get; set; }
@@ -103,7 +103,7 @@ namespace ProjectMS.CharacterSystem.Examples
             if (nodePrefab == null)
                 return false;
 
-            SparkQNode node = SpawnOwnedEntity(
+            SparkNodeDeployable node = SpawnOwnedEntity(
                 nodePrefab,
                 context.Action,
                 ProjectileOrigin.position,
