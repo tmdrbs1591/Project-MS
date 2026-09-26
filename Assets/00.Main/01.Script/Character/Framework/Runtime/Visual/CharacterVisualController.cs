@@ -219,8 +219,9 @@ namespace ProjectMS.CharacterSystem
                     position,
                     Quaternion.Euler(0f, 0f, angle + effect.AngleOffset));
 
+                // Lifetime 뒤에 뚝 끊지 않고, 남은 파티클이 다 재생된 뒤에 지운다.
                 if (effect.Lifetime > 0f)
-                    Destroy(instance, effect.Lifetime);
+                    EffectAutoDestroy.Schedule(instance, effect.Lifetime);
                 return;
             }
         }

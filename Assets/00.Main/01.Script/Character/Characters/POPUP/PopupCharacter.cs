@@ -39,6 +39,19 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)][SerializeField] private float movingBugArcRadius = 6f;
         [Min(0f)][SerializeField] private float movingBugSlowRatio = 0.3f;
         [Min(0f)][SerializeField] private float movingBugSlowDuration = 0.75f;
+        [Tooltip("E 를 쓸 때 스킬이 나가는 방향(조준 방향)으로 회전해서 생성되는 이펙트")]
+        [SerializeField] private GameObject movingBugVfxPrefab;
+        [Tooltip("X 회전에 더할 보정각. 조준 방향과 어긋나 보이면 여기서 맞춘다.")]
+        [SerializeField] private float movingBugVfxAngleOffset = 0f;
+        [Tooltip("켜면 X 회전 방향을 반대로 돌린다(위로 조준했는데 이펙트가 아래로 가면 켠다).")]
+        [SerializeField] private bool movingBugVfxInvertAngle = false;
+        [Tooltip("고정 회전값 Y / Z. X 회전만 조준 방향에 맞춰 바뀐다.")]
+        [SerializeField] private float movingBugVfxFixedY = 90f;
+        [SerializeField] private float movingBugVfxFixedZ = -90f;
+        [Tooltip("이펙트 재생 시간(초). 지나면 남은 파티클이 다 사라진 뒤 지운다.")]
+        [Min(0f)][SerializeField] private float movingBugVfxLifetime = 1f;
+        [Tooltip("켜면 이펙트가 캐릭터를 따라다닌다(캐릭터 자식으로 붙음).")]
+        [SerializeField] private bool movingBugVfxFollowCharacter = false;
 
         [Header("Skill R - System Error Popup Appeared")]
         [SerializeField] private CharacterProjectile popupAppearGlitchProjectile;
@@ -173,7 +186,27 @@ namespace ProjectMS.CharacterSystem.Examples
                 ApplySlow(enemy, movingBugSlowRatio, movingBugSlowDuration);
             }
 
+            if (!Runner.IsResimulation)
+                Rpc_PlayMovingBugVfx(ProjectileOrigin.position, context.AimAngle);
+
             return true;
+        }
+
+        // E 이펙트: 모든 클라에서 스킬 방향(조준 각도)으로 회전해서 생성한다.
+        // 3D 파티클 프리팹이라 Y/Z 는 고정(90, -90)하고 X 회전만 바꾼다. 이 고정값에서 파티클의 +Z(뿜는 방향)는
+        // 화면상 (cos x, -sin x) 를 향하므로, 조준 각도 θ 를 향하려면 X = -θ 다.
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_PlayMovingBugVfx(Vector2 position, float angle)
+        {
+            if (movingBugVfxPrefab == null)
+                return;
+
+            float x = (movingBugVfxInvertAngle ? angle : -angle) + movingBugVfxAngleOffset;
+            Quaternion rotation = Quaternion.Euler(x, movingBugVfxFixedY, movingBugVfxFixedZ);
+            GameObject vfx = movingBugVfxFollowCharacter
+                ? Instantiate(movingBugVfxPrefab, position, rotation, transform)
+                : Instantiate(movingBugVfxPrefab, position, rotation);
+            EffectAutoDestroy.Schedule(vfx, movingBugVfxLifetime);
         }
 
         protected override bool OnUltimate(CharacterActionContext context)

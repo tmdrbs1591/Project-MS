@@ -1472,6 +1472,14 @@ namespace ProjectMS.CharacterSystem
 
         private void TryExecute(CharacterActionType action, bool pressed)
         {
+            // [임시 진단] 궁극기를 눌렀는데 안 나가는 이유 기록. 원인 찾으면 지운다.
+            if (pressed && action == CharacterActionType.Ultimate && !IsBot)
+            {
+                Debug.Log($"[UltDebug] {name} R 입력: 사용가능={actionState.CanUse(action)} 활성={((ICharacterActionStateStore)this).GetEnabled(action)} " +
+                          $"쿨타임남음={actionState.GetCooldownRemaining(action):F2} 충전={actionState.GetCharges(action)} " +
+                          $"게이지모드={IsUltimateGaugeMode} 게이지={NetUltimateGauge:F1}/{UltimateGaugeMax} 이동허용={NetMovementEnabled}");
+            }
+
             if (!pressed || !actionState.CanUse(action))
                 return;
             // 재장전 중엔 기본공격 불가(쿨타임과 별개로 확실히 막는다).

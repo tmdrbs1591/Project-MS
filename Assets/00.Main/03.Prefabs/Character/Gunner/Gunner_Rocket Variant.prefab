@@ -33831,6 +33831,10 @@ PrefabInstance:
       value: -0.002
       objectReference: {fileID: 0}
     - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: hitVfxPrefab
+      value: 
+      objectReference: {fileID: 2520368088813305050, guid: f6c68da018bdc1e469b22d667b06b960, type: 3}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: pierceCharacters
       value: 0
       objectReference: {fileID: 0}

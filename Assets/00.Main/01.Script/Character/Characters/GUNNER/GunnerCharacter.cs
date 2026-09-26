@@ -48,6 +48,13 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Ultimate - Bazooka")]
         [SerializeField] private CharacterProjectile rocketProjectilePrefab;
         [Min(0f)] [SerializeField] private float rocketSpeed = 18f;
+        [Tooltip("로켓이 적에게 맞거나 땅/벽에 닿아 사라질 때 그 자리에 생성할 이펙트")]
+        [SerializeField] private GameObject rocketImpactVfxPrefab;
+        [Tooltip("이펙트를 몇 초 뒤에 지울지. 0 이하면 지우지 않는다(이펙트가 스스로 사라지는 경우).")]
+        [SerializeField] private float rocketImpactVfxLifetime = 2f;
+
+        /// <summary>로켓 투사체 구분용 skillId(기본공격 총알은 0).</summary>
+        private const int RocketSkillId = 3;
 
         [Header("Passive - Empowered Round")]
         [Range(1f, 5f)] [SerializeField] private float empoweredDamageMultiplier = 1.3f;
@@ -248,11 +255,37 @@ namespace ProjectMS.CharacterSystem.Examples
                 context.AimDirection,
                 rocketSpeed,
                 context.Damage,
-                targetLayer);
+                targetLayer,
+                skillId: RocketSkillId);
 
             PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
             ActivatePassive();
             return true;
+        }
+
+        // 로켓이 맞거나(캐릭터/소환물) 땅·벽에 닿아 사라지면 그 자리에 이펙트. 수명 만료로 허공에서 사라질 땐 안 낸다.
+        protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
+        {
+            base.OnProjectileDespawned(projectile, reason, hitTarget);
+
+            if (projectile == null || projectile.SkillId != RocketSkillId)
+                return;
+            if (reason != ProjectileDespawnReason.HitCharacter && reason != ProjectileDespawnReason.HitWall &&
+                reason != ProjectileDespawnReason.HitOwnedEntity)
+                return;
+
+            Rpc_PlayRocketImpact(projectile.LastHitPoint);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayRocketImpact(Vector2 position)
+        {
+            if (rocketImpactVfxPrefab == null)
+                return;
+
+            GameObject vfx = Instantiate(rocketImpactVfxPrefab, position, Quaternion.identity);
+            if (rocketImpactVfxLifetime > 0f)
+                EffectAutoDestroy.Schedule(vfx, rocketImpactVfxLifetime);
         }
 
         /// <summary>GunnerGrenadeProjectile이 터질 때 호출한다(조기 폭발이든 자동 폭발이든 동일 경로).

@@ -63,6 +63,8 @@ namespace ProjectMS.CharacterSystem
         /// (예: 거너 수류탄의 "본인 총알에 맞으면 조기 폭발" 판정).</summary>
         public PlayerRef Owner => NetOwner;
         public int SkillId => NetSkillId;
+        /// <summary>소멸한 지점(맞은 지점 / 벽·땅 충돌 지점 / 수명 만료 위치). OnProjectileDespawned 에서 이펙트 위치로 쓴다.</summary>
+        public Vector2 LastHitPoint { get; private set; }
 
         private const int MaxHitCount = 32;
 
@@ -294,7 +296,7 @@ namespace ProjectMS.CharacterSystem
             if (explodeVfxPrefab == null)
                 return;
 
-            Destroy(Instantiate(explodeVfxPrefab, position, Quaternion.identity), 2f);
+            EffectAutoDestroy.Schedule(Instantiate(explodeVfxPrefab, position, Quaternion.identity), 2f);
         }
 
         private int CastAlongDelta(Vector2 delta)
@@ -444,6 +446,7 @@ namespace ProjectMS.CharacterSystem
             DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             if (surfaceNormal.sqrMagnitude < 0.001f)
                 surfaceNormal = -NetDirection;
+            LastHitPoint = hitPoint;
 
             if (playVfx)
                 Rpc_PlayHitVfx(hitPoint, surfaceNormal.normalized);
@@ -463,7 +466,7 @@ namespace ProjectMS.CharacterSystem
             Vector2 normal = surfaceNormal.sqrMagnitude > 0.001f ? surfaceNormal.normalized : Vector2.left;
             Vector2 spawnPosition = position + normal * hitVfxSurfaceOffset;
             float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg + hitVfxAngleOffset;
-            Destroy(Instantiate(hitVfxPrefab, spawnPosition, Quaternion.Euler(0f, 0f, angle)), 2f);
+            EffectAutoDestroy.Schedule(Instantiate(hitVfxPrefab, spawnPosition, Quaternion.Euler(0f, 0f, angle)), 2f);
         }
 
         private void AlignToDirection()

@@ -15,6 +15,41 @@ namespace ProjectMS.CharacterSystem.Examples
             TeslaField
         }
 
+        private enum SparkSoundKind : byte
+        {
+            OverloadExplosion,
+            TeslaCast,
+            TeslaExplosion
+        }
+
+        [Header("Sounds - Pitch")]
+        [Tooltip("E/R 사운드를 낼 때마다 피치를 1±이 값 범위에서 랜덤으로 살짝 바꾼다(같은 소리가 반복돼도 덜 기계적으로 들리게).")]
+        [Range(0f, 0.5f)][SerializeField] private float skillSoundPitchVariance = 0.08f;
+
+        // E/R 전용 사운드. 모든 클라에서 들리도록 RPC 로 브로드캐스트한다(클립은 각 클라 인스펙터 값 사용).
+        private void PlaySparkSound(SparkSoundKind kind)
+        {
+            if (Object != null && Object.HasStateAuthority && !Runner.IsResimulation)
+                Rpc_PlaySparkSound(kind);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlaySparkSound(SparkSoundKind kind)
+        {
+            switch (kind)
+            {
+                case SparkSoundKind.OverloadExplosion:
+                    SoundManager.Instance?.PlaySfx(overloadExplosionClip, overloadExplosionVolume, skillSoundPitchVariance);
+                    break;
+                case SparkSoundKind.TeslaCast:
+                    SoundManager.Instance?.PlaySfx(teslaCastClip, teslaCastVolume, skillSoundPitchVariance);
+                    break;
+                case SparkSoundKind.TeslaExplosion:
+                    SoundManager.Instance?.PlaySfx(teslaExplosionClip, teslaExplosionVolume, skillSoundPitchVariance);
+                    break;
+            }
+        }
+
         // effectKind에 해당하는 프리팹을 모든 클라에서 생성하고, 스킬의 실제 반경(radius)에 맞춰 크기를 맞추는
         // 범위 이펙트 메서드. RPC로 브로드캐스트하므로 상대(관전) 클라에서도 보인다.
         private void PlayRangeEffect(RangeEffectKind effectKind, Vector3 position, float radius, float duration = 1.0f)
@@ -54,7 +89,8 @@ namespace ProjectMS.CharacterSystem.Examples
                 instance.transform.localScale = Vector3.one * ((radius * 2f) / baseDiameter);
             }
 
-            Destroy(instance, duration);
+            // duration 뒤에 뚝 끊지 않고, 남은 파티클이 다 재생된 뒤에 지운다.
+            EffectAutoDestroy.Schedule(instance, duration);
         }
     }
 }

@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -6853174992413704043, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'Guid.RawGuidValue.Array.data[0]'
+      value: -7751370671845998160
+      objectReference: {fileID: 0}
+    - target: {fileID: -6853174992413704043, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'Guid.RawGuidValue.Array.data[1]'
+      value: 1337529607660348027
+      objectReference: {fileID: 0}
     - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Size.x
       value: 0.5
@@ -86,11 +94,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 1.1854149
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -2.2319002
       objectReference: {fileID: 0}
     - target: {fileID: 4954279135166869829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalPosition.z
@@ -140,9 +148,17 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6418989521028516468, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: a4b7704f7cb9abc42b32a3e96b660f29, type: 2}
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
       value: PopupErrorThrowable
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
@@ -203,6 +219,7 @@ MonoBehaviour:
   allowSelfDamage: 0
   allowFriendlyDamage: 0
   destroyWhenOwnerDies: 1
+  effectAnchor: {fileID: 0}
   fuseStartMode: 1
   fuseSeconds: 0.01
   groundLayer:
@@ -212,3 +229,5 @@ MonoBehaviour:
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
+  destroyVfxPrefab: {fileID: 127910, guid: 44b436602194b6a4387c9f987500b13f, type: 3}
+  destroyVfxLifetime: 1

@@ -138,7 +138,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             GameObject vfx = Instantiate(explosionVfxPrefab, position, Quaternion.identity);
             if (explosionVfxLifetime > 0f)
-                Destroy(vfx, explosionVfxLifetime);
+                EffectAutoDestroy.Schedule(vfx, explosionVfxLifetime);
         }
     }
 }

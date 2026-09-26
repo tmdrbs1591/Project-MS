@@ -665,6 +665,8 @@ MonoBehaviour:
   grenadeExplosionRadius: 2
   rocketProjectilePrefab: {fileID: 5284984709119320128, guid: dc0e9cee9f1142246b5f8ecf03ba9619, type: 3}
   rocketSpeed: 18
+  rocketImpactVfxPrefab: {fileID: 2520368088813305050, guid: f6c68da018bdc1e469b22d667b06b960, type: 3}
+  rocketImpactVfxLifetime: 2
   empoweredDamageMultiplier: 1.3
   empoweredGunVisual: {fileID: 0}
 --- !u!114 &6027074689230501794 stripped
