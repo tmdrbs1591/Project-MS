@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 5648076269895567892}
   - component: {fileID: 2811626630673370388}
   m_Layer: 7
-  m_Name: SPARK_Q
+  m_Name: SparkNodeDeployable
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
