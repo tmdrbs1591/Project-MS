@@ -228,7 +228,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SparkQNode
   lifetimeMode: 1
-  maxHealth: 10
+  maxHealth: 150
   duration: 0
   allowSelfDamage: 0
   allowFriendlyDamage: 0

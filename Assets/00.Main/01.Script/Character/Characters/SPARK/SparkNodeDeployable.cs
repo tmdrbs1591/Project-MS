@@ -25,7 +25,7 @@ public class SparkNodeDeployable : CharacterDeployable
     // 네트워크 틱 주기에 맞추려고 pendingNormal만 설정하고 실제 위치 변경은 FixedUpdateNetwork에서 한다.
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!Object.HasStateAuthority || Runner.IsResimulation)
+        if (Object == null || !Object.IsValid || !Object.HasStateAuthority || Runner.IsResimulation)
             return;
 
         if (collision.contactCount == 0)
@@ -42,7 +42,7 @@ public class SparkNodeDeployable : CharacterDeployable
     {
         base.FixedUpdateNetwork();
 
-        if (!Object.HasStateAuthority)
+        if (Object == null || !Object.IsValid || !Object.HasStateAuthority || IsDestroying || Runner.IsResimulation)
             return;
 
         if (IsStopped || !contactVector.HasValue)
