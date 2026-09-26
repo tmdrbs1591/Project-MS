@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: DashBooster
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 7
-  title: 추진력 강화
-  description: 대쉬(Shift) 쿨타임이 30% 감소합니다.
-  icon: {fileID: 0}
+  title: "\uCD94\uC9C4\uB825 \uAC15\uD654"
+  description: "\uB300\uC26C(Shift) \uCFE8\uD0C0\uC784\uC774 30% \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 2
   percentValue: 0.3
   secondaryPercentValue: 0

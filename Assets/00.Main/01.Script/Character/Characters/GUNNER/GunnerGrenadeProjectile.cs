@@ -54,6 +54,10 @@ namespace ProjectMS.CharacterSystem.Examples
         private Rigidbody2D rb;
         private bool exploded;
 
+        /// <summary>던진 사람(데미지 소유자). AI 가 적 수류탄을 피할 때 쓴다.</summary>
+        public PlayerRef Owner => NetOwner;
+        public Vector2 Velocity => rb != null ? rb.linearVelocity : Vector2.zero;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();

@@ -401,6 +401,7 @@ MonoBehaviour:
   aimRotationOffset: 0
   dustEffect: {fileID: 0}
   animator: {fileID: 0}
+  commonSounds: {fileID: 11400000, guid: 3d38635552a7b794ca24b50aeed315c7, type: 2}
   actionEffects: []
   jiggleTargets: []
   counterFlipTargets: []

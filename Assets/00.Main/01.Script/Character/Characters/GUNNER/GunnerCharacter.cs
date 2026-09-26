@@ -59,6 +59,38 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isFirstBasicAttack = true;
         private bool lastRenderedEmpowered;
 
+        // ---- AI(GunnerBotBrain)가 판단에 쓰는 읽기 전용 수치 ----
+        public float BulletSpeed => bulletProjectileSpeed;
+        public float RocketSpeed => rocketSpeed;
+        public float GrenadeThrowSpeed => grenadeThrowSpeed;
+        public float GrenadeExplosionRadius => grenadeExplosionRadius;
+        public Vector2 PiercingLightBoxSize => piercingLightBoxSize;
+        public float PiercingLightForwardOffset => piercingLightForwardOffset;
+        public bool IsEmpowered => NetEmpowered;
+        public Vector2 ProjectileOriginPosition => ProjectileOrigin.position;
+        public Vector2 AttackOriginPosition => AttackOrigin.position;
+        public float GrenadeGravityScale
+        {
+            get
+            {
+                Rigidbody2D body = grenadePrefab != null ? grenadePrefab.GetComponent<Rigidbody2D>() : null;
+                return body != null ? body.gravityScale : 1f;
+            }
+        }
+
+        /// <summary>마지막으로 던진, 아직 안 터진 수류탄(없으면 null). AI 가 "쏘면 폭발" 콤보에 쓴다.</summary>
+        public GunnerGrenadeProjectile ActiveGrenade
+        {
+            get
+            {
+                if (activeGrenade != null && (activeGrenade.Object == null || !activeGrenade.Object.IsValid))
+                    activeGrenade = null;
+                return activeGrenade;
+            }
+        }
+
+        private GunnerGrenadeProjectile activeGrenade;
+
         /// <summary>기본기 발사각 사이 간격(갈래 마법 증강으로 추가 투사체가 나갈 때 씀).</summary>
         private const float ForkAngleStep = 12f;
 
@@ -107,6 +139,7 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration * ReloadSpeedMultiplier);
                 SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize + 1);
+                NotifyReloadStarted(reloadDuration * ReloadSpeedMultiplier);
             }
             else
             {
@@ -184,7 +217,7 @@ namespace ProjectMS.CharacterSystem.Examples
             Vector2 throwVelocity = direction * grenadeThrowSpeed;
             float damage = context.Damage;
 
-            Runner.Spawn(
+            GunnerGrenadeProjectile spawnedGrenade = Runner.Spawn(
                 grenadePrefab,
                 ProjectileOrigin.position,
                 Quaternion.identity,
@@ -192,8 +225,12 @@ namespace ProjectMS.CharacterSystem.Examples
                 (_, spawnedObject) =>
                 {
                     GunnerGrenadeProjectile grenade = spawnedObject.GetComponent<GunnerGrenadeProjectile>();
-                    grenade?.Initialize(throwVelocity, damage, Object.InputAuthority, Object.Id);
+                    // 소유자는 총알(CharacterProjectile.Owner)과 같은 DamageOwner 로 맞춘다 — 그래야 "쏘면 폭발"이
+                    // 봇(InputAuthority 없음)에서도 자기 총알에 반응한다. 사람은 DamageOwner == 자기 자신이라 동일.
+                    grenade?.Initialize(throwVelocity, damage, DamageOwner, Object.Id);
                 });
+            if (spawnedGrenade != null)
+                activeGrenade = spawnedGrenade;
 
             PlayActionEffect(CharacterActionType.SkillE, EffectOrigin.position, context.AimAngle);
             ActivatePassive();
@@ -231,6 +268,14 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 DealDamage(enemy, damage);
             }
+        }
+
+        // 휠 수동 재장전. 과충전 탄창/고속 재장전 증강을 반영한 값.
+        protected override bool TryGetReloadInfo(out int magazine, out float duration)
+        {
+            magazine = Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
+            duration = reloadDuration * ReloadSpeedMultiplier;
+            return true;
         }
 
         protected override void OnResetCharacter()

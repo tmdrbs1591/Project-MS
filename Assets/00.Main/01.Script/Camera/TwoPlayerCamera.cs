@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ProjectMS.CharacterSystem;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// 두 플레이어를 항상 화면 안에 담아주는 2D 카메라.
@@ -101,6 +102,13 @@ public class TwoPlayerCamera : MonoBehaviour
     private float shakeDuration;
     private float shakeMagnitude;
 
+    // 펀치 줌: 한 방향으로 살짝 당겨 들어갔다가 돌아오는 일회성 연출(평소 프레이밍 위에 덧씌움).
+    private float smoothedSize;
+    private float punchElapsed;
+    private float punchDuration;
+    private Vector2 punchOffset;
+    private float punchZoomRatio;
+
     private void Awake()
     {
         Instance = this;
@@ -110,6 +118,7 @@ public class TwoPlayerCamera : MonoBehaviour
             Debug.LogWarning("[TwoPlayerCamera] 카메라가 Orthographic 이 아닙니다. 2D 줌이 정상 동작하려면 Orthographic 으로 바꿔주세요.");
 
         smoothedPosition = transform.position;
+        smoothedSize = cam.orthographicSize;
     }
 
     private void OnDestroy()
@@ -151,6 +160,54 @@ public class TwoPlayerCamera : MonoBehaviour
         shakeMagnitude = magnitude;
         shakeDuration = duration;
         shakeElapsed = 0f;
+    }
+
+    /// <summary>direction 쪽으로 offsetDistance(월드 단위)만큼 당기면서 zoomRatio(0.1 = 10%)만큼 줌인했다가
+    /// duration(실시간 초) 동안 원래대로 돌아온다. 평소 프레이밍 위에 덧씌우는 일회성 연출.</summary>
+    public void PunchZoom(Vector2 direction, float offsetDistance, float zoomRatio, float duration)
+    {
+        punchOffset = direction.sqrMagnitude > 0.0001f ? direction.normalized * offsetDistance : Vector2.zero;
+        punchZoomRatio = Mathf.Clamp(zoomRatio, 0f, 0.9f);
+        punchDuration = Mathf.Max(0.01f, duration);
+        punchElapsed = 0f;
+    }
+
+    /// <summary>지금 마우스가 가리키는 지점 쪽으로 펀치 줌. 그 지점이 화면에서 제자리에 있도록 줌인하고,
+    /// 추가로 extraOffset(월드 단위, 최대치)만큼 그쪽으로 더 당긴다.</summary>
+    public void PunchZoomTowardsMouse(float extraOffset, float zoomRatio, float duration)
+    {
+        Mouse mouse = Mouse.current;
+        if (mouse == null || cam == null)
+            return;
+
+        Vector3 screen = mouse.position.ReadValue();
+        screen.z = Mathf.Abs(cam.transform.position.z);
+        Vector2 point = cam.ScreenToWorldPoint(screen);
+        Vector2 toPoint = point - (Vector2)smoothedPosition;
+
+        zoomRatio = Mathf.Clamp(zoomRatio, 0f, 0.9f);
+        // 크기를 r 만큼 줄일 때 point 가 화면 같은 자리에 머물려면 중심이 (point - 중심) * r 만큼 이동해야 한다.
+        Vector2 anchorShift = toPoint * zoomRatio;
+        Vector2 extra = toPoint.sqrMagnitude > 0.0001f ? toPoint.normalized * Mathf.Min(extraOffset, toPoint.magnitude) : Vector2.zero;
+
+        punchOffset = anchorShift + extra;
+        punchZoomRatio = zoomRatio;
+        punchDuration = Mathf.Max(0.01f, duration);
+        punchElapsed = 0f;
+    }
+
+    // 0 → 1(빠르게, 앞 25%) → 0(천천히, 나머지) 로 움직이는 펀치 곡선.
+    private float GetPunchWeight()
+    {
+        if (punchElapsed >= punchDuration)
+            return 0f;
+
+        punchElapsed += Time.unscaledDeltaTime;
+        float t = Mathf.Clamp01(punchElapsed / punchDuration);
+        const float peak = 0.25f;
+        return t < peak
+            ? Mathf.Sin(t / peak * Mathf.PI * 0.5f)
+            : Mathf.Cos((t - peak) / (1f - peak) * Mathf.PI * 0.5f);
     }
 
     // 캐릭터 이동(FixedUpdate)과 보간이 끝난 뒤 따라가도록 LateUpdate 에서 처리한다.
@@ -198,8 +255,9 @@ public class TwoPlayerCamera : MonoBehaviour
         verticalAnchor = ApplyDeadzone(verticalAnchor, targetPos.y, yDeadzone);
         sizeAnchor = ApplyDeadzone(sizeAnchor, targetSize, sDeadzone);
 
-        float size = Mathf.SmoothDamp(cam.orthographicSize, sizeAnchor, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, unscaledDeltaTime);
-        cam.orthographicSize = size;
+        // 펀치 줌이 cam.orthographicSize 를 잠깐 바꾸므로, 스무딩은 실제 카메라 값이 아닌 별도 값으로 한다.
+        float size = Mathf.SmoothDamp(smoothedSize, sizeAnchor, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, unscaledDeltaTime);
+        smoothedSize = size;
 
         float x = Mathf.SmoothDamp(smoothedPosition.x, targetPos.x, ref moveVelocityX, positionSmoothTime, Mathf.Infinity, unscaledDeltaTime);
         float y = Mathf.SmoothDamp(smoothedPosition.y, verticalAnchor, ref moveVelocityY, verticalSmoothTime, Mathf.Infinity, unscaledDeltaTime);
@@ -215,7 +273,10 @@ public class TwoPlayerCamera : MonoBehaviour
         }
 
         smoothedPosition = new Vector3(x, y, transform.position.z);
-        transform.position = smoothedPosition + (Vector3)GetShakeOffset();
+
+        float punch = GetPunchWeight();
+        cam.orthographicSize = size * (1f - punchZoomRatio * punch);
+        transform.position = smoothedPosition + (Vector3)(punchOffset * punch) + (Vector3)GetShakeOffset();
     }
 
     /// <summary>목표가 데드존 밖으로 나간 만큼만 따라간다. 데드존 안의 미세한 떨림(오토홉으로

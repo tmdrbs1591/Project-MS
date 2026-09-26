@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: OverchargedMagazine
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 3
-  title: 과충전 탄창
-  description: 최대 탄약 수가 50% 증가합니다.
-  icon: {fileID: 0}
+  title: "\uACFC\uCDA9\uC804 \uD0C4\uCC3D"
+  description: "\uCD5C\uB300 \uD0C4\uC57D \uC218\uAC00 50% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 2
   percentValue: 0.5
   secondaryPercentValue: 0

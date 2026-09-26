@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: BouncingMagic
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 6
-  title: 바운스 마법
-  description: 기본기의 투사체가 벽에 1회 튕깁니다.
-  icon: {fileID: 0}
+  title: "\uBC14\uC6B4\uC2A4 \uB9C8\uBC95"
+  description: "\uAE30\uBCF8\uAE30\uC758 \uD22C\uC0AC\uCCB4\uAC00 \uBCBD\uC5D0 1\uD68C
+    \uD295\uAE41\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 2
   percentValue: 0
   secondaryPercentValue: 0

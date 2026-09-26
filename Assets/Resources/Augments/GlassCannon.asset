@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: GlassCannon
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 10
-  title: 유리 대포
-  description: 공격력이 50% 증가하지만, 최대 체력이 30% 감소합니다.
-  icon: {fileID: 0}
+  title: "\uC720\uB9AC \uB300\uD3EC"
+  description: "\uACF5\uACA9\uB825\uC774 50% \uC99D\uAC00\uD558\uC9C0\uB9CC, \uCD5C\uB300
+    \uCCB4\uB825\uC774 30% \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 1
   percentValue: 0.5
   secondaryPercentValue: 0.3

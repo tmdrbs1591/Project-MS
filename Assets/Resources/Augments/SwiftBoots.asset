@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SwiftBoots
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 2
-  title: 신속의 신발
-  description: 이동 속도가 20% 증가합니다.
-  icon: {fileID: 0}
+  title: "\uC2E0\uC18D\uC758 \uC2E0\uBC1C"
+  description: "\uC774\uB3D9 \uC18D\uB3C4\uAC00 20% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 3
   percentValue: 0.2
   secondaryPercentValue: 0

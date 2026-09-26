@@ -182,12 +182,20 @@ namespace ProjectMS.CharacterSystem
             PlaySound(commonSounds != null ? commonSounds.RevivedClip : null);
         }
 
-        public void PlayAction(CharacterActionType action)
+        public void PlayReload()
+        {
+            PlaySound(commonSounds != null ? commonSounds.ReloadClip : null);
+        }
+
+        public void PlayAction(CharacterActionType action, bool playSound = true)
         {
             if (action == CharacterActionType.None)
                 return;
 
             SetAnimatorTrigger(action.ToString());
+
+            if (!playSound)
+                return;
 
             foreach (CharacterActionSound sound in actionSounds)
             {

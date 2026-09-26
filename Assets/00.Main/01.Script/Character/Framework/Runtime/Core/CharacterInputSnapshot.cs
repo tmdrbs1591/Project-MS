@@ -12,6 +12,7 @@ namespace ProjectMS.CharacterSystem
         public bool SkillEPressed;
         public bool DashPressed;
         public bool UltimatePressed;
+        public bool ReloadPressed;
         public Vector2 AimWorldPosition;
     }
 }

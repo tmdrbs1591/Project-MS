@@ -33,6 +33,11 @@ namespace ProjectMS.CharacterSystem
         [Networked] private float NetHealth { get; set; }
         [Networked] private NetworkBool NetDead { get; set; }
         [Networked] private NetworkBool NetGameplayLocked { get; set; }
+        // AI 봇 여부. 봇은 플레이어와 같은 클라가 StateAuthority 를 갖기 때문에, 팀/매치 슬롯 구분을
+        // Fusion 권한 대신 봇 전용 번호(NetBotPlayer)로 한다. 이 번호는 세션에 없는 가짜 번호라
+        // Fusion 권한(InputAuthority)에는 절대 넣지 않는다(서버 플러그인이 연결을 끊음).
+        [Networked] private NetworkBool NetIsBot { get; set; }
+        [Networked] private PlayerRef NetBotPlayer { get; set; }
         [Networked] private int NetFacing { get; set; }
         [Networked] private float NetMoveInput { get; set; }
         [Networked] private NetworkBool NetGrounded { get; set; }
@@ -44,6 +49,10 @@ namespace ProjectMS.CharacterSystem
         [Networked] private int NetJumpSequence { get; set; }
         [Networked] private int NetLandSequence { get; set; }
         [Networked] private int NetAutoHopSequence { get; set; }
+        // 재장전(수동/자동 공통). 진행도 UI(ReloadSliderUI)와 재장전 사운드용.
+        [Networked] private int NetReloadSequence { get; set; }
+        [Networked] private TickTimer NetReloadTimer { get; set; }
+        [Networked] private float NetReloadDuration { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
         [Networked] private float NetUltimateGauge { get; set; }
         [Networked, Capacity(ActionSlotCount)]
@@ -84,9 +93,11 @@ namespace ProjectMS.CharacterSystem
         private int lastRenderedJumpSequence;
         private int lastRenderedLandSequence;
         private int lastRenderedAutoHopSequence;
+        private int lastRenderedReloadSequence;
         private int lastRenderedDamageSequence;
         private bool lastRenderedDead;
         private CharacterInputSnapshot lastInput;
+        private ICharacterInputSource externalInputSource;
 
         public CharacterDefinition Definition => definition;
         public CharacterVisualController Visual => visual;
@@ -95,6 +106,14 @@ namespace ProjectMS.CharacterSystem
         public float CurrentHealthPercent => health != null ? health.Normalized : 0f;
         public bool IsDead => NetDead;
         public bool IsLocalPlayer => Object != null && Object.HasInputAuthority;
+        public bool IsBot => Object != null && NetIsBot;
+        /// <summary>매치에서 이 캐릭터를 대표하는 플레이어 번호(P1/P2 순서, 스폰 위치, 라운드 승자 등).
+        /// 사람은 InputAuthority, 봇은 봇 전용 번호.</summary>
+        public PlayerRef MatchPlayer => Object == null ? PlayerRef.None : NetIsBot ? NetBotPlayer : Object.InputAuthority;
+        public bool IsGrounded => NetGrounded;
+        /// <summary>게임 진행상 조작이 막혀 있는지(사망, VS 연출 잠금, 전투 페이즈 아님 등). 피격 경직은 제외.</summary>
+        public bool IsControlLockedByGame => NetDead || NetGameplayLocked || IsProjectGameplayLocked || IsProjectInputLocked;
+        public Vector2 Velocity => NetVelocity;
         public PlayerRef DamageOwner => ResolveDamageOwner();
         public int DamageTeamId => ResolveDamageTeamId();
         public CharacterCooldownHandler Cooldowns => cooldowns;
@@ -174,6 +193,7 @@ namespace ProjectMS.CharacterSystem
             lastRenderedLandSequence = NetLandSequence;
             lastRenderedAutoHopSequence = NetAutoHopSequence;
             lastRenderedDamageSequence = NetDamageSequence;
+            lastRenderedReloadSequence = NetReloadSequence;
             lastRenderedDead = NetDead;
             InitializeControlEffects();
             OnCharacterSpawned();
@@ -228,7 +248,9 @@ namespace ProjectMS.CharacterSystem
 
             if (IsProjectInputLocked)
                 input.ClearGameplayInput();
-            lastInput = input.ConsumeTick();
+            lastInput = externalInputSource != null
+                ? externalInputSource.BuildInput(this, Runner.DeltaTime)
+                : input.ConsumeTick();
             RecordObservedInput(lastInput);
             lastInput = ApplyControlEffects(lastInput);
             UpdateAim(lastInput.AimWorldPosition);
@@ -382,6 +404,24 @@ namespace ProjectMS.CharacterSystem
         {
             if (Object != null && Object.HasStateAuthority)
                 NetGameplayLocked = locked;
+        }
+
+        /// <summary>AI 봇으로 표시한다. 스폰 직전(Runner.Spawn 의 onBeforeSpawned)에 불러야
+        /// 첫 틱부터 팀 판정(DamageOwner)이 플레이어와 분리된다.</summary>
+        public void MarkAsBot(PlayerRef botPlayer)
+        {
+            // onBeforeSpawned 시점엔 권한 플래그가 아직 확정 전일 수 있어 권한 체크 없이 쓴다
+            // (GunnerGrenadeProjectile.Initialize 와 같은 패턴 — 스폰한 쪽에서만 호출됨).
+            if (Object == null)
+                return;
+            NetIsBot = true;
+            NetBotPlayer = botPlayer;
+        }
+
+        /// <summary>장치 입력 대신 쓸 입력원(AI 등)을 붙인다. null 이면 다시 키보드/마우스를 쓴다.</summary>
+        public void SetExternalInputSource(ICharacterInputSource source)
+        {
+            externalInputSource = source;
         }
 
         /// <summary>맵 오브젝트(낙사존 등)에 의한 상승. 전투 피격 넉백(내부 ApplyKnockback)과는
@@ -1367,11 +1407,75 @@ namespace ProjectMS.CharacterSystem
             TryExecute(CharacterActionType.SkillE, snapshot.SkillEPressed);
             TryExecute(CharacterActionType.Dash, snapshot.DashPressed);
             TryExecute(CharacterActionType.Ultimate, snapshot.UltimatePressed);
+            if (snapshot.ReloadPressed)
+                TryManualReload();
+        }
+
+        // ================= 재장전 =================
+
+        /// <summary>재장전 중인지(수동/탄창 소진 자동 공통).</summary>
+        public bool IsReloading => Runner != null && NetReloadTimer.IsRunning && !NetReloadTimer.Expired(Runner);
+
+        /// <summary>이번 재장전에 걸리는 총 시간(초).</summary>
+        public float ReloadDuration => NetReloadDuration;
+
+        /// <summary>재장전 진행도 0(시작)~1(완료). 재장전 중이 아니면 1.</summary>
+        public float ReloadProgress
+        {
+            get
+            {
+                if (!IsReloading || NetReloadDuration <= 0f)
+                    return 1f;
+                float remaining = NetReloadTimer.RemainingTime(Runner) ?? 0f;
+                return Mathf.Clamp01(1f - remaining / NetReloadDuration);
+            }
+        }
+
+        /// <summary>탄창 방식 캐릭터가 재장전을 시작할 때 부른다(자동 재장전 분기에서도 호출).
+        /// 사운드/진행도 UI 가 이걸 보고 동작한다. 실제 쿨타임/탄약 처리는 캐릭터 쪽 로직 그대로.</summary>
+        protected void NotifyReloadStarted(float duration)
+        {
+            if (!HasStateAuthority || duration <= 0f)
+                return;
+
+            NetReloadDuration = duration;
+            NetReloadTimer = TickTimer.CreateFromSeconds(Runner, duration);
+            NetReloadSequence++;
+        }
+
+        /// <summary>수동 재장전(휠)을 지원하는 캐릭터가 탄창 크기/재장전 시간을 알려준다.
+        /// false 면 수동 재장전 불가(탄창이 없는 캐릭터, 궁극기 중 등).</summary>
+        protected virtual bool TryGetReloadInfo(out int magazineSize, out float reloadDuration)
+        {
+            magazineSize = 0;
+            reloadDuration = 0f;
+            return false;
+        }
+
+        private void TryManualReload()
+        {
+            if (IsReloading || !TryGetReloadInfo(out int magazineSize, out float reloadDuration))
+                return;
+
+            // -1 = 아직 한 발도 안 쏴서 탄창이 초기화 전(=가득 참). 가득 차 있으면 재장전할 필요 없음.
+            int charges = GetActionCharges(CharacterActionType.BasicAttack);
+            if (charges < 0 || charges >= magazineSize)
+                return;
+
+            // 자동 재장전과 같은 방식: 쿨타임을 재장전 시간으로 돌리고, 끝나면 탄창이 가득 찬 상태.
+            // (다음 발을 쏠 때 캐릭터가 ResetCooldownDuration 으로 원래 연사 간격으로 되돌린다.)
+            SetActionCharges(CharacterActionType.BasicAttack, magazineSize);
+            SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration); // 쿨타임 HUD 도 재장전 시간 기준으로 보이게
+            StartCooldown(CharacterActionType.BasicAttack);
+            NotifyReloadStarted(reloadDuration);
         }
 
         private void TryExecute(CharacterActionType action, bool pressed)
         {
             if (!pressed || !actionState.CanUse(action))
+                return;
+            // 재장전 중엔 기본공격 불가(쿨타임과 별개로 확실히 막는다).
+            if (action == CharacterActionType.BasicAttack && IsReloading)
                 return;
             if (action == CharacterActionType.Dash && !NetMovementEnabled)
                 return;
@@ -1483,6 +1587,8 @@ namespace ProjectMS.CharacterSystem
         {
             if (Object == null)
                 return PlayerRef.None;
+            if (NetIsBot)
+                return NetBotPlayer;
             if (Runner != null && Runner.GameMode == GameMode.Shared)
                 return Object.StateAuthority;
             return Object.InputAuthority;
@@ -1607,6 +1713,7 @@ namespace ProjectMS.CharacterSystem
             NetSlowRatio = 0f;
             NetSlowTimer = default;
             NetHitstunTimer = default;
+            NetReloadTimer = default;
             NetMovementEnabled = true;
             ResetControlEffectsAuthority();
             movement?.CancelDash();
@@ -1777,7 +1884,7 @@ namespace ProjectMS.CharacterSystem
             if (lastRenderedActionSequence != NetActionSequence)
             {
                 lastRenderedActionSequence = NetActionSequence;
-                visual.PlayAction(NetAction);
+                visual.PlayAction(NetAction, ShouldPlayDefaultActionSound(NetAction));
             }
 
             if (lastRenderedJumpSequence != NetJumpSequence)
@@ -1802,6 +1909,12 @@ namespace ProjectMS.CharacterSystem
             {
                 lastRenderedDamageSequence = NetDamageSequence;
                 visual.PlayDamaged();
+            }
+
+            if (lastRenderedReloadSequence != NetReloadSequence)
+            {
+                lastRenderedReloadSequence = NetReloadSequence;
+                visual.PlayReload();
             }
 
             bool dead = NetDead;
@@ -1863,6 +1976,10 @@ namespace ProjectMS.CharacterSystem
             ProjectileDespawnReason reason,
             CharacterBase hitTarget) { }
         protected virtual void OnDied(PlayerRef attacker) { }
+        /// <summary>액션 실행 시 CharacterVisualController 의 기본 액션 사운드를 낼지. 같은 액션이라도 상태에 따라
+        /// 전용 사운드로 바꾸고 싶을 때(예: 체이서 저격 모드의 기본공격) false 를 돌려주고 직접 재생한다.
+        /// Render 에서 불리므로 네트워크 상태([Networked])만 보고 판단해야 모든 클라에서 같게 동작한다.</summary>
+        protected virtual bool ShouldPlayDefaultActionSound(CharacterActionType action) => true;
         protected virtual void OnJumped() { }
         protected virtual void OnLanded() { }
         protected virtual void OnSkillExecuted(CharacterActionType action) { }

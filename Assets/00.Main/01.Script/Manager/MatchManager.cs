@@ -117,9 +117,9 @@ public class MatchManager : NetworkBehaviour
         if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
             return 0;
 
-        if (p1.Object.InputAuthority == player)
+        if (p1.MatchPlayer == player)
             return Player1Wins;
-        if (p2.Object.InputAuthority == player)
+        if (p2.MatchPlayer == player)
             return Player2Wins;
         return 0;
     }
@@ -130,7 +130,7 @@ public class MatchManager : NetworkBehaviour
         if (!TryGetOrderedCharacters(out CharacterBase p1, out _))
             return true;
 
-        return p1.Object.InputAuthority == player;
+        return p1.MatchPlayer == player;
     }
 
     /// <summary>현재 페이즈(PackSelect/AugmentSelect 등)의 남은 시간(초). 선택 UI 타이머 표시용 공용 접근자.</summary>
@@ -175,7 +175,7 @@ public class MatchManager : NetworkBehaviour
         else
             Player2Wins++;
 
-        LastRoundWinner = winner.Object.InputAuthority;
+        LastRoundWinner = winner.MatchPlayer;
         Phase = MatchPhase.RoundEnd;
         PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundEndDisplayDuration);
     }
@@ -198,9 +198,9 @@ public class MatchManager : NetworkBehaviour
             return;
 
         PlayerRef winner = LastRoundWinner;
-        PlayerRef loser = p1.Object.InputAuthority == winner
-            ? p2.Object.InputAuthority
-            : p1.Object.InputAuthority;
+        PlayerRef loser = p1.MatchPlayer == winner
+            ? p2.MatchPlayer
+            : p1.MatchPlayer;
 
         Rpc_BeginAugmentSelect(winner, loser);
 
@@ -241,9 +241,9 @@ public class MatchManager : NetworkBehaviour
             if (!ch.Object.HasStateAuthority)
                 continue;
 
-            if (ch.Object.InputAuthority == winner)
+            if (ch.MatchPlayer == winner)
                 ch.SetAugmentPicksRemaining(WinnerAugmentPicks);
-            else if (ch.Object.InputAuthority == loser)
+            else if (ch.MatchPlayer == loser)
                 ch.SetAugmentPicksRemaining(LoserAugmentPicks);
         }
     }
@@ -276,7 +276,7 @@ public class MatchManager : NetworkBehaviour
 
         // StateAuthority → All 브로드캐스트: 각 클라이언트가 자기 캐릭터를 직접 리셋한다.
         // CharacterBase 쪽 RPC(StateAuthority 라우팅)보다 Shared 모드에서 안정적이다.
-        Rpc_BroadcastReset(p1.Object.InputAuthority, pos1, p2.Object.InputAuthority, pos2);
+        Rpc_BroadcastReset(p1.MatchPlayer, pos1, p2.MatchPlayer, pos2);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -287,9 +287,9 @@ public class MatchManager : NetworkBehaviour
             if (!ch.Object.HasStateAuthority)
                 continue;
 
-            if (ch.Object.InputAuthority == owner1)
+            if (ch.MatchPlayer == owner1)
                 ch.ResetCharacter(pos1);
-            else if (ch.Object.InputAuthority == owner2)
+            else if (ch.MatchPlayer == owner2)
                 ch.ResetCharacter(pos2);
         }
     }
@@ -297,7 +297,7 @@ public class MatchManager : NetworkBehaviour
     private Vector2 GetSpawnPosition(CharacterBase character)
     {
         if (playerSpawner != null)
-            return playerSpawner.GetSpawnPosition(character.Object.InputAuthority.PlayerId);
+            return playerSpawner.GetSpawnPosition(character.MatchPlayer.PlayerId);
 
         return character.transform.position;
     }
@@ -311,7 +311,7 @@ public class MatchManager : NetworkBehaviour
             return false;
 
         List<CharacterBase> ordered = new List<CharacterBase>(CharacterBase.All);
-        ordered.Sort((a, b) => a.Object.InputAuthority.PlayerId.CompareTo(b.Object.InputAuthority.PlayerId));
+        ordered.Sort((a, b) => a.MatchPlayer.PlayerId.CompareTo(b.MatchPlayer.PlayerId));
         p1 = ordered[0];
         p2 = ordered[1];
         return true;

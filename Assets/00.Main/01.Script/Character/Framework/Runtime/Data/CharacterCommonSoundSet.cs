@@ -21,6 +21,8 @@ namespace ProjectMS.CharacterSystem
         [Range(0f, 0.5f)] [SerializeField] private float damagedPitchVariance = 0.05f;
         [SerializeField] private AudioClip deathClip;
         [SerializeField] private AudioClip revivedClip;
+        [Tooltip("재장전 시작 시(수동/탄창 소진 자동 모두) 재생.")]
+        [SerializeField] private AudioClip reloadClip;
 
         public AudioClip JumpClip => jumpClip;
         public AudioClip LandClip => landClip;
@@ -28,5 +30,6 @@ namespace ProjectMS.CharacterSystem
         public float DamagedPitchVariance => damagedPitchVariance;
         public AudioClip DeathClip => deathClip;
         public AudioClip RevivedClip => revivedClip;
+        public AudioClip ReloadClip => reloadClip;
     }
 }

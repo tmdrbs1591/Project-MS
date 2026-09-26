@@ -52,6 +52,7 @@ public class VsIntroUI : MonoBehaviour
         if (flashObject != null)
             flashObject.SetActive(false);
 
+        controlsUnlocked = false;
         SetAllCharactersLocked(true);
 
         if (introRoutine != null)
@@ -76,7 +77,13 @@ public class VsIntroUI : MonoBehaviour
         // 캐릭터 스폰/동기화 타이밍이 화면마다 다를 수 있어 매 프레임 폴링한다
         // (PlayerCornerHUD와 동일한 이유).
         UpdateNames();
+
+        // 연출 도중에 늦게 등록된 캐릭터(AI 봇 등)도 잠금에서 빠지지 않도록, 잠금 구간 동안은 계속 건다.
+        if (introRoutine != null && !controlsUnlocked)
+            SetAllCharactersLocked(true);
     }
+
+    private bool controlsUnlocked;
 
     private void UpdateNames()
     {
@@ -87,7 +94,7 @@ public class VsIntroUI : MonoBehaviour
             if (character == null || character.Object == null)
                 continue;
 
-            bool isP1 = match != null && match.IsPlayer1(character.Object.InputAuthority);
+            bool isP1 = match != null && match.IsPlayer1(character.MatchPlayer);
             string displayName = character.Definition != null ? character.Definition.DisplayName : string.Empty;
 
             if (isP1)
@@ -123,6 +130,7 @@ public class VsIntroUI : MonoBehaviour
 
         yield return new WaitForSeconds(controlUnlockDelay);
 
+        controlsUnlocked = true;
         SetAllCharactersLocked(false);
         introRoutine = null;
     }

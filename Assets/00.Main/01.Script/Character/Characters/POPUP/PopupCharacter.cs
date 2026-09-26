@@ -129,10 +129,19 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, errorReloadingDuration);
                 SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount + 1);
+                NotifyReloadStarted(errorReloadingDuration);
             }
             else
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
 
+            return true;
+        }
+
+        // 휠 수동 재장전.
+        protected override bool TryGetReloadInfo(out int magazine, out float duration)
+        {
+            magazine = errorThrowableFireCount;
+            duration = errorReloadingDuration;
             return true;
         }
 

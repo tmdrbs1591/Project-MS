@@ -65,7 +65,7 @@ public class PlayerCornerHUD : MonoBehaviour
             if (candidate.Object == null)
                 continue;
 
-            if (match.IsPlayer1(candidate.Object.InputAuthority) == isLeftSide)
+            if (match.IsPlayer1(candidate.MatchPlayer) == isLeftSide)
             {
                 character = candidate;
                 return;

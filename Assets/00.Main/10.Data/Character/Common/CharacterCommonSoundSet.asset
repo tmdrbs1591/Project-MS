@@ -18,3 +18,4 @@ MonoBehaviour:
   damagedPitchVariance: 0.05
   deathClip: {fileID: 8300000, guid: 40bf8ac651f857049932153a52fd7573, type: 3}
   revivedClip: {fileID: 8300000, guid: c48a972d3d024c2408a3331750786a29, type: 3}
+  reloadClip: {fileID: 8300000, guid: 8c9011adf11955e4c94b9c4208af82bc, type: 3}

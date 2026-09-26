@@ -128,7 +128,7 @@ public class MapManager : MonoBehaviour
 
         TwoPlayerCamera.Instance?.SetBoundsCollider(activeMapDefinition.CameraBounds);
 
-        if (runner != null && runner.IsSharedModeMasterClient)
+        if (NetworkLauncher.HasSessionAuthority(runner))
             SpawnStructures(runner, activeMapDefinition);
     }
 
@@ -150,7 +150,7 @@ public class MapManager : MonoBehaviour
 
     private void DespawnActiveStructures(NetworkRunner runner)
     {
-        if (runner == null || !runner.IsSharedModeMasterClient)
+        if (!NetworkLauncher.HasSessionAuthority(runner))
         {
             spawnedStructures.Clear();
             return;
@@ -168,6 +168,10 @@ public class MapManager : MonoBehaviour
     private static int ResolveMapIndex(NetworkRunner runner, int roundNumber, int mapCount)
     {
         string sessionName = runner != null && runner.SessionInfo != null ? runner.SessionInfo.Name : string.Empty;
+        // 오프라인 AI 전(Single 모드)은 세션 이름이 비어 있어 맵 순서가 온라인과 달라진다 —
+        // 온라인 첫 슬롯과 같은 이름으로 계산해서 평소와 같은 맵 순서가 나오게 한다.
+        if (string.IsNullOrEmpty(sessionName))
+            sessionName = "quickmatch-0";
         int hash = DeterministicHash(sessionName + "_" + roundNumber);
         // Mathf.Abs(int.MinValue)는 오버플로로 음수가 그대로 나올 수 있어서(극히 드묾) Abs 대신
         // 나머지를 한 번 더 보정하는 방식으로 항상 [0, mapCount) 범위를 보장한다.

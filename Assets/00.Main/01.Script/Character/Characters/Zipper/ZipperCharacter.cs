@@ -10,7 +10,19 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Basic Attack Settings")]
         [SerializeField] private CharacterProjectile projectilePrefab;
         [SerializeField] private float slashSpeed = 20f;
-        [SerializeField] private int reloadCount = 3;
+        [Tooltip("탄창(연속으로 벨 수 있는 횟수). 다 쓰면 재장전.")]
+        [Min(1)] [SerializeField] private int magazineSize = 4;
+        [Tooltip("재장전 시간(초). 0 이하면 캐릭터 정의의 기본공격 쿨타임을 쓴다(예전 '4번째 공격 뒤 쿨타임'과 같은 값).")]
+        [SerializeField] private float reloadDuration = -1f;
+        [Tooltip("탄창 안에서 한 번 벤 뒤 다음 공격까지 간격(초).")]
+        [Min(0f)] [SerializeField] private float shotInterval = 0.1f;
+
+        private bool isFirstBasicAttack = true;
+
+        private float EffectiveReloadDuration =>
+            (reloadDuration > 0f ? reloadDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
+            * ReloadSpeedMultiplier;
+        private int EffectiveMagazineSize => Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
 
         [Header("Q Skill Custom Settings")]
         [SerializeField] private float qDashPower = 14f;
@@ -58,6 +70,7 @@ namespace ProjectMS.CharacterSystem.Examples
             if (qRechargeCoroutine != null) StopCoroutine(qRechargeCoroutine);
 
             InitQCharges();
+            isFirstBasicAttack = true;
 
             // 라운드 리셋 시 진행 중이던 궁극기 이동 예약 취소
             CancelTimer(ultimateTimer);
@@ -94,14 +107,34 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // CharacterProjectile의 LifeTime으로 Distance구현
 
-            if (reloadCount <= 0)
+            // 탄창: 다른 캐릭터와 같은 방식(충전 수 = 남은 탄, 마지막 발이면 쿨타임을 재장전 시간으로).
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
+            if (isFirstBasicAttack)
             {
-                reloadCount = 3;
-                return true;
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize);
+                isFirstBasicAttack = false;
             }
-            reloadCount--;
 
-            return false;
+            if (shouldReload)
+            {
+                SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveReloadDuration);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize + 1);
+                NotifyReloadStarted(EffectiveReloadDuration);
+            }
+            else
+            {
+                SetCooldownDuration(CharacterActionType.BasicAttack, shotInterval);
+            }
+
+            return true;
+        }
+
+        // 휠 수동 재장전.
+        protected override bool TryGetReloadInfo(out int magazine, out float duration)
+        {
+            magazine = EffectiveMagazineSize;
+            duration = EffectiveReloadDuration;
+            return true;
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)

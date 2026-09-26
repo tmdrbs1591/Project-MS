@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: RapidReload
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 4
-  title: 고속 재장전
-  description: 재장전 시간이 25% 감소합니다.
-  icon: {fileID: 0}
+  title: "\uACE0\uC18D \uC7AC\uC7A5\uC804"
+  description: "\uC7AC\uC7A5\uC804 \uC2DC\uAC04\uC774 25% \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 2
   percentValue: 0.25
   secondaryPercentValue: 0

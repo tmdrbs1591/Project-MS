@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: TurboCharge
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 8
-  title: 터보 차지
-  description: 궁극기 게이지 충전율이 40% 증가합니다.
-  icon: {fileID: 0}
+  title: "\uD130\uBCF4 \uCC28\uC9C0"
+  description: "\uAD81\uADF9\uAE30 \uAC8C\uC774\uC9C0 \uCDA9\uC804\uC728\uC774 40%
+    \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 2
   percentValue: 0.4
   secondaryPercentValue: 0

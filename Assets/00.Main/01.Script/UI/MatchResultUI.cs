@@ -76,7 +76,7 @@ public class MatchResultUI : MonoBehaviour
             return;
         }
 
-        PlayerRef localPlayer = local.Object.InputAuthority;
+        PlayerRef localPlayer = local.MatchPlayer;
         bool wonLastRound = match.LastRoundWinner == localPlayer;
         bool isLocalLeft = match.IsPlayer1(localPlayer);
 

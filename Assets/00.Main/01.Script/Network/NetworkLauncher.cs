@@ -41,6 +41,12 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     [Tooltip("매치 종료 후 돌아갈 로비 씬 이름 (Build Settings 에 등록되어 있어야 함)")]
     [SerializeField] private string lobbySceneName = "Lobby";
 
+    [Header("AI 봇")]
+    [Tooltip("혼자 기다리는 시간이 길어지면 AI 상대로 게임을 시작한다. 정원이 1이면 바로 AI 전.")]
+    [SerializeField] private bool fillWithBot = true;
+    [Tooltip("매칭 버튼을 누른 뒤 이 시간(초) 동안 아무도 안 들어오면 AI 상대로 시작")]
+    [SerializeField] private float botFillDelaySeconds = 3f;
+
     /// <summary>매칭 상태 메시지(연결/대기/성공/실패)를 외부 UI 로 전달한다.</summary>
     public event Action<string> StatusChanged;
 
@@ -52,6 +58,11 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     private bool isMatching;
     private bool playerSpawnedInGameScene; // 게임 씬에서 내 캐릭터를 이미 스폰했는지
     private bool isReturningToLobby; // 버튼 클릭과 OnPlayerLeft 가 동시에 겹쳐 중복 실행되는 것을 막는 가드
+    private bool gameSceneRequested; // 게임 씬 로드를 이미 요청했는지(정원 충족/봇 채우기 중복 방지)
+    private bool vsBot; // 이번 매치가 AI 상대인지 → 게임 씬에서 내 캐릭터 다음에 봇도 스폰
+    private float sessionJoinedTime = -1f; // 세션에 들어간 시각(-1 = 아직 접속 전)
+    private float matchStartTime; // 매칭 버튼을 누른 시각(봇 채우기 대기 시간 계산용)
+    private bool switchingToOffline; // 대기 세션 → 오프라인 AI 전으로 갈아타는 중(그 사이 셧다운은 무시)
 
     private void Awake()
     {
@@ -76,6 +87,10 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
         isMatching = true;
         playerSpawnedInGameScene = false;
+        gameSceneRequested = false;
+        vsBot = false;
+        sessionJoinedTime = -1f;
+        matchStartTime = Time.unscaledTime;
 
         SetStatus(MatchingStatus);
 
@@ -120,6 +135,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
             return;
 
         isMatching = false;
+        sessionJoinedTime = -1f;
         SetStatus("매칭 취소됨");
 
         // 러너는 전용 자식 오브젝트에 있으므로 기본 Shutdown 으로 그 오브젝트만 파괴된다.
@@ -139,6 +155,9 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
         isMatching = false;
         playerSpawnedInGameScene = false;
+        gameSceneRequested = false;
+        vsBot = false;
+        sessionJoinedTime = -1f;
 
         try
         {
@@ -203,6 +222,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
             if (result.Ok)
             {
+                sessionJoinedTime = Time.unscaledTime;
                 SetStatus(MatchingStatus);
                 return;
             }
@@ -246,8 +266,19 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         SetStatus(MatchingStatus);
     }
 
+    /// <summary>"방장만 하는 일"(게임 씬 로드, MatchManager/맵 구조물 스폰 등)을 이 클라가 해야 하는지.
+    /// Shared 모드에선 마스터 클라, 오프라인 AI 전(Single 모드)에선 나 혼자니까 항상 true.</summary>
+    public static bool HasSessionAuthority(NetworkRunner runner)
+    {
+        return runner != null && (runner.IsSharedModeMasterClient || runner.GameMode == GameMode.Single);
+    }
+
     private void TryStartGameScene(NetworkRunner runner)
     {
+        // 오프라인 AI 전은 StartOfflineBotMatch 가 직접 씬을 띄운다.
+        if (runner.GameMode == GameMode.Single)
+            return;
+
         if (runner.SessionInfo.PlayerCount < playerCount)
             return;
 
@@ -258,10 +289,95 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         if (!runner.IsSharedModeMasterClient)
             return;
 
+        // 정원이 1(혼자 테스트)이면 바로 AI 상대로 시작한다.
+        if (playerCount <= 1 && fillWithBot)
+            _ = StartOfflineBotMatch();
+        else
+            LoadGameScene(runner);
+    }
+
+    // 매칭 누르고 botFillDelaySeconds 초 넘게 혼자면 AI 상대로 게임을 시작한다(마스터 = 혼자니까 나).
+    private void Update()
+    {
+        if (!isMatching || gameSceneRequested || !fillWithBot || sessionJoinedTime < 0f)
+            return;
+        if (runner == null || !runner.IsRunning || !runner.IsSharedModeMasterClient)
+            return;
+        if (Time.unscaledTime - matchStartTime < botFillDelaySeconds)
+            return;
+        if (runner.SessionInfo.PlayerCount != 1)
+            return; // 누가 들어왔으면 원래 흐름(정원 충족)대로 간다.
+
+        _ = StartOfflineBotMatch();
+    }
+
+    /// <summary>
+    /// AI 전은 Photon 서버 없이 오프라인(Single 모드)으로 돌린다. 봇은 내 클라에서만 도는 캐릭터라
+    /// 서버를 거칠 이유가 없고, Shared 세션에서 봇을 돌리면 서버가 세션을 끊는(ServerLogic) 문제가 있었다.
+    /// 대기하던 Shared 세션을 닫고, 새 러너로 Single 게임을 시작한 뒤 게임 씬을 띄운다.
+    /// </summary>
+    private async Task StartOfflineBotMatch()
+    {
+        if (gameSceneRequested)
+            return;
+        gameSceneRequested = true;
+        vsBot = true;
+        SetStatus(MatchedStatus);
+
+        try
+        {
+            // 대기용 Shared 세션 정리. 이 셧다운은 의도한 것이라 OnShutdown 의 정리/문구를 건너뛴다.
+            switchingToOffline = true;
+            if (runner != null && !runner.IsShutdown)
+                await runner.Shutdown();
+
+            PrepareRunner();
+            StartGameResult result = await runner.StartGame(new StartGameArgs
+            {
+                GameMode = GameMode.Single,
+                SessionName = "offline-bot-match",
+                SceneManager = GetOrAddSceneManager()
+            });
+            switchingToOffline = false;
+
+            if (!result.Ok)
+            {
+                SetStatus($"AI 전 시작 실패: {result.ShutdownReason}");
+                isMatching = false;
+                gameSceneRequested = false;
+                return;
+            }
+
+            LoadGameSceneOn(runner);
+        }
+        catch (Exception ex)
+        {
+            switchingToOffline = false;
+            Debug.LogError($"[NetworkLauncher] AI 전 시작 중 예외 발생: {ex}");
+            SetStatus("매칭 중 오류가 발생했습니다. 다시 시도해주세요.");
+            isMatching = false;
+            gameSceneRequested = false;
+        }
+    }
+
+    private void LoadGameScene(NetworkRunner runner)
+    {
+        if (gameSceneRequested)
+            return;
+        gameSceneRequested = true;
+        vsBot = false;
+
+        SetStatus(MatchedStatus);
+
         // 정원이 찼으니 더 못 들어오게 막고 게임 씬 로드
         runner.SessionInfo.IsOpen = false;
         runner.SessionInfo.IsVisible = false;
 
+        LoadGameSceneOn(runner);
+    }
+
+    private void LoadGameSceneOn(NetworkRunner runner)
+    {
         int buildIndex = SceneUtility.GetBuildIndexByScenePath(gameSceneName);
         if (buildIndex < 0)
         {
@@ -316,6 +432,9 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
 
         playerSpawnedInGameScene = true;
         spawner.SpawnLocalPlayer(runner);
+
+        if (vsBot)
+            spawner.SpawnBot(runner);
     }
 
     private void SetStatus(string message)
@@ -343,6 +462,10 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
+        // 오프라인 AI 전으로 갈아타면서 대기 세션을 닫은 것 — 매칭은 계속 진행 중이다.
+        if (switchingToOffline)
+            return;
+
         // GameIsFull/GameClosed는 TryJoinQuickMatchSlot이 다음 슬롯으로 재시도하는 도중
         // 정상적으로 거치는 중간 셧다운이다(실패한 StartGame이 내부적으로 OnShutdown도
         // 같이 호출시킴). 여기서 isMatching을 꺼버리면 재시도 로직이 "취소됨"으로 오판해서
@@ -358,6 +481,8 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
+        if (switchingToOffline)
+            return;
         SetStatus($"연결 끊김: {reason}");
     }
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }

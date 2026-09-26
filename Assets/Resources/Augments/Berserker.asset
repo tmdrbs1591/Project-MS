@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Berserker
   m_EditorClassIdentifier: Assembly-CSharp::AugmentData
   type: 11
-  title: 버서커
-  description: 체력이 30% 이하일 때 공격력이 60% 증가합니다.
-  icon: {fileID: 0}
+  title: "\uBC84\uC11C\uCEE4"
+  description: "\uCCB4\uB825\uC774 30% \uC774\uD558\uC77C \uB54C \uACF5\uACA9\uB825\uC774
+    60% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
   maxStack: 1
   percentValue: 0.6
   secondaryPercentValue: 0.3

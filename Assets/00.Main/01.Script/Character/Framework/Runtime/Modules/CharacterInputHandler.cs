@@ -19,6 +19,7 @@ namespace ProjectMS.CharacterSystem
         private bool skillEPressed;
         private bool dashPressed;
         private bool ultimatePressed;
+        private bool reloadPressed;
         private Vector2 aimWorldPosition;
 
         public CharacterInputHandler(CharacterDefinition definition)
@@ -48,7 +49,11 @@ namespace ProjectMS.CharacterSystem
             }
 
             if (mouse != null)
+            {
                 basicAttackPressed |= mouse.leftButton.wasPressedThisFrame;
+                // 재장전: 휠을 굴리거나(위/아래 아무 쪽) 휠 버튼을 누르면.
+                reloadPressed |= Mathf.Abs(mouse.scroll.ReadValue().y) > 0.01f || mouse.middleButton.wasPressedThisFrame;
+            }
 
             aimWorldPosition = ReadMouseWorldPosition(targetCamera, characterPosition, mouse);
         }
@@ -65,9 +70,11 @@ namespace ProjectMS.CharacterSystem
                 SkillEPressed = skillEPressed,
                 DashPressed = dashPressed,
                 UltimatePressed = ultimatePressed,
+                ReloadPressed = reloadPressed,
                 AimWorldPosition = aimWorldPosition
             };
 
+            reloadPressed = false;
             jumpPressed = false;
             basicAttackPressed = false;
             skillQPressed = false;
@@ -87,6 +94,7 @@ namespace ProjectMS.CharacterSystem
             skillEPressed = false;
             dashPressed = false;
             ultimatePressed = false;
+            reloadPressed = false;
         }
 
         private static bool IsHeld(Keyboard keyboard, Key key)
