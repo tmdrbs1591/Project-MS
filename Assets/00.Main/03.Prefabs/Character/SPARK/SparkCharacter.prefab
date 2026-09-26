@@ -105,7 +105,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 853357108902157338, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_Name
-      value: SPARK
+      value: SparkCharacter
       objectReference: {fileID: 0}
     - target: {fileID: 1286551316285015961, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: EmissionModule.enabled
