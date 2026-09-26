@@ -11,6 +11,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private LayerMask targetLayer;
         [SerializeField] private GameObject visualRoot;
 
+        private HashSet<CharacterBase> triggeringPlayers = new(2);
+        private HashSet<CharacterBase> playersInDamageTimer = new(2);
+
         private CharacterTimerHandler timers;
         private float nodeLinkerBaseSpriteWidth;
         private float nodeLinkerWidth;
@@ -38,7 +41,6 @@ namespace ProjectMS.CharacterSystem.Examples
             SetLinkerActive(true);
 
             timers.CancelAll();
-            SetConinuousNodeLinkerDamage(nodeAPosition, nodeBPosition);
         }
 
         protected override void OnOwnedEntitySpawnedAuthority()
@@ -50,6 +52,27 @@ namespace ProjectMS.CharacterSystem.Examples
         public void OnResetCharacter()
         {
             timers.CancelAll();
+        }
+
+        private void OnTriggerEnter2D(Collider2D collision)
+        {
+            bool canGetTarget = TryGetTarget(collision, out CharacterBase target);
+            if (!canGetTarget)
+                return;
+
+            triggeringPlayers.Add(target);
+
+            if (!playersInDamageTimer.Contains(target))
+                DealContinousNodeLinkerDamage(target);
+        }
+
+        private void OnTriggerExit2D(Collider2D collision)
+        {
+            bool canGetTarget = TryGetTarget(collision, out CharacterBase target);
+            if (!canGetTarget)
+                return;
+
+            triggeringPlayers.Remove(target);
         }
 
         public override void Render()
@@ -96,34 +119,42 @@ namespace ProjectMS.CharacterSystem.Examples
             netTransform.Teleport(position, rotation);
         }
 
-        private void DealNodeLinkerDamage(Vector2 posA, Vector2 posB)
+        private void DealContinousNodeLinkerDamage(CharacterBase target)
         {
-            // 리시뮬레이션 중엔 스킵 — 상대(원격 오브젝트) 위치 기준 물리 쿼리는 리시뮬레이션마다
-            // 결과가 달라질 수 있어서, 가드 없이 두면 같은 타격에 DealDamage가 여러 번 불릴 수 있다.
-            if (!HasStateAuthority || Runner.IsResimulation)
-                return;
-
-            Vector2 direction = (posB - posA).normalized;
-            float distance = Vector2.Distance(posA, posB);
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-
-            // 참고 : Owner는 자동으로 찾기 대상에서 제외된다.
-            List<IDamageable> damageables = FindDamageablesInBox(transform.position, new Vector2(distance, nodeLinkerWidth), angle, targetLayer);
-
-            foreach (IDamageable damageable in damageables)
+            if (!triggeringPlayers.Contains(target))
             {
-                DealDamage(damageable, linkerDamage, CharacterDamageSource.Periodic);
+                playersInDamageTimer.Remove(target);
+                return;
             }
+
+            DealDamage(target, linkerDamage, CharacterDamageSource.Periodic);
+
+            playersInDamageTimer.Add(target);
+
+            // 재귀 형식
+            timers.Schedule(linkerDamageInterval, () =>
+            {
+                DealContinousNodeLinkerDamage(target);
+            });
         }
 
-        private void SetConinuousNodeLinkerDamage(Vector2 posA, Vector2 posB)
+        private bool TryGetTarget(Collider2D collision, out CharacterBase target)
         {
-            if (!Object.HasStateAuthority || Runner.IsResimulation || !IsActive || IsDestroying || timers == null)
-                return;
+            target = default;
 
-            DealNodeLinkerDamage(posA, posB);
-            timers.Schedule(linkerDamageInterval, () =>
-                SetConinuousNodeLinkerDamage(posA, posB));
+            if (collision == OwnerCharacter)
+                return false;
+
+            bool isCollsisionPlayer = (targetLayer.value & (1 << collision.gameObject.layer)) != 0;
+            if (!isCollsisionPlayer)
+                return false;
+
+            bool canGetCharacterBase = collision.TryGetComponent<CharacterBase>(out CharacterBase player);
+            if (!canGetCharacterBase)
+                return false;
+
+            target = player;
+            return true;
         }
     }
 }
