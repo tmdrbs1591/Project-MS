@@ -87,6 +87,20 @@ public class MapManager : MonoBehaviour
         return new Vector3(x, 1f, 0f);
     }
 
+    /// <summary>현재 떠 있는 맵이 있는지. 스폰 위치만 필요한 호출부가 "맵 교체"를 유발하지 않고
+    /// 이미 떠 있는 맵을 그대로 쓸 수 있게 한다.</summary>
+    public bool HasActiveMap => activeMapInstance != null;
+
+    /// <summary>다음 라운드를 시작하기 직전에(캐릭터 스폰 위치를 구하기 전에) 그 라운드 맵을 미리 준비한다.
+    /// rotateMapEachRound가 꺼져 있으면 매치 내내 같은 맵을 쓰므로 아무 것도 하지 않는다.</summary>
+    public void PrepareMapForRound(NetworkRunner runner, int roundNumber)
+    {
+        if (!rotateMapEachRound)
+            return;
+
+        EnsureMapForRound(runner, roundNumber);
+    }
+
     /// <summary>이번 라운드에 맞는 맵이 이미 떠있으면 아무 것도 안 한다(멱등) — 여러 곳에서
     /// 방어적으로 호출해도 안전하다.</summary>
     public void EnsureMapForRound(NetworkRunner runner, int roundNumber)
@@ -113,8 +127,7 @@ public class MapManager : MonoBehaviour
         }
 
         DespawnActiveStructures(runner);
-        if (activeMapInstance != null)
-            Destroy(activeMapInstance);
+        DestroyAllMapInstances();
 
         activeMapInstance = Instantiate(mapPrefabs[index], transform);
         activeMapDefinition = activeMapInstance.GetComponent<MapDefinition>();
@@ -130,6 +143,25 @@ public class MapManager : MonoBehaviour
 
         if (NetworkLauncher.HasSessionAuthority(runner))
             SpawnStructures(runner, activeMapDefinition);
+    }
+
+    // 기억하고 있는 맵(activeMapInstance) 하나만이 아니라 이 매니저 아래에 있는 MapDefinition 맵을
+    // 전부 지운다 — 교체가 한 프레임에 겹치거나 참조를 잃은 맵이 있어도 이전 맵이 남지 않게 한다.
+    // Destroy는 프레임 끝에야 반영되므로, 물리/렌더에서 바로 빠지도록 먼저 비활성화한다.
+    private void DestroyAllMapInstances()
+    {
+        MapDefinition[] existing = GetComponentsInChildren<MapDefinition>(true);
+        foreach (MapDefinition map in existing)
+        {
+            if (map == null)
+                continue;
+
+            map.gameObject.SetActive(false);
+            Destroy(map.gameObject);
+        }
+
+        activeMapInstance = null;
+        activeMapDefinition = null;
     }
 
     private void SpawnStructures(NetworkRunner runner, MapDefinition map)

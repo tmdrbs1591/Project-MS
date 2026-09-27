@@ -64,18 +64,9 @@ namespace ProjectMS.CharacterSystem
                 All.Add(this);
         }
 
-        private void BindProjectHud()
-        {
-            if (IsLocalPlayer)
-                CooldownHUD.Instance?.Bind(this);
-        }
-
         private void UnregisterProjectIntegration()
         {
             All.Remove(this);
-
-            if (IsLocalPlayer)
-                CooldownHUD.Instance?.Unbind();
         }
 
         // ---------------- 증강 보유/획득 ----------------

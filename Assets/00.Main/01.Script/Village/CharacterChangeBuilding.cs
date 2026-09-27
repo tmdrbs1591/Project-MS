@@ -10,6 +10,11 @@ public class CharacterChangeBuilding : MonoBehaviour, IInteractable
     [Tooltip("캐릭터 선택 UI. 비워두면 씬에서 자동으로 찾는다.")]
     [SerializeField] private CharacterSelectUI selectUI;
 
+    [Tooltip("[F] 옆에 표시할 문구.")]
+    [SerializeField] private string interactionPrompt = "변경";
+
+    public string InteractionPrompt => interactionPrompt;
+
     [Tooltip("UI가 열려있는 동안 카메라가 줌인할 기준점. 비워두면 이 건물의 위치를 사용한다.")]
     [SerializeField] private Transform cameraFocusPoint;
 

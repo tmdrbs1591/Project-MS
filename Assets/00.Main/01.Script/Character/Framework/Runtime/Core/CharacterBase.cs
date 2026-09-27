@@ -197,7 +197,6 @@ namespace ProjectMS.CharacterSystem
             lastRenderedDead = NetDead;
             InitializeControlEffects();
             OnCharacterSpawned();
-            BindProjectHud();
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -451,6 +450,9 @@ namespace ProjectMS.CharacterSystem
             NetDead = false;
             // 궁극기 게이지는 라운드가 바뀌어도 이월되어야 하므로 라운드 리셋 시엔 초기화하지 않는다.
             ResetCommonState(resetUltimateGauge: false);
+            // 이전 라운드에 설치/투척한 오브젝트(노드, 포탈, 투척물 등)가 다음 라운드까지 남지 않게 정리한다.
+            // 사망 시에는 죽은 쪽 것만 정리되므로, 살아남은 쪽 것이 남아 있던 문제를 막는다.
+            DestroyOwnedEntitiesForRoundReset();
             movement.Reset(position);
             OnResetCharacter();
         }
@@ -1431,6 +1433,20 @@ namespace ProjectMS.CharacterSystem
             }
         }
 
+        /// <summary>UI용: 기본공격 탄창의 현재/최대 탄 수. 탄창이 없는 캐릭터/상태(TryGetReloadInfo가
+        /// false)면 false. 잔탄이 -1이면(아직 한 발도 안 쏨) 가득 찬 것으로 보고, 자동 재장전이
+        /// 잔탄을 "탄창+1"로 세팅하는 방식이라 최대치를 넘는 값은 최대치로 자른다.</summary>
+        public bool TryGetAmmo(out int current, out int max)
+        {
+            current = 0;
+            if (!TryGetReloadInfo(out max, out _) || max <= 0)
+                return false;
+
+            int charges = GetActionCharges(CharacterActionType.BasicAttack);
+            current = charges < 0 ? max : Mathf.Clamp(charges, 0, max);
+            return true;
+        }
+
         /// <summary>탄창 방식 캐릭터가 재장전을 시작할 때 부른다(자동 재장전 분기에서도 호출).
         /// 사운드/진행도 UI 가 이걸 보고 동작한다. 실제 쿨타임/탄약 처리는 캐릭터 쪽 로직 그대로.</summary>
         protected void NotifyReloadStarted(float duration)
@@ -1656,6 +1672,17 @@ namespace ProjectMS.CharacterSystem
                 if (entity.DestroyWhenOwnerDies)
                     entity.RequestDestroy(OwnedEntityDestroyReason.OwnerDied);
             }
+        }
+
+        // 라운드 리셋은 새 판이므로 destroyWhenOwnerDies 같은 개별 정책과 무관하게 전부 정리한다.
+        private void DestroyOwnedEntitiesForRoundReset()
+        {
+            if (ownedEntityRegistry == null)
+                return;
+
+            IReadOnlyList<CharacterOwnedEntity> entities = ownedEntityRegistry.GetAll();
+            foreach (CharacterOwnedEntity entity in entities)
+                entity.RequestDestroy(OwnedEntityDestroyReason.RoundReset);
         }
 
         private void DestroyOwnedEntitiesForOwnerExit(OwnedEntityDestroyReason reason)

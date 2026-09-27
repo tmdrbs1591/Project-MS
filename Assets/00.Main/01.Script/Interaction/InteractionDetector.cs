@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Fusion;
+using TMPro;
 
 /// <summary>
 /// 플레이어가 IInteractable 오브젝트(포탈, 로비 건물 등) 앞에 닿으면 자기 안의
@@ -16,6 +17,8 @@ public class InteractionDetector : MonoBehaviour
     [Header("UI")]
     [Tooltip("상호작용 대상에 닿았을 때 켤 Key UI 캔버스 (평소엔 꺼둠)")]
     [SerializeField] private GameObject keyUICanvas;
+    [Tooltip("[F] 옆 동작 이름을 표시할 텍스트(예: '입장', '선택'). 대상의 InteractionPrompt로 채워진다. 비워두면 문구를 바꾸지 않는다.")]
+    [SerializeField] private TMP_Text promptText;
 
     private IInteractable currentInteractable;
     private NetworkObject netObject;
@@ -54,6 +57,11 @@ public class InteractionDetector : MonoBehaviour
         if (interactable == null) return;
 
         currentInteractable = interactable;
+
+        // 닿은 대상에 맞는 문구로 바꾼다(포탈이면 "입장" 등).
+        if (promptText != null)
+            promptText.text = interactable.InteractionPrompt;
+
         if (keyUICanvas != null)
             keyUICanvas.SetActive(true);
     }

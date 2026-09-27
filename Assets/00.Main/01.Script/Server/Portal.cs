@@ -15,6 +15,12 @@ public class Portal : MonoBehaviour, IInteractable
     [Tooltip("매칭 UI 래퍼. 비워두면 씬에서 자동으로 찾는다.")]
     [SerializeField] private MatchmakingManager matchmaking;
 
+    [Header("UI")]
+    [Tooltip("포탈 앞에 섰을 때 [F] 옆에 표시할 문구.")]
+    [SerializeField] private string interactionPrompt = "매칭";
+
+    public string InteractionPrompt => interactionPrompt;
+
     private void Awake()
     {
         var col = GetComponent<Collider2D>();

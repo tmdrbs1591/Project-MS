@@ -11,6 +11,11 @@ public class AugmentPackBuilding : MonoBehaviour, IInteractable
     [Tooltip("팩 관리 UI. 비워두면 씬에서 자동으로 찾는다.")]
     [SerializeField] private AugmentPackManageUI manageUI;
 
+    [Tooltip("[F] 옆에 표시할 문구.")]
+    [SerializeField] private string interactionPrompt = "선택";
+
+    public string InteractionPrompt => interactionPrompt;
+
     private void Awake()
     {
         var col = GetComponent<Collider2D>();

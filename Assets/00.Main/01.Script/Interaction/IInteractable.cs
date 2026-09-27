@@ -4,5 +4,9 @@
 /// </summary>
 public interface IInteractable
 {
+    /// <summary>[F] 옆에 표시할 동작 이름(예: 포탈 "입장"). InteractionDetector가 범위에 닿는 순간
+    /// 이 값을 Key UI의 텍스트에 채운다.</summary>
+    string InteractionPrompt { get; }
+
     void Interact();
 }

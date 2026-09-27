@@ -11,7 +11,7 @@ using ProjectMS.CharacterSystem;
 ///   - 오버레이 Image의 Image Type을 Filled(Radial 360 또는 Vertical)로 설정하고
 ///     Fill Origin/Method를 원하는 방향으로 맞춘다.
 ///   - 남은 시간을 숫자로도 보여주고 싶으면 TMP_Text를 자식으로 두고 연결한다(선택).
-///   - iconImage는 CooldownHUD.Bind()가 캐릭터의 CharacterDefinition.GetIcon(actionType)
+///   - iconImage는 PlayerSideCooldownHUD가 캐릭터의 CharacterDefinition.GetIcon(actionType)
 ///     값으로 자동으로 채워준다 — 여기 미리 스프라이트를 넣어놔도 캐릭터가 바뀌면 덮어써진다.
 ///   - 게이지형 궁극기(gaugeFillImage)는 cooldownOverlay와 별개의 Image다. Image Type을
 ///     Filled로 설정하되, 채워질수록(0→1) "준비됨"을 뜻하므로 cooldownOverlay와 반대 방향
