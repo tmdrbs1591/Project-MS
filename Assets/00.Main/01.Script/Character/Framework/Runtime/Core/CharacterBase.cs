@@ -1433,6 +1433,20 @@ namespace ProjectMS.CharacterSystem
             }
         }
 
+        /// <summary>UI용: 기본공격 탄창의 현재/최대 탄 수. 탄창이 없는 캐릭터/상태(TryGetReloadInfo가
+        /// false)면 false. 잔탄이 -1이면(아직 한 발도 안 쏨) 가득 찬 것으로 보고, 자동 재장전이
+        /// 잔탄을 "탄창+1"로 세팅하는 방식이라 최대치를 넘는 값은 최대치로 자른다.</summary>
+        public bool TryGetAmmo(out int current, out int max)
+        {
+            current = 0;
+            if (!TryGetReloadInfo(out max, out _) || max <= 0)
+                return false;
+
+            int charges = GetActionCharges(CharacterActionType.BasicAttack);
+            current = charges < 0 ? max : Mathf.Clamp(charges, 0, max);
+            return true;
+        }
+
         /// <summary>탄창 방식 캐릭터가 재장전을 시작할 때 부른다(자동 재장전 분기에서도 호출).
         /// 사운드/진행도 UI 가 이걸 보고 동작한다. 실제 쿨타임/탄약 처리는 캐릭터 쪽 로직 그대로.</summary>
         protected void NotifyReloadStarted(float duration)

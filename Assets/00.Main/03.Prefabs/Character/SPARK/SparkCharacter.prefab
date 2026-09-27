@@ -848,6 +848,10 @@ PrefabInstance:
       propertyPath: character
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 7548519144498039126, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: character
+      value: 
+      objectReference: {fileID: -4690693064502804097}
     - target: {fileID: 8012828539955774163, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: SortKey
       value: 2280329237
