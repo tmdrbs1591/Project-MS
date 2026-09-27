@@ -227,33 +227,7 @@ namespace ProjectMS.CharacterSystem.Examples
                 return;
 
             lastPosition = transform.position;
-
-            if (nodeLinkerPrefab.DestroyWhenOwnerDies)
-            {
-                Debug.LogError("[SparkCharacter] NodeLinker의 DestroyWhenOwnerDies 옵션을 비활성화로 설정해주세요!");
-                return;
-            }
-
-            OwnedEntitySpawnRequest linkerRequest = new(
-                transform.position,
-                Quaternion.identity,
-                new OwnedEntityGroupId(NodeLinkerGroupId));
-
-            OwnedEntitySpawnResult<SparkNodeLinkerDeployable> result = SpawnOwnedEntity(
-                nodeLinkerPrefab,
-                linkerRequest,
-                initialize: (linker) => linker.Initialize(
-                    nodeLinkerWidth, 
-                    Definition.GetDamage(CharacterActionType.SkillQ), 
-                    nodeLinkerDamageInterval));
-
-            if (!result.Success)
-            {
-                Debug.LogError($"[SparkCharacter] NodeLinker 생성에 실패했습니다! 이유 : {result.FailureReason}");
-                return;
-            }
-
-            nodeLinker = result.Entity;
+            SpawnNodeLinker();
         }
 
         // 휠 수동 재장전.
@@ -292,6 +266,9 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override void OnOwnedEntityDestroyed(CharacterOwnedEntity entity, OwnedEntityDestroyReason reason)
         {
             plantedElectricNodes.RemoveAll(n => n == entity);
+
+            if (entity == nodeLinker)
+                SpawnNodeLinker();
             
             if (plantedElectricNodes.Count < 2)
                 nodeLinker.SetLinkerActive(false);
@@ -309,6 +286,39 @@ namespace ProjectMS.CharacterSystem.Examples
             Vector2 nodeBPosition = plantedElectricNodes[1].EffectAnchor.position;
 
             nodeLinker.SetNodes(nodeAPosition, nodeBPosition);
+        }
+
+        private void SpawnNodeLinker()
+        {
+            if (!HasStateAuthority)
+                return;
+
+            if (nodeLinkerPrefab.DestroyWhenOwnerDies)
+            {
+                Debug.LogError("[SparkCharacter] NodeLinker의 DestroyWhenOwnerDies 옵션을 비활성화로 설정해주세요!");
+                return;
+            }
+
+            OwnedEntitySpawnRequest linkerRequest = new(
+                transform.position,
+                Quaternion.identity,
+                new OwnedEntityGroupId(NodeLinkerGroupId));
+
+            OwnedEntitySpawnResult<SparkNodeLinkerDeployable> result = SpawnOwnedEntity(
+                nodeLinkerPrefab,
+                linkerRequest,
+                initialize: (linker) => linker.Initialize(
+                    nodeLinkerWidth,
+                    Definition.GetDamage(CharacterActionType.SkillQ),
+                    nodeLinkerDamageInterval));
+
+            if (!result.Success)
+            {
+                Debug.LogError($"[SparkCharacter] NodeLinker 생성에 실패했습니다! 이유 : {result.FailureReason}");
+                return;
+            }
+
+            nodeLinker = result.Entity;
         }
 
         private void ExplodeTeslaField()
