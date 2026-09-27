@@ -6,6 +6,11 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class LeaderboardBuilding : MonoBehaviour, IInteractable
 {
+    [Tooltip("[F] 옆에 표시할 문구.")]
+    [SerializeField] private string interactionPrompt = "선택";
+
+    public string InteractionPrompt => interactionPrompt;
+
     private void Awake()
     {
         var col = GetComponent<Collider2D>();
