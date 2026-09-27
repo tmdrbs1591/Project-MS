@@ -197,7 +197,6 @@ namespace ProjectMS.CharacterSystem
             lastRenderedDead = NetDead;
             InitializeControlEffects();
             OnCharacterSpawned();
-            BindProjectHud();
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)

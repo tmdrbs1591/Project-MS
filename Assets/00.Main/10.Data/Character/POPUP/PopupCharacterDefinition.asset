@@ -44,10 +44,16 @@ MonoBehaviour:
   ultimateUsesGauge: 1
   ultimateGaugeMax: 100
   ultimateGaugePerDamageDealt: 1
+  ultimateGaugePerDamageTaken: 0
+  ultimateGaugePerApproachDistance: 0
   autoHop: 0
   autoHopInterval: 0.1
   autoHopForce: 5
   autoHopMoveThreshold: 0.05
+  skillQIcon: {fileID: 8475406714918343715, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  skillEIcon: {fileID: 8475406714918343715, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  dashIcon: {fileID: 8475406714918343715, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  ultimateIcon: {fileID: 4056622184079890754, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
   moveLeft: 15
   moveRight: 18
   jump: 1
