@@ -100,6 +100,9 @@ public class LobbyCharacterController : MonoBehaviour
             autoHopTimer = 0f;
             jumpBufferTimer = 0f;
             coyoteTimer = 0f;
+            rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
+            rb.angularVelocity = 0f;
+            ApplyBetterGravity(false, Time.deltaTime); // 떨어지는 게 부자연스러워서 추가
             UpdateVisual(0f);
             return;
         }

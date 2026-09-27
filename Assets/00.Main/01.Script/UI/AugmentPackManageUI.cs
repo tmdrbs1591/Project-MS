@@ -1,3 +1,4 @@
+﻿using ProjectMS.CharacterSystem;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -38,12 +39,19 @@ public class AugmentPackManageUI : MonoBehaviour
     public void Open()
     {
         BuildRows();
+
+        CharacterBase.SetLobbyControlLocked(true);
+        LobbyCharacterController.SetLocked(true);
+
         SetPanelActive(true);
         SelectFirstPackByDefault();
     }
 
     public void Close()
     {
+        CharacterBase.SetLobbyControlLocked(false);
+        LobbyCharacterController.SetLocked(false);
+
         SetPanelActive(false);
     }
 

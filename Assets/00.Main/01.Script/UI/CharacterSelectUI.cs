@@ -1,3 +1,4 @@
+﻿using ProjectMS.CharacterSystem;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -121,6 +122,9 @@ public class CharacterSelectUI : MonoBehaviour
             return;
         isOpen = true;
 
+        CharacterBase.SetLobbyControlLocked(true);
+        LobbyCharacterController.SetLocked(true);
+
         // 에디터에서 비활성 상태로 시작했더라도 여기서 켜준다. 이 시점엔 Awake가 더 이상
         // 자기 자신을 다시 끄지 않으므로(위 Awake 주석 참고) 안전하게 활성화된 채로 남는다.
         SetPanelActive(true);
@@ -142,6 +146,9 @@ public class CharacterSelectUI : MonoBehaviour
         if (!isOpen)
             return;
         isOpen = false;
+
+        CharacterBase.SetLobbyControlLocked(false);
+        LobbyCharacterController.SetLocked(false);
 
         if (LobbyCameraFocusController.Instance != null)
             LobbyCameraFocusController.Instance.ReturnToDefault();
