@@ -267,7 +267,7 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             plantedElectricNodes.RemoveAll(n => n == entity);
 
-            if (entity == nodeLinker)
+            if (entity == nodeLinker && (reason != OwnedEntityDestroyReason.OwnerDespawned && reason != OwnedEntityDestroyReason.OwnerDisconnected))
                 SpawnNodeLinker();
             
             if (plantedElectricNodes.Count < 2)
