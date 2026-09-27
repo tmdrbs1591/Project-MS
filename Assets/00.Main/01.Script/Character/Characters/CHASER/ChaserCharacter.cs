@@ -96,67 +96,10 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
-
             if (isSniping)
-            {
-                SpawnProjectile(
-                    deadEyeProjectilePrefab,
-                    context.AimWorldPosition,
-                    context.AimDirection,
-                    0f,
-                    context.Damage,
-                    targetLayer);
+                return OnSnipingBasicAttack(context);
 
-                PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
-                NetSnipeShotSequence++;
-
-                if (shouldReload)
-                {
-                    TurnOffSnipingMode(isTurnedOffByNoAmmo: true);
-                }
-
-                return true;
-            }
-
-            if (isFirstBurst)
-            {
-                SetActionCharges(CharacterActionType.BasicAttack, burstCharges);
-                isFirstBurst = false;
-            }
-
-            if (burstBulletProjectilePrefab == null) return false;
-            Vector2 aim = context.AimDirection;
-            
-            for (int i = 0; i < burstBulletProjectileFireCount; i++)
-            {
-                // 총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
-                float angleRatio = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
-                float offset = -burstArcAngle * 0.5f + burstArcAngle * angleRatio;
-                
-                Vector2 dir = Rotate(aim, offset);
-                
-                SpawnProjectile(
-                    burstBulletProjectilePrefab,
-                    ProjectileOrigin.position,
-                    dir,
-                    burstBulletProjectileSpeed,
-                    context.Damage,
-                    targetLayer);
-            }
-            
-            PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
-            
-            if (shouldReload)
-            {
-                SetCooldownDuration(CharacterActionType.BasicAttack, burstReloadingDuration);
-                SetActionCharges(CharacterActionType.BasicAttack, burstCharges + 1);
-                NotifyReloadStarted(burstReloadingDuration);
-            }
-            else
-                ResetCooldownDuration(CharacterActionType.BasicAttack);
-            
-            return true;
+            return OnNormalBasicAttack(context);
         }
 
         protected override bool OnSkillQ(CharacterActionContext context)
@@ -222,6 +165,70 @@ namespace ProjectMS.CharacterSystem.Examples
             OnFlashBangExpired(currentFlashBangEntity);
         }
 
+        private bool OnNormalBasicAttack(CharacterActionContext context)
+        {
+            if (isFirstBurst)
+            {
+                SetActionCharges(CharacterActionType.BasicAttack, burstCharges);
+                isFirstBurst = false;
+            }
+
+            if (burstBulletProjectilePrefab == null) return false;
+            Vector2 aim = context.AimDirection;
+
+            for (int i = 0; i < burstBulletProjectileFireCount; i++)
+            {
+                // 총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
+                float angleRatio = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
+                float offset = -burstArcAngle * 0.5f + burstArcAngle * angleRatio;
+
+                Vector2 dir = Rotate(aim, offset);
+
+                SpawnProjectile(
+                    burstBulletProjectilePrefab,
+                    ProjectileOrigin.position,
+                    dir,
+                    burstBulletProjectileSpeed,
+                    context.Damage,
+                    targetLayer);
+            }
+
+            PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
+
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
+            if (shouldReload)
+            {
+                SetCooldownDuration(CharacterActionType.BasicAttack, burstReloadingDuration);
+                SetActionCharges(CharacterActionType.BasicAttack, burstCharges + 1);
+                NotifyReloadStarted(burstReloadingDuration);
+            }
+            else
+                ResetCooldownDuration(CharacterActionType.BasicAttack);
+
+            return true;
+        }
+
+        private bool OnSnipingBasicAttack(CharacterActionContext context)
+        {
+            SpawnProjectile(
+                    deadEyeProjectilePrefab,
+                    context.AimWorldPosition,
+                    context.AimDirection,
+                    0f,
+                    context.Damage,
+                    targetLayer);
+
+            PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
+            NetSnipeShotSequence++;
+
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
+            if (shouldReload)
+            {
+                TurnOffSnipingMode(isTurnedOffByNoAmmo: true);
+            }
+
+            return true;
+        }
         private void BackJump(Vector2 AimDirection)
         {
             float techJumpAngleRad = Mathf.Min(180, techJumpAngle) * Mathf.Deg2Rad;
