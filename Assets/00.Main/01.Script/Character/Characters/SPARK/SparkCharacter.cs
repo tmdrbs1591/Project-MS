@@ -63,6 +63,10 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float electrostaticStunDuration = 0.5f;
 
         private int EffectiveMagazineSize => Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
+        private float EffectiveReloadDuration =>
+            (reloadDuration > 0f ? reloadDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
+            * ReloadSpeedMultiplier;
+
         private CharacterProjectile gunEmpoweredProjectile;
 
         private float electrostaticCurrentCharge = 0f;
@@ -91,9 +95,9 @@ namespace ProjectMS.CharacterSystem.Examples
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
-                SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration * ReloadSpeedMultiplier);
+                SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveReloadDuration);
                 SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize + 1);
-                NotifyReloadStarted(reloadDuration * ReloadSpeedMultiplier);
+                NotifyReloadStarted(EffectiveReloadDuration);
             }
             else
             {
@@ -256,7 +260,7 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
             magazine = EffectiveMagazineSize;
-            duration = reloadDuration * ReloadSpeedMultiplier;
+            duration = EffectiveReloadDuration;
             return true;
         }
 

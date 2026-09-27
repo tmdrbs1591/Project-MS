@@ -83,6 +83,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(1f)] [SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f;
 
         private int EffectiveBurstCharges => Mathf.Max(1, Mathf.RoundToInt(burstCharges * MaxAmmoMultiplier));
+        private float EffectiveBurstReloadDuration =>
+            (burstReloadingDuration > 0f ? burstReloadingDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
+            * ReloadSpeedMultiplier;
 
         private bool isSniping = false;
         private CharacterTimerHandle deadEyeSnipingTimeTimer;
@@ -206,9 +209,9 @@ namespace ProjectMS.CharacterSystem.Examples
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
-                SetCooldownDuration(CharacterActionType.BasicAttack, burstReloadingDuration);
+                SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveBurstReloadDuration);
                 SetActionCharges(CharacterActionType.BasicAttack, EffectiveBurstCharges + 1);
-                NotifyReloadStarted(burstReloadingDuration);
+                NotifyReloadStarted(EffectiveBurstReloadDuration);
             }
             else
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
@@ -364,7 +367,7 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
             magazine = EffectiveBurstCharges;
-            duration = burstReloadingDuration;
+            duration = EffectiveBurstReloadDuration;
             return !isSniping;
         }
 

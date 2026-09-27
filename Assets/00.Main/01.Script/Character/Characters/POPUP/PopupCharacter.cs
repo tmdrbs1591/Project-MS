@@ -67,6 +67,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)][SerializeField] private float glitchDamageRatio = 0.3f;
 
         private int EffectiveErrorThrowableFireCount => Mathf.Max(1, Mathf.RoundToInt(errorThrowableFireCount * MaxAmmoMultiplier));
+        private float EffectiveErrorReloadDuration =>
+            (errorReloadingDuration > 0f ? errorReloadingDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
+            * ReloadSpeedMultiplier;
 
         private CharacterProjectile currentHackingCD;
         private CharacterProjectile currentPopupAppearGlitch;
@@ -142,9 +145,9 @@ namespace ProjectMS.CharacterSystem.Examples
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
-                SetCooldownDuration(CharacterActionType.BasicAttack, errorReloadingDuration);
+                SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveErrorReloadDuration);
                 SetActionCharges(CharacterActionType.BasicAttack, EffectiveErrorThrowableFireCount + 1);
-                NotifyReloadStarted(errorReloadingDuration);
+                NotifyReloadStarted(EffectiveErrorReloadDuration);
             }
             else
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
@@ -156,7 +159,7 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
             magazine = EffectiveErrorThrowableFireCount;
-            duration = errorReloadingDuration;
+            duration = EffectiveErrorReloadDuration;
             return true;
         }
 
