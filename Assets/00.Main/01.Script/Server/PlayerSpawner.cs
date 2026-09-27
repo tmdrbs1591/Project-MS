@@ -154,7 +154,11 @@ public class PlayerSpawner : MonoBehaviour
             return new Vector3(x, 1f, 0f);
         }
 
-        MapManager.Instance.EnsureMapForRound(currentRunner, 1);
+        // 맵이 아직 없을 때(매치 최초 스폰)만 1라운드 맵을 띄운다. 라운드 리셋 때도 이 함수가
+        // 불리는데, 그때 무조건 1라운드 맵으로 맞추면 맵 회전 중인 맵을 지우고 되돌려서 맵이
+        // 엉킨다 — 이미 떠 있는 맵(MatchManager가 미리 준비한 다음 라운드 맵)을 그대로 쓴다.
+        if (!MapManager.Instance.HasActiveMap)
+            MapManager.Instance.EnsureMapForRound(currentRunner, 1);
         return MapManager.Instance.GetSpawnPosition(playerId);
     }
 }

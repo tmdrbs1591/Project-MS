@@ -41,7 +41,9 @@ namespace ProjectMS.CharacterSystem
         OwnerDisconnected = 6,
         SkillTriggered = 7,
         Manual = 8,
-        FuseExpired = 9
+        FuseExpired = 9,
+        /// <summary>다음 라운드 시작을 위한 캐릭터 리셋(ResetCharacter) 때 정리됨.</summary>
+        RoundReset = 10
     }
 
     public enum OwnedEntitySpawnFailureReason

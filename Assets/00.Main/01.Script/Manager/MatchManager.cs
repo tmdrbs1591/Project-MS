@@ -260,6 +260,10 @@ public class MatchManager : NetworkBehaviour
 
     private void AdvanceToNextRound()
     {
+        // 캐릭터를 옮길 스폰 위치는 "다음 라운드 맵"의 스폰 지점이어야 하므로, 위치를 구하기 전에
+        // 그 맵부터 준비한다(맵 회전이 꺼져 있으면 아무 것도 안 함).
+        MapManager.Instance?.PrepareMapForRound(Runner, RoundNumber + 1);
+
         ResetRoundCharacters();
         RoundNumber++;
         Phase = MatchPhase.Fighting;
