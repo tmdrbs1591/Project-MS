@@ -303,8 +303,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 89.6, y: 87.2}
-  m_SizeDelta: {x: 190.9097, y: 156.304}
+  m_AnchoredPosition: {x: 83.442375, y: 99.82768}
+  m_SizeDelta: {x: 75, y: 75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &24087916
 MonoBehaviour:
@@ -339,8 +339,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 56001c85a004c9a41af11b1703ec2716, type: 3}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 06189fdf2b723844fba7688d0041d857, type: 3}
+  m_Type: 1
   m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1122,6 +1122,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AugmentPackBuilding
   manageUI: {fileID: 1717670298}
+  interactionPrompt: "\uC120\uD0DD"
 --- !u!61 &162171705
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7313,6 +7314,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeBuilding
   selectUI: {fileID: 2129855446}
+  interactionPrompt: "\uBCC0\uACBD"
   cameraFocusPoint: {fileID: 908709467}
 --- !u!1 &913342835
 GameObject:
@@ -7855,6 +7857,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Portal
   matchmaking: {fileID: 0}
+  interactionPrompt: "\uB9E4\uCE6D"
 --- !u!1 &947149890
 GameObject:
   m_ObjectHideFlags: 0
@@ -13860,6 +13863,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeBuilding
   selectUI: {fileID: 0}
+  interactionPrompt: "\uBCC0\uACBD"
   cameraFocusPoint: {fileID: 0}
 --- !u!61 &1139412958
 BoxCollider2D:
@@ -20246,6 +20250,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeBuilding
   selectUI: {fileID: 0}
+  interactionPrompt: "\uBCC0\uACBD"
   cameraFocusPoint: {fileID: 0}
 --- !u!61 &1439737823
 BoxCollider2D:
@@ -32291,6 +32296,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterChangeBuilding
   selectUI: {fileID: 0}
+  interactionPrompt: "\uBCC0\uACBD"
   cameraFocusPoint: {fileID: 0}
 --- !u!61 &1778233147
 BoxCollider2D:
@@ -32945,6 +32951,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bde9d4bc2a9b5d4cabe13acd57cc79f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LeaderboardBuilding
+  interactionPrompt: "\uC120\uD0DD"
 --- !u!61 &1811609021
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -33426,8 +33433,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 79.75765, y: 80.4723}
-  m_SizeDelta: {x: 190.9097, y: 156.304}
+  m_AnchoredPosition: {x: 73.6, y: 93.1}
+  m_SizeDelta: {x: 75, y: 75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1849977582
 MonoBehaviour:
@@ -33462,8 +33469,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 56001c85a004c9a41af11b1703ec2716, type: 3}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: 06189fdf2b723844fba7688d0041d857, type: 3}
+  m_Type: 1
   m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
@@ -34953,7 +34960,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -82.2, y: 0}
+  m_AnchoredPosition: {x: -82.200195, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 1, y: 1}
 --- !u!1 &2129855442
