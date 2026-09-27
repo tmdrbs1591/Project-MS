@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Fusion;
 using TMPro;
 using UnityEngine;
@@ -41,8 +41,9 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             base.FixedUpdateNetwork();
 
-            if (!Object.HasStateAuthority)
+            if (Object == null || !Object.IsValid || !Object.HasStateAuthority)
                 return;
+            
             if (target != null)
             {
                 // idealPosition = 타겟에 팝업창이 붙어있을 때의 위치 (타겟 현재 위치 + 오프셋) --> 의도하는 위치
