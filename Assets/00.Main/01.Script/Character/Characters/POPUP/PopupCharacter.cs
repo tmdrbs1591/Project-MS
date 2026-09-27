@@ -66,6 +66,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)][SerializeField] private float glitchDamageTimes = 3f;
         [Min(0f)][SerializeField] private float glitchDamageRatio = 0.3f;
 
+        private int EffectiveErrorThrowableFireCount => Mathf.Max(1, Mathf.RoundToInt(errorThrowableFireCount * MaxAmmoMultiplier));
+
         private CharacterProjectile currentHackingCD;
         private CharacterProjectile currentPopupAppearGlitch;
 
@@ -87,7 +89,7 @@ namespace ProjectMS.CharacterSystem.Examples
         { 
             if (isFirstThrowError)
             {
-                SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveErrorThrowableFireCount);
                 errorThrowableGravityScale = errorThrowablePrefab.GetComponent<Rigidbody2D>().gravityScale;
                 isFirstThrowError = false;
             }
@@ -141,7 +143,7 @@ namespace ProjectMS.CharacterSystem.Examples
             if (shouldReload)
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, errorReloadingDuration);
-                SetActionCharges(CharacterActionType.BasicAttack, errorThrowableFireCount + 1);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveErrorThrowableFireCount + 1);
                 NotifyReloadStarted(errorReloadingDuration);
             }
             else
@@ -153,7 +155,7 @@ namespace ProjectMS.CharacterSystem.Examples
         // 휠 수동 재장전.
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
-            magazine = errorThrowableFireCount;
+            magazine = EffectiveErrorThrowableFireCount;
             duration = errorReloadingDuration;
             return true;
         }
@@ -286,6 +288,8 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             if (isErrorPopupEnabled)
                 BreakErrorPopup();
+
+            isFirstThrowError = true;
         }
 
         // 상대가 연타로 팝업을 깨거나 리셋으로 강제 종료될 때 쓴다. 시간이 다 돼서 끝나는 경우는

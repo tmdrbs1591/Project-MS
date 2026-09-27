@@ -62,6 +62,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float electrostaticChargeMultiplier = 1f;
         [SerializeField] private float electrostaticStunDuration = 0.5f;
 
+        private int EffectiveMagazineSize => Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
         private CharacterProjectile gunEmpoweredProjectile;
 
         private float electrostaticCurrentCharge = 0f;
@@ -81,18 +82,17 @@ namespace ProjectMS.CharacterSystem.Examples
                 return false;
 
             // 탄창: 거너와 같은 방식(충전 수 = 남은 탄, 마지막 발이면 쿨타임을 재장전 시간으로).
-            int effectiveMagazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
-            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (isFirstBasicAttack)
             {
-                SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize); 
                 isFirstBasicAttack = false;
             }
 
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration * ReloadSpeedMultiplier);
-                SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize + 1);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize + 1);
                 NotifyReloadStarted(reloadDuration * ReloadSpeedMultiplier);
             }
             else
@@ -255,7 +255,7 @@ namespace ProjectMS.CharacterSystem.Examples
         // 휠 수동 재장전.
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
-            magazine = Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
+            magazine = EffectiveMagazineSize;
             duration = reloadDuration * ReloadSpeedMultiplier;
             return true;
         }

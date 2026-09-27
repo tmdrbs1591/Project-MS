@@ -66,6 +66,9 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isFirstBasicAttack = true;
         private bool lastRenderedEmpowered;
 
+        // 과충전 탄창/고속 재장전 증강을 반영한 실제 탄창 크기/재장전 시간.
+        private int EffectiveMagazineSize => Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
+
         // ---- AI(GunnerBotBrain)가 판단에 쓰는 읽기 전용 수치 ----
         public float BulletSpeed => bulletProjectileSpeed;
         public float RocketSpeed => rocketSpeed;
@@ -106,13 +109,9 @@ namespace ProjectMS.CharacterSystem.Examples
             if (bulletProjectilePrefab == null)
                 return false;
 
-            // 과충전 탄창/고속 재장전 증강을 반영한 실제 탄창 크기/재장전 시간.
-            int effectiveMagazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
-            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
-
             if (isFirstBasicAttack)
             {
-                SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize);
                 isFirstBasicAttack = false;
             }
 
@@ -142,10 +141,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
             PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
 
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, reloadDuration * ReloadSpeedMultiplier);
-                SetActionCharges(CharacterActionType.BasicAttack, effectiveMagazineSize + 1);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize + 1);
                 NotifyReloadStarted(reloadDuration * ReloadSpeedMultiplier);
             }
             else
@@ -306,7 +306,7 @@ namespace ProjectMS.CharacterSystem.Examples
         // 휠 수동 재장전. 과충전 탄창/고속 재장전 증강을 반영한 값.
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
-            magazine = Mathf.Max(1, Mathf.RoundToInt(magazineSize * MaxAmmoMultiplier));
+            magazine = EffectiveMagazineSize;
             duration = reloadDuration * ReloadSpeedMultiplier;
             return true;
         }

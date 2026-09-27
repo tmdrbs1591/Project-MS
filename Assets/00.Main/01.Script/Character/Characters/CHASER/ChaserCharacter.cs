@@ -82,6 +82,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)] [SerializeField] private float carnivalBackAttackCriterionAngle = 90f;
         [Min(1f)] [SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f;
 
+        private int EffectiveBurstCharges => Mathf.Max(1, Mathf.RoundToInt(burstCharges * MaxAmmoMultiplier));
+
         private bool isSniping = false;
         private CharacterTimerHandle deadEyeSnipingTimeTimer;
 
@@ -165,11 +167,17 @@ namespace ProjectMS.CharacterSystem.Examples
             OnFlashBangExpired(currentFlashBangEntity);
         }
 
+        protected override void OnResetCharacter()
+        {
+            TurnOffSnipingMode(isResettingCooldownUnnecessary: true);
+            isFirstBurst = true;
+        }
+
         private bool OnNormalBasicAttack(CharacterActionContext context)
         {
             if (isFirstBurst)
             {
-                SetActionCharges(CharacterActionType.BasicAttack, burstCharges);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveBurstCharges);
                 isFirstBurst = false;
             }
 
@@ -199,7 +207,7 @@ namespace ProjectMS.CharacterSystem.Examples
             if (shouldReload)
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, burstReloadingDuration);
-                SetActionCharges(CharacterActionType.BasicAttack, burstCharges + 1);
+                SetActionCharges(CharacterActionType.BasicAttack, EffectiveBurstCharges + 1);
                 NotifyReloadStarted(burstReloadingDuration);
             }
             else
@@ -229,6 +237,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             return true;
         }
+
         private void BackJump(Vector2 AimDirection)
         {
             float techJumpAngleRad = Mathf.Min(180, techJumpAngle) * Mathf.Deg2Rad;
@@ -280,7 +289,7 @@ namespace ProjectMS.CharacterSystem.Examples
             deadEyeSnipingTimeTimer = ScheduleTimer(deadEyeSnipingTimeLimit, () => TurnOffSnipingMode());
         }
 
-        private void TurnOffSnipingMode(bool isTurnedOffByNoAmmo = false)
+        private void TurnOffSnipingMode(bool isTurnedOffByNoAmmo = false, bool isResettingCooldownUnnecessary = false)
         {
             isSniping = false;
             NetIsSniping = false;
@@ -290,10 +299,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
             SetActionCharges(
                 CharacterActionType.BasicAttack, 
-                isTurnedOffByNoAmmo ? burstCharges + 1 : burstCharges);
+                isTurnedOffByNoAmmo ? EffectiveBurstCharges + 1 : EffectiveBurstCharges);
             ResetCooldownDuration(CharacterActionType.BasicAttack);
 
-            ResetCooldownDuration(CharacterActionType.Ultimate);
+            if (!isResettingCooldownUnnecessary)
+                ResetCooldownDuration(CharacterActionType.Ultimate);
             StartCooldown(CharacterActionType.Ultimate);
         }
 
@@ -353,7 +363,7 @@ namespace ProjectMS.CharacterSystem.Examples
         // 휠 수동 재장전. 데드아이(저격 모드) 중엔 탄이 궁극기 탄이라 재장전 불가.
         protected override bool TryGetReloadInfo(out int magazine, out float duration)
         {
-            magazine = burstCharges;
+            magazine = EffectiveBurstCharges;
             duration = burstReloadingDuration;
             return !isSniping;
         }

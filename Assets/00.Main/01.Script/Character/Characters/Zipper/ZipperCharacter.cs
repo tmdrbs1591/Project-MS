@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using ProjectMS.CharacterSystem;
 using UnityEngine;
@@ -108,13 +108,13 @@ namespace ProjectMS.CharacterSystem.Examples
             // CharacterProjectile의 LifeTime으로 Distance구현
 
             // 탄창: 다른 캐릭터와 같은 방식(충전 수 = 남은 탄, 마지막 발이면 쿨타임을 재장전 시간으로).
-            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (isFirstBasicAttack)
             {
                 SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize);
                 isFirstBasicAttack = false;
             }
 
+            bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
                 SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveReloadDuration);
