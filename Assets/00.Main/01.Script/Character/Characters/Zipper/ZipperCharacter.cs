@@ -61,6 +61,7 @@ namespace ProjectMS.CharacterSystem.Examples
             base.OnCharacterSpawned();
             InitQCharges();
         }
+
         protected override void OnResetCharacter()
         {
             base.OnResetCharacter();
@@ -78,6 +79,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 패시브: 라운드 리셋 시 남아있는 표식 전부 제거
             ClearAllDimensionalMarks();
+        }
+
+        protected override void OnCharacterDespawned()
+        {
+            if (qRechargeCoroutine != null) StopCoroutine(qRechargeCoroutine);
         }
 
         private void InitQCharges()
