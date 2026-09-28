@@ -14,60 +14,60 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Basic Attack - Burst")]
         [SerializeField] private CharacterProjectile burstBulletProjectilePrefab;
-        [Min(0f)] [SerializeField] private float burstBulletProjectileSpeed = 15f;
-        [Min(1)] [SerializeField] private int burstBulletProjectileFireCount = 4;
-        [Min(0f)] [SerializeField] private float burstArcAngle = 45f;
-        [Min(0f)] [SerializeField] private float burstReloadingDuration = 2.5f;
-        [Min(1)] [SerializeField] private int burstCharges = 4;
+        [Min(0f)][SerializeField] private float burstBulletProjectileSpeed = 15f;
+        [Min(1)][SerializeField] private int burstBulletProjectileFireCount = 4;
+        [Min(0f)][SerializeField] private float burstArcAngle = 45f;
+        [Min(0f)][SerializeField] private float burstReloadingDuration = 2.5f;
+        [Min(1)][SerializeField] private int burstCharges = 4;
 
         [Header("Skill Q - Dual Revolver")]
         [Tooltip("비어있을 경우 Burst Bullet Projectile Prefab 사용")]
         [SerializeField] private CharacterProjectile dualRevolverProjectilePrefab; //없으면 기본 burstBulletProjectilePrefab사용
-        [Min(0)] [SerializeField] private float dualRevolverProjectileSpeed = 45f;
+        [Min(0)][SerializeField] private float dualRevolverProjectileSpeed = 45f;
 
         [Header("Skill E - Technical Jump")]
         [Tooltip("바닥 기준, 0 ~ 180 사이로 입력")]
-        [Min(0f)] [SerializeField] private float techJumpAngle = 60f;
-        [Min(0f)] [SerializeField] private float techJumpPower = 30f;
-        [Min(0f)] [SerializeField] private float techJumpDuration = 0.08f;
+        [Min(0f)][SerializeField] private float techJumpAngle = 60f;
+        [Min(0f)][SerializeField] private float techJumpPower = 30f;
+        [Min(0f)][SerializeField] private float techJumpDuration = 0.08f;
         [SerializeField] private CharacterThrowable techJumpFlashBangPrefab;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangSpeed = 8f;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangRange = 0.8f;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangSlowDuration = 0.5f;
-        [Min(0f)] [SerializeField] private float techJumpFlashBangSlowRatio = 0.4f;
+        [Min(0f)][SerializeField] private float techJumpFlashBangSpeed = 8f;
+        [Min(0f)][SerializeField] private float techJumpFlashBangRange = 0.8f;
+        [Min(0f)][SerializeField] private float techJumpFlashBangSlowDuration = 0.5f;
+        [Min(0f)][SerializeField] private float techJumpFlashBangSlowRatio = 0.4f;
 
         [Header("Skill R - Dead Eye")]
         [SerializeField] private CharacterProjectile deadEyeProjectilePrefab;
-        [Min(0f)] [SerializeField] private float deadEyeProjectileFireCooltime = 0.75f;
-        [Min(0)] [SerializeField] private int deadEyeProjectileCharges = 3;
-        [Min(0f)] [SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
-        [Min(0f)] [SerializeField] private float deadEyeReuseCooltime = 0.25f;
+        [Min(0f)][SerializeField] private float deadEyeProjectileFireCooltime = 0.75f;
+        [Min(0)][SerializeField] private int deadEyeProjectileCharges = 3;
+        [Min(0f)][SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
+        [Min(0f)][SerializeField] private float deadEyeReuseCooltime = 0.25f;
 
         [Header("Ultimate - Dead Eye Sounds")]
         [Tooltip("궁극기(저격 모드)를 켤 때 재생")]
         [SerializeField] private AudioClip deadEyeActivateClip;
-        [Range(0f, 2f)] [SerializeField] private float deadEyeActivateVolume = 1f;
+        [Range(0f, 2f)][SerializeField] private float deadEyeActivateVolume = 1f;
         [Tooltip("저격 모드에서 한 발 쏠 때 재생(이때는 기본공격 사운드 대신 이 소리가 난다)")]
         [SerializeField] private AudioClip deadEyeShotClip;
-        [Range(0f, 2f)] [SerializeField] private float deadEyeShotVolume = 1f;
+        [Range(0f, 2f)][SerializeField] private float deadEyeShotVolume = 1f;
 
         [Header("Ultimate - Dead Eye Camera (내 화면에서만)")]
         [Tooltip("궁극기를 켤 때 화면 흔들림 세기(월드 단위)")]
-        [Min(0f)] [SerializeField] private float deadEyeShakeMagnitude = 0.6f;
-        [Min(0f)] [SerializeField] private float deadEyeShakeDuration = 0.35f;
+        [Min(0f)][SerializeField] private float deadEyeShakeMagnitude = 0.6f;
+        [Min(0f)][SerializeField] private float deadEyeShakeDuration = 0.35f;
         [Tooltip("마우스가 가리키는 지점 쪽으로 카메라를 추가로 당기는 최대 거리(월드 단위). 줌인 자체도 그 지점을 기준으로 한다.")]
-        [Min(0f)] [SerializeField] private float deadEyeZoomOffset = 1.2f;
+        [Min(0f)][SerializeField] private float deadEyeZoomOffset = 1.2f;
         [Tooltip("줌인 비율(0.15 = 15% 가까이)")]
-        [Range(0f, 0.5f)] [SerializeField] private float deadEyeZoomRatio = 0.15f;
+        [Range(0f, 0.5f)][SerializeField] private float deadEyeZoomRatio = 0.15f;
         [Tooltip("당겨졌다가 원래대로 돌아오는 데 걸리는 시간(초)")]
-        [Min(0.05f)] [SerializeField] private float deadEyeZoomDuration = 0.6f;
+        [Min(0.05f)][SerializeField] private float deadEyeZoomDuration = 0.6f;
 
         [Header("Ultimate - Dead Eye Shot Camera (쏠 때, 내 화면에서만)")]
-        [Min(0f)] [SerializeField] private float deadEyeShotShakeMagnitude = 0.45f;
-        [Min(0f)] [SerializeField] private float deadEyeShotShakeDuration = 0.25f;
-        [Min(0f)] [SerializeField] private float deadEyeShotZoomOffset = 0.8f;
-        [Range(0f, 0.5f)] [SerializeField] private float deadEyeShotZoomRatio = 0.1f;
-        [Min(0.05f)] [SerializeField] private float deadEyeShotZoomDuration = 0.4f;
+        [Min(0f)][SerializeField] private float deadEyeShotShakeMagnitude = 0.45f;
+        [Min(0f)][SerializeField] private float deadEyeShotShakeDuration = 0.25f;
+        [Min(0f)][SerializeField] private float deadEyeShotZoomOffset = 0.8f;
+        [Range(0f, 0.5f)][SerializeField] private float deadEyeShotZoomRatio = 0.1f;
+        [Min(0.05f)][SerializeField] private float deadEyeShotZoomDuration = 0.4f;
 
         // 사운드/조준경 연출을 모든 클라에서 똑같이 보이게 하기 위한 네트워크 상태.
         [Networked] private NetworkBool NetIsSniping { get; set; }
@@ -79,8 +79,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Passive - Dirty Carnival")]
         [Tooltip("캐릭터 등 기준, 0 ~ 360 사이로 입력")]
-        [Min(0f)] [SerializeField] private float carnivalBackAttackCriterionAngle = 90f;
-        [Min(1f)] [SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f;
+        [Min(0f)][SerializeField] private float carnivalBackAttackCriterionAngle = 90f;
+        [Min(1f)][SerializeField] private float carnivalBackAttackAdditionalDamageMultiplier = 2f;
 
         private int EffectiveBurstCharges => Mathf.Max(1, Mathf.RoundToInt(burstCharges * MaxAmmoMultiplier));
         private float EffectiveBurstReloadDuration =>
@@ -110,7 +110,7 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool OnSkillQ(CharacterActionContext context)
         {
             CharacterProjectile prefab = ResolveDualRevolverPrefab(burstBulletProjectilePrefab);
-            
+
             if (prefab == null) return false;
 
             SpawnProjectile(
@@ -122,17 +122,17 @@ namespace ProjectMS.CharacterSystem.Examples
                 targetLayer);
 
             PlayActionEffect(CharacterActionType.SkillQ, EffectOrigin.position, context.AimAngle);
-            
+
             return true;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
         {
             CharacterThrowable flashBang = SpawnThrowable(
-                techJumpFlashBangPrefab, 
-                CharacterActionType.SkillE, 
-                ProjectileOrigin.position, 
-                Vector2.down, 
+                techJumpFlashBangPrefab,
+                CharacterActionType.SkillE,
+                ProjectileOrigin.position,
+                Vector2.down,
                 techJumpFlashBangSpeed);
 
             if (flashBang == null)
@@ -158,13 +158,13 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override float ModifyOutgoingDamage(CharacterBase target, float damage, CharacterDamageSource source)
         {
             bool isBackOfTarget = IsBehindTargetAimDirection(target, Mathf.Clamp(0f, carnivalBackAttackCriterionAngle, 360f));
-            
+
             return isBackOfTarget ? damage * carnivalBackAttackAdditionalDamageMultiplier : damage;
         }
 
         protected override void OnOwnedEntityDestroyed(CharacterOwnedEntity entity, OwnedEntityDestroyReason reason)
         {
-            if (reason != OwnedEntityDestroyReason.FuseExpired || 
+            if (reason != OwnedEntityDestroyReason.FuseExpired ||
                 entity != currentFlashBangEntity) return;
 
             OnFlashBangExpired(currentFlashBangEntity);
@@ -226,7 +226,7 @@ namespace ProjectMS.CharacterSystem.Examples
                     context.AimWorldPosition,
                     context.AimDirection,
                     0f,
-                    context.Damage,
+                    Definition.GetDamage(CharacterActionType.Ultimate),
                     targetLayer);
 
             PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
@@ -250,7 +250,7 @@ namespace ProjectMS.CharacterSystem.Examples
             // 빗변 길이 1 기준 연산
             if (AimDirection.x <= 0)
                 jumpDirectionX = Mathf.Cos(techJumpAngleRad);
-            else 
+            else
                 jumpDirectionX = -1 * Mathf.Cos(techJumpAngleRad);
 
             float jumpDirectionY = Mathf.Sin(techJumpAngleRad);
@@ -281,7 +281,7 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             isSniping = true;
             NetIsSniping = true;
-            
+
             SetMoveAndSkillExceptUltimateCanUse(false);
 
             SetActionCharges(CharacterActionType.BasicAttack, deadEyeProjectileCharges);
@@ -301,7 +301,7 @@ namespace ProjectMS.CharacterSystem.Examples
             SetMoveAndSkillExceptUltimateCanUse(true);
 
             SetActionCharges(
-                CharacterActionType.BasicAttack, 
+                CharacterActionType.BasicAttack,
                 isTurnedOffByNoAmmo ? EffectiveBurstCharges + 1 : EffectiveBurstCharges);
             ResetCooldownDuration(CharacterActionType.BasicAttack);
 
