@@ -22,7 +22,7 @@ MonoBehaviour:
   skillQCooldown: 4
   skillECooldown: 15
   dashCooldown: 3
-  ultimateCooldown: 30
+  ultimateCooldown: 0
   knockbackBaseForce: 3
   knockbackDuration: 0.15
   knockbackUpwardBias: 0.35
@@ -53,7 +53,7 @@ MonoBehaviour:
   skillQIcon: {fileID: -5129845165933064271, guid: 31e816d8e650e5c489d2fe7a967ade47, type: 3}
   skillEIcon: {fileID: 7625062217138964392, guid: 25720506b3b92c94f89ff81da6dfd569, type: 3}
   dashIcon: {fileID: 7758384138714472818, guid: 425ba45b0386b21459bbd13dbb3c25f2, type: 3}
-  ultimateIcon: {fileID: 0}
+  ultimateIcon: {fileID: 7758384138714472818, guid: 425ba45b0386b21459bbd13dbb3c25f2, type: 3}
   moveLeft: 15
   moveRight: 18
   jump: 1

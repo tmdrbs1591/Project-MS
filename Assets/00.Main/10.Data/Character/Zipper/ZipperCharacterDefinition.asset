@@ -22,7 +22,7 @@ MonoBehaviour:
   skillQCooldown: 10
   skillECooldown: 5
   dashCooldown: 3
-  ultimateCooldown: 30
+  ultimateCooldown: 0
   knockbackBaseForce: 3
   knockbackDuration: 0.15
   knockbackUpwardBias: 0.35

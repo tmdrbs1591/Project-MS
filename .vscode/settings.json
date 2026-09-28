@@ -1,5 +1,12 @@
 {
     "dotrush.roslyn.projectOrSolutionFiles": [
-        "d:\\Unity\\Projects\\Project-MS\\Project-MS.sln"
+        "c:\\Unity\\Projects\\Project-MS\\Project-MS.sln",
+        "c:\\Unity\\Projects\\Project-MS\\Assembly-CSharp-Editor.csproj",
+        "c:\\Unity\\Projects\\Project-MS\\Assembly-CSharp.csproj",
+        "c:\\Unity\\Projects\\Project-MS\\Fusion.Addons.Physics.csproj",
+        "c:\\Unity\\Projects\\Project-MS\\Fusion.Addons.Physics.Editor.csproj",
+        "c:\\Unity\\Projects\\Project-MS\\Fusion.Unity.csproj",
+        "c:\\Unity\\Projects\\Project-MS\\Fusion.Unity.Editor.csproj",
+        "c:\\Unity\\Projects\\Project-MS\\Unity.Fusion.CodeGen.csproj"
     ]
 }
