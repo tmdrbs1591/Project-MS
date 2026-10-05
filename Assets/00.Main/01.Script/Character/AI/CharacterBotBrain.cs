@@ -34,6 +34,7 @@ namespace ProjectMS.CharacterSystem.AI
             {
                 GunnerCharacter _ => character.gameObject.AddComponent<GunnerBotBrain>(),
                 SparkCharacter _ => character.gameObject.AddComponent<SparkBotBrain>(),
+                ChaserCharacter _ => character.gameObject.AddComponent<ChaserBotBrain>(),
                 _ => null
             };
 
