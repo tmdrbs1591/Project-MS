@@ -30,8 +30,8 @@ public class PlayerSpawner : MonoBehaviour
     [SerializeField] private MatchManager matchManagerPrefab;
 
     [Header("AI 봇")]
-    [Tooltip("봇이 고를 수 있는 캐릭터 인덱스(characterPrefabs 기준). 이 중 랜덤. 거너(0), 체이서(2).")]
-    [SerializeField] private int[] botCharacterIndices = { 0, 2 };
+    [Tooltip("봇이 고를 수 있는 캐릭터 인덱스(characterPrefabs 기준). 이 중 랜덤.")]
+    [SerializeField] private int[] botCharacterIndices = { 0, 1, 2 };
     [SerializeField] private BotDifficulty botDifficulty = BotDifficulty.Normal;
 
     // MatchManager가 라운드 리셋 시 GetSpawnPosition(playerId)만으로 재호출하므로(러너를 안 넘김),
