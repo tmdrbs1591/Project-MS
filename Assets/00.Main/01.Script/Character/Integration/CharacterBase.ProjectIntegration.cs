@@ -43,7 +43,12 @@ namespace ProjectMS.CharacterSystem
 
         private static bool IsProjectInputLocked => lobbyControlLocked;
 
+        // VS 연출 동안 true. 캐릭터가 연출 오브젝트의 Update보다 먼저 틱을 돌아도(특히 늦게 스폰되는 AI 봇)
+        // 처음부터 잠겨 있게 하려는 로컬 플래그다(네트워크 값 NetGameplayLocked는 Update 이후에야 걸린다).
+        public static bool IntroLocked { get; set; }
+
         private static bool IsProjectGameplayLocked =>
+            IntroLocked ||
             MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting;
 
         public static void SetLobbyControlLocked(bool locked)
@@ -55,6 +60,7 @@ namespace ProjectMS.CharacterSystem
         private static void ResetProjectIntegrationStatics()
         {
             lobbyControlLocked = false;
+            IntroLocked = false;
             All.Clear();
         }
 
