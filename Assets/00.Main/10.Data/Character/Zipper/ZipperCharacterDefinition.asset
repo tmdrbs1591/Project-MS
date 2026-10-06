@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: ZipperCharacterDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
   displayName: Zipper
-  maxHealth: 850
-  basicAttackDamage: 50
-  skillQDamage: 75
+  maxHealth: 900
+  basicAttackDamage: 65
+  skillQDamage: 110
   skillEDamage: 0
-  ultimateDamage: 150
+  ultimateDamage: 130
   basicAttackCooldown: 8
   skillQCooldown: 10
   skillECooldown: 5
