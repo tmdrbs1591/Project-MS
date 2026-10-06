@@ -1482,7 +1482,7 @@ MonoBehaviour:
   movingBugVfxLifetime: 1
   movingBugVfxFollowCharacter: 0
   popupAppearGlitchProjectile: {fileID: 1316549817603537388, guid: 249ff7b2ed603184b8fd53dea9178c5f, type: 3}
-  popupAppearGlitchSpeed: 6
+  popupAppearGlitchSpeed: 24
   popupAppearErrorPopupDeployable: {fileID: 5461833736379275686, guid: dd9fd29324ce6254c93c0f98bad77d2d, type: 3}
   popupAppearErrorPopupDuration: 3
   popupAppearErrorPopupDamageTimes: 3

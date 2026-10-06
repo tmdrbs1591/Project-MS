@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
   displayName: "\uD31D\uC5C5"
   maxHealth: 900
-  basicAttackDamage: 45
-  skillQDamage: 45
-  skillEDamage: 76.5
-  ultimateDamage: 67.5
+  basicAttackDamage: 65
+  skillQDamage: 110
+  skillEDamage: 100
+  ultimateDamage: 200
   basicAttackCooldown: 0.3
   skillQCooldown: 9
   skillECooldown: 13
