@@ -53,6 +53,7 @@ public class VsIntroUI : MonoBehaviour
             flashObject.SetActive(false);
 
         controlsUnlocked = false;
+        CharacterBase.IntroLocked = true;
         SetAllCharactersLocked(true);
 
         if (introRoutine != null)
@@ -69,6 +70,7 @@ public class VsIntroUI : MonoBehaviour
         }
 
         // 연출 도중에 오브젝트가 꺼져도 조작 불능 상태로 남지 않도록 방어적으로 풀어준다.
+        CharacterBase.IntroLocked = false;
         SetAllCharactersLocked(false);
     }
 
@@ -131,6 +133,7 @@ public class VsIntroUI : MonoBehaviour
         yield return new WaitForSeconds(controlUnlockDelay);
 
         controlsUnlocked = true;
+        CharacterBase.IntroLocked = false;
         SetAllCharactersLocked(false);
         introRoutine = null;
     }
