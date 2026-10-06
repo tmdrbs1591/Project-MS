@@ -95,6 +95,13 @@ namespace ProjectMS.CharacterSystem.Examples
         /// <summary>저격 모드에서 쏜 발 수(누적). 값이 바뀌면 한 발 쏜 것 — 조준경 반동 연출용.</summary>
         public int SnipeShotCount => Object != null ? NetSnipeShotSequence : 0;
 
+        // ---- AI(ChaserBotBrain)가 판단에 쓰는 읽기 전용 수치 ----
+        public float BurstBulletSpeed => burstBulletProjectileSpeed;
+        public float DualRevolverSpeed => dualRevolverProjectileSpeed;
+
+        public Vector2 ProjectileOriginPosition => ProjectileOrigin.position;
+        public Vector2 AttackOriginPosition => AttackOrigin.position;
+
         private bool isFirstBurst = true;
 
         private CharacterThrowable currentFlashBangEntity;

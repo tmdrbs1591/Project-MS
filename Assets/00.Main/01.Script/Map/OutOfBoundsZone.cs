@@ -46,7 +46,13 @@ public class OutOfBoundsZone : MonoBehaviour
             return;
 
         if (fallDamagePercent > 0f)
-            character.RequestDamage(character.MaxHealth * fallDamagePercent, PlayerRef.None);
+            // Environment 출처: 넉백/히트스턴이 안 걸려서 튕겨오르는 동안에도 자유롭게 움직일 수 있다.
+            character.RequestDamage(new DamageRequest(
+                character.MaxHealth * fallDamagePercent,
+                PlayerRef.None,
+                default,
+                -1,
+                CharacterDamageSource.Environment));
 
         if (bounceVelocity > 0f && bounceDuration > 0f)
             character.ApplyMapBounce(bounceVelocity, bounceDuration);

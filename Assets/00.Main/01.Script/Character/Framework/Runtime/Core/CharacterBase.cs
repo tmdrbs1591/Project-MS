@@ -454,6 +454,9 @@ namespace ProjectMS.CharacterSystem
             // 사망 시에는 죽은 쪽 것만 정리되므로, 살아남은 쪽 것이 남아 있던 문제를 막는다.
             DestroyOwnedEntitiesForRoundReset();
             movement.Reset(position);
+            // 일반 Rigidbody2D 위치만 바꾸면 NetworkRigidbody2D가 다른 클라에 새 위치를 모르므로 텔레포트로 알린다.
+            if (TryGetComponent(out Fusion.Addons.Physics.NetworkRigidbody2D netRb))
+                netRb.Teleport(position, transform.rotation);
             OnResetCharacter();
         }
 
@@ -1590,7 +1593,8 @@ namespace ProjectMS.CharacterSystem
                 // 틱/도트류(Periodic)는 넉백을 안 건다 — 전류 노드/패시브 도트/궁극기 지속 피해처럼
                 // 짧은 간격으로 반복되는 데미지에 매번 넉백이 걸리면 대상이 계속 밀려나서
                 // 위치가 안정되지 않는다.
-                if (request.Source != CharacterDamageSource.Periodic)
+                // 환경(낙사존 등) 피해도 넉백/히트스턴을 안 건다 — 맵 바운스로 튕겨오르는 중에도 바로 조작할 수 있어야 한다.
+                if (request.Source != CharacterDamageSource.Periodic && request.Source != CharacterDamageSource.Environment)
                     ApplyKnockback(request.Attacker);
             }
 

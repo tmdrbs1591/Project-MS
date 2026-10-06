@@ -1,4 +1,4 @@
-using Fusion;
+﻿using Fusion;
 using ProjectMS.CharacterSystem;
 using ProjectMS.CharacterSystem.AI;
 using UnityEngine;
@@ -30,8 +30,8 @@ public class PlayerSpawner : MonoBehaviour
     [SerializeField] private MatchManager matchManagerPrefab;
 
     [Header("AI 봇")]
-    [Tooltip("봇이 고를 수 있는 캐릭터 인덱스(characterPrefabs 기준). 이 중 랜덤. 지금은 AI 가 있는 거너(0)만.")]
-    [SerializeField] private int[] botCharacterIndices = { 0 };
+    [Tooltip("봇이 고를 수 있는 캐릭터 인덱스(characterPrefabs 기준). 이 중 랜덤.")]
+    [SerializeField] private int[] botCharacterIndices = { 0, 1, 2 };
     [SerializeField] private BotDifficulty botDifficulty = BotDifficulty.Normal;
 
     // MatchManager가 라운드 리셋 시 GetSpawnPosition(playerId)만으로 재호출하므로(러너를 안 넘김),
