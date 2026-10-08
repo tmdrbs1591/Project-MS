@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
   displayName: "\uAC70\uB108"
   maxHealth: 1000
-  basicAttackDamage: 50
+  basicAttackDamage: 55
   skillQDamage: 100
   skillEDamage: 125
   ultimateDamage: 200

@@ -16,6 +16,7 @@ namespace ProjectMS.CharacterSystem.AI
         private float strafeDirection;
         private float nextStrafeDecisionTime;
         private float nextSkillDecisionTime;
+        private float nextQSkillTime;
         private bool pendingDash;
         private int shotsInBurst;
         private int burstSize = 3;
@@ -62,12 +63,15 @@ namespace ProjectMS.CharacterSystem.AI
             // [스킬 사용 로직]
             // =========================================================================
 
-            // 1. Q 스킬 (전류 노드): 쿨타임마다 최우선으로 설치
-            if (lineOfSight && distance <= 9f && IsReady(CharacterActionType.SkillQ))
+            // 1. Q 스킬 (전류 노드): 기본 쿨타임 외에 추가로 3초 텀(nextQSkillTime)을 두어 번갈아가며 설치
+            if (lineOfSight && distance <= 9f && IsReady(CharacterActionType.SkillQ) && Clock >= nextQSkillTime)
             {
                 Vector2 predictedTarget = targetPos + (PerceivedTargetVelocity * 0.2f);
                 input.AimWorldPosition = ApplyAimError(projectileOrigin, predictedTarget, 0.3f);
                 input.SkillQPressed = true;
+
+                // Q를 던진 시점부터 3초 동안은 다음 Q를 아낌
+                nextQSkillTime = Clock + 3.0f;
                 OnSkillUsed();
                 return;
             }
@@ -105,12 +109,6 @@ namespace ProjectMS.CharacterSystem.AI
         {
             if (spark == null) return false;
 
-            // SparkCharacter 내부에 설치된 노드 리스트나 위치를 가져오는 접근자가 필요합니다.
-            // 만약 spark 객체에 노드 위치를 반환하는 프로퍼티나 메서드가 있다면 아래와 같이 활용할 수 있습니다.
-            // (예시: spark.PlantedNodePositions 등)
-            // 현재 스크립트 구조상 외부에서 직접 접근이 안 될 경우를 대비해 리플렉션이나 필드 구조에 맞춰 체크합니다.
-
-            // 안전하게 SparkCharacter 내부의 plantedElectricNodes 리스트가 퍼블릭이거나 내부 필드일 때 거리 체크
             var nodesField = typeof(SparkCharacter).GetField("plantedElectricNodes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (nodesField != null)
             {
@@ -131,8 +129,6 @@ namespace ProjectMS.CharacterSystem.AI
                 }
             }
 
-            // 만약 위 리플렉션 접근이 환경에 따라 안 된다면, 
-            // 대안으로 적이 스파크 자신 주변(노드가 주로 깔리는 반경)에 일정 이하로 접근했을 때 터트리도록 보완할 수 있습니다.
             return false;
         }
 
