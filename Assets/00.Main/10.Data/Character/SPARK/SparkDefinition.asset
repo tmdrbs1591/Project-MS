@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SparkDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
   displayName: "\uC2A4\uD30C\uD06C"
+  characterSprite: {fileID: 21300000, guid: 06189fdf2b723844fba7688d0041d857, type: 3}
   maxHealth: 900
   basicAttackDamage: 40
   skillQDamage: 20

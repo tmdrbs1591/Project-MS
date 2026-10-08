@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: PopupCharacterDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
   displayName: "\uD31D\uC5C5"
+  characterSprite: {fileID: 21300000, guid: dc70cd863123d7844ae31530b9f5d30a, type: 3}
   maxHealth: 900
   basicAttackDamage: 45
   skillQDamage: 45

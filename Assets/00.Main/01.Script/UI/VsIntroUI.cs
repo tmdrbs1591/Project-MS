@@ -2,6 +2,7 @@ using System.Collections;
 using ProjectMS.CharacterSystem;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// 전투 진입 시 표시되는 "VS" 연출: 좌(Player1)/우(Player2) 캐릭터 이름을 채우고,
@@ -33,6 +34,15 @@ public class VsIntroUI : MonoBehaviour
     [Header("VS 텍스트")]
     [SerializeField] private TMP_Text player1Text;
     [SerializeField] private TMP_Text player2Text;
+
+    [Header("캐릭터 스프라이트")]
+    [SerializeField] private Image player1Image;
+    [SerializeField] private Image player1Shadow;
+    [SerializeField] private Image player2Image;
+    [SerializeField] private Image player2Shadow;
+
+    [Header("스프라이트 크기 조절")]
+    [Min(0f)][SerializeField] private float characterImageSizeMultiplier = 1.3684f;
 
     [Header("플래시 연출")]
     [Tooltip("연출이 시작되고 플래시가 터지기까지 대기 시간(초).")]
@@ -76,7 +86,7 @@ public class VsIntroUI : MonoBehaviour
     {
         // 캐릭터 스폰/동기화 타이밍이 화면마다 다를 수 있어 매 프레임 폴링한다
         // (PlayerCornerHUD와 동일한 이유).
-        UpdateNames();
+        UpdateCharacterProfile();
 
         // 연출 도중에 늦게 등록된 캐릭터(AI 봇 등)도 잠금에서 빠지지 않도록, 잠금 구간 동안은 계속 건다.
         if (introRoutine != null && !controlsUnlocked)
@@ -85,7 +95,7 @@ public class VsIntroUI : MonoBehaviour
 
     private bool controlsUnlocked;
 
-    private void UpdateNames()
+    private void UpdateCharacterProfile()
     {
         MatchManager match = MatchManager.Instance;
 
@@ -96,16 +106,27 @@ public class VsIntroUI : MonoBehaviour
 
             bool isP1 = match != null && match.IsPlayer1(character.MatchPlayer);
             string displayName = character.Definition != null ? character.Definition.DisplayName : string.Empty;
+            Sprite displaySprite = character.Definition != null ? character.Definition.CharacterMainSprite : null;
 
-            if (isP1)
+            TMP_Text playerText = isP1 ? player1Text : player2Text;
+            Image playerImage = isP1 ? player1Image : player2Image;
+            Image playerShadow = isP1 ? player1Shadow : player2Shadow;
+
+            if (playerText != null)
+                playerText.text = displayName;
+
+            if (playerImage != null && playerShadow != null)
             {
-                if (player1Text != null)
-                    player1Text.text = displayName;
-            }
-            else
-            {
-                if (player2Text != null)
-                    player2Text.text = displayName;
+                if (displaySprite == null || displaySprite.pixelsPerUnit <= 0f)
+                    return;
+
+                playerImage.sprite = displaySprite;
+                playerShadow.sprite = displaySprite;
+
+                playerImage.SetNativeSize();
+                playerImage.rectTransform.sizeDelta *= characterImageSizeMultiplier;
+
+                playerShadow.rectTransform.sizeDelta = playerImage.rectTransform.sizeDelta;
             }
         }
     }

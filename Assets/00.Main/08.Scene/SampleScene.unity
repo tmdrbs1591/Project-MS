@@ -9646,7 +9646,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 841bbe4cd78e68a4f980dda91240e2d8, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 7ff29413e879b694cae92dd42555c6e4, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -17148,7 +17148,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 841bbe4cd78e68a4f980dda91240e2d8, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 7ff29413e879b694cae92dd42555c6e4, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -26386,6 +26386,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VsIntroUI
   player1Text: {fileID: 2067172710}
   player2Text: {fileID: 1833264927}
+  player1Image: {fileID: 1712490850}
+  player1Shadow: {fileID: 1269877136}
+  player2Image: {fileID: 1217775542}
+  player2Shadow: {fileID: 742528110}
+  characterImageSizeMultiplier: 1.45
   flashDelay: 4.5
   flashObject: {fileID: 6971120539330799929}
   loopingParticle: {fileID: 3646246254976116559}

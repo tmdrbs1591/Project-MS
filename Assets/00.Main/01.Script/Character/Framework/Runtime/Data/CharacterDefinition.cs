@@ -8,6 +8,7 @@ namespace ProjectMS.CharacterSystem
     {
         [Header("Identity")]
         [SerializeField] private string displayName = "New Character";
+        [SerializeField] private Sprite characterMainSprite;
 
         [Header("Stats")]
         [Min(1f)] [SerializeField] private float maxHealth = 100f;
@@ -84,6 +85,7 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private Key ultimate = Key.R;
 
         public string DisplayName => displayName;
+        public Sprite CharacterMainSprite => characterMainSprite;
         public float MaxHealth => maxHealth;
         public float MoveSpeed => moveSpeed;
         public float GroundAcceleration => groundAcceleration;
