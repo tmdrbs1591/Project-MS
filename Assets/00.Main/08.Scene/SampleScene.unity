@@ -8139,6 +8139,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1079862699}
   - component: {fileID: 1079862700}
+  - component: {fileID: 1079862701}
   m_Layer: 5
   m_Name: p2
   m_TagString: Untagged
@@ -8193,6 +8194,26 @@ MonoBehaviour:
   scoreFilledColor: {r: 1, g: 1, b: 1, a: 1}
   scoreEmptyColor: {r: 1, g: 1, b: 1, a: 0.25}
   characterImage: {fileID: 1545860518}
+--- !u!114 &1079862701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1079862698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ca5a92c053469944ac6b6ce7e8ca6db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShowCharacterSelectIconUI
+  characterIconImages:
+  - {fileID: -404041771702070684, guid: 677c2cb41c32a1b429e2982c5395c526, type: 3}
+  - {fileID: 21300000, guid: 841bbe4cd78e68a4f980dda91240e2d8, type: 3}
+  - {fileID: 21300000, guid: 06189fdf2b723844fba7688d0041d857, type: 3}
+  - {fileID: 21300000, guid: dc70cd863123d7844ae31530b9f5d30a, type: 3}
+  - {fileID: 21300000, guid: 7ff29413e879b694cae92dd42555c6e4, type: 3}
+  p1CharacterImage: {fileID: 0}
+  p2CharacterImage: {fileID: 0}
 --- !u!1 &1094023951
 GameObject:
   m_ObjectHideFlags: 0
@@ -17685,6 +17706,7 @@ GameObject:
   - component: {fileID: 1756910827}
   - component: {fileID: 1756910829}
   - component: {fileID: 1756910828}
+  - component: {fileID: 1756910830}
   m_Layer: 5
   m_Name: character icon
   m_TagString: Untagged
@@ -17749,6 +17771,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1756910826}
   m_CullTransparentMesh: 1
+--- !u!114 &1756910830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1756910826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ca5a92c053469944ac6b6ce7e8ca6db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShowCharacterSelectIconUI
+  characterIconImages:
+  - {fileID: -404041771702070684, guid: 677c2cb41c32a1b429e2982c5395c526, type: 3}
+  - {fileID: 21300000, guid: 06189fdf2b723844fba7688d0041d857, type: 3}
+  - {fileID: 21300000, guid: 841bbe4cd78e68a4f980dda91240e2d8, type: 3}
+  - {fileID: 21300000, guid: dc70cd863123d7844ae31530b9f5d30a, type: 3}
+  - {fileID: 21300000, guid: 7ff29413e879b694cae92dd42555c6e4, type: 3}
+  p1CharacterImage: {fileID: 1756910828}
+  p2CharacterImage: {fileID: 1545860518}
 --- !u!1 &1757342346
 GameObject:
   m_ObjectHideFlags: 0
