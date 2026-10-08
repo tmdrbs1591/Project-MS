@@ -4145,11 +4145,116 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2927675601296648541, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      propertyPath: m_UsedByEffector
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3125530924031048463, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      propertyPath: m_Name
+      value: "\uBC1C\uD310"
+      objectReference: {fileID: 0}
+    - target: {fileID: 5706819685686301523, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      propertyPath: m_UsedByEffector
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6427105882058154540, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      propertyPath: m_Name
+      value: "\uBC1C\uD310"
+      objectReference: {fileID: 0}
+    - target: {fileID: 6580994708963069391, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      propertyPath: m_UsedByEffector
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9074766237899935601, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      propertyPath: m_Name
+      value: "\uBC1C\uD310"
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6427105882058154540, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 539740843}
+    - targetCorrespondingSourceObject: {fileID: 9074766237899935601, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 539740842}
+    - targetCorrespondingSourceObject: {fileID: 3125530924031048463, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 539740841}
   m_SourcePrefab: {fileID: 100100000, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+--- !u!1 &539740838 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3125530924031048463, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+  m_PrefabInstance: {fileID: 539740837}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &539740839 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9074766237899935601, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+  m_PrefabInstance: {fileID: 539740837}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &539740840 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6427105882058154540, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+  m_PrefabInstance: {fileID: 539740837}
+  m_PrefabAsset: {fileID: 0}
+--- !u!251 &539740841
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 539740838}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
+--- !u!251 &539740842
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 539740839}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
+--- !u!251 &539740843
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 539740840}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
 --- !u!1 &542812195
 GameObject:
   m_ObjectHideFlags: 0
@@ -17050,7 +17155,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -234.99988, y: 0}
+  m_AnchoredPosition: {x: -234.99994, y: 0}
   m_SizeDelta: {x: -770, y: 524.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1711290445
