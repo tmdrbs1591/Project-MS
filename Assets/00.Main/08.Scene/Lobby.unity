@@ -34153,7 +34153,7 @@ MonoBehaviour:
   playerCount: 2
   gameSceneName: SampleScene
   lobbySceneName: Lobby
-  fillWithBot: 1
+  fillWithBot: 0
   botFillDelaySeconds: 3
 --- !u!114 &1910536806
 MonoBehaviour:

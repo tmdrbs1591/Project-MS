@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 패럴랙스 스크롤링. 카메라가 움직이면 이 오브젝트를 카메라 이동량의 일정 비율만큼 따라 움직여서
@@ -27,6 +28,19 @@ public class ParallaxLayer : MonoBehaviour
     private Vector3 startPosition;
     private Vector3 cameraStartPosition;
 
+    // 같은 씬 안에서 맵이 라운드마다 교체될 때(MapManager) 새 맵의 배경도 "첫 맵과 같은 기준 카메라 위치"를
+    // 쓰게 하는 씬 단위 공유값. 이게 없으면 2~3라운드 때 새로 생긴 레이어가 그 순간 카메라 위치를
+    // 기준으로 삼아서, 카메라가 이미 움직여 있는 만큼 배경 조각들이 어긋난 채로 시작한다.
+    private static bool hasSceneCameraOrigin;
+    private static Vector3 sceneCameraOrigin;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSceneOriginOnSceneLoad()
+    {
+        hasSceneCameraOrigin = false;
+        SceneManager.sceneLoaded += (_, __) => hasSceneCameraOrigin = false;
+    }
+
     private void Start()
     {
         startPosition = transform.position;
@@ -53,7 +67,12 @@ public class ParallaxLayer : MonoBehaviour
             return false;
 
         cameraTransform = cam.transform;
-        cameraStartPosition = cameraTransform.position;
+        if (!hasSceneCameraOrigin)
+        {
+            sceneCameraOrigin = cameraTransform.position;
+            hasSceneCameraOrigin = true;
+        }
+        cameraStartPosition = sceneCameraOrigin;
         return true;
     }
 

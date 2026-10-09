@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1fab3400db39db47882c2cb785e3e67, type: 3}
   m_Name: ZipperCharacterDefinition
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterDefinition
-  displayName: Zipper
+  displayName: "\uC9C0\uD37C"
   characterSprite: {fileID: 21300000, guid: 7ff29413e879b694cae92dd42555c6e4, type: 3}
-  maxHealth: 850
-  basicAttackDamage: 50
-  skillQDamage: 75
+  maxHealth: 900
+  basicAttackDamage: 65
+  skillQDamage: 110
   skillEDamage: 0
-  ultimateDamage: 150
+  ultimateDamage: 130
   basicAttackCooldown: 8
   skillQCooldown: 10
   skillECooldown: 5

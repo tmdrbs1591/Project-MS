@@ -15,10 +15,10 @@ MonoBehaviour:
   displayName: "\uD31D\uC5C5"
   characterSprite: {fileID: 21300000, guid: dc70cd863123d7844ae31530b9f5d30a, type: 3}
   maxHealth: 900
-  basicAttackDamage: 45
-  skillQDamage: 45
-  skillEDamage: 76.5
-  ultimateDamage: 67.5
+  basicAttackDamage: 65
+  skillQDamage: 110
+  skillEDamage: 100
+  ultimateDamage: 110
   basicAttackCooldown: 0.3
   skillQCooldown: 9
   skillECooldown: 13

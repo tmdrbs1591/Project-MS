@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "\uAC70\uB108"
   characterSprite: {fileID: -404041771702070684, guid: 677c2cb41c32a1b429e2982c5395c526, type: 3}
   maxHealth: 1000
-  basicAttackDamage: 50
+  basicAttackDamage: 55
   skillQDamage: 100
   skillEDamage: 125
   ultimateDamage: 200
