@@ -147,9 +147,9 @@ namespace ProjectMS.CharacterSystem.Examples
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
             if (shouldReload)
             {
-                SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveReloadDuration * ReloadSpeedMultiplier);
+                SetCooldownDuration(CharacterActionType.BasicAttack, EffectiveReloadDuration);
                 SetActionCharges(CharacterActionType.BasicAttack, EffectiveMagazineSize + 1);
-                NotifyReloadStarted(EffectiveReloadDuration * ReloadSpeedMultiplier);
+                NotifyReloadStarted(EffectiveReloadDuration);
             }
             else
             {
