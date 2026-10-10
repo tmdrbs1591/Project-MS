@@ -19,6 +19,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Basic Attack - Electric Gun")]
         [SerializeField] private CharacterProjectile gunProjectilePrefab;
         [Min(0f)][SerializeField] private float gunProjectileSpeed = 20f;
+        [Min(0f)][SerializeField] private float forkAngleStep = 12f;
         [Min(1)][SerializeField] private int magazineSize = 6;
         [Min(0f)][SerializeField] private float reloadDuration = 1.5f;
 
@@ -67,7 +68,7 @@ namespace ProjectMS.CharacterSystem.Examples
             (reloadDuration > 0f ? reloadDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
             * ReloadSpeedMultiplier;
 
-        private CharacterProjectile gunEmpoweredProjectile;
+        private readonly HashSet<CharacterProjectile> gunEmpoweredProjectiles = new HashSet<CharacterProjectile>();
 
         private float electrostaticCurrentCharge = 0f;
         private bool electrostaticIsCharged = false;
@@ -104,32 +105,67 @@ namespace ProjectMS.CharacterSystem.Examples
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
             }
 
-            // 패시브(정전기 충전)로 충전된 상태면 이 발이 강화된 기본공격임을 투사체 스프라이트로
-            // 보여준다. empowered로 슬로우가 적용되는 건 아니다.
-            // (스프라이트만 empowered 적용, 실제 슬로우는 OnProjectileDespawned에서)
-            CharacterProjectile gunProjectile = SpawnProjectile(
-                gunProjectilePrefab,
-                ProjectileOrigin.position,
-                context.AimDirection,
-                gunProjectileSpeed,
-                context.Damage,
-                targetLayer,
-                skillId: 0,
-                empowered: electrostaticIsCharged);
+            bool empowered = electrostaticIsCharged;
+            Vector2 aimDirection = context.AimDirection.sqrMagnitude > 0.0001f
+                ? context.AimDirection.normalized
+                : new Vector2(FacingDirection, 0f);
+            FireGunProjectile(aimDirection, context.Damage, empowered);
 
-            if (electrostaticIsCharged)
+            // 갈래 마법
+            int forkCount = ForkedProjectileCount;
+            if (forkCount > 0)
             {
-                gunEmpoweredProjectile = gunProjectile;
-                electrostaticIsCharged = false;
+                float forkDamage = context.Damage * ForkedProjectileDamageMultiplier;
+                for (int i = 0; i < forkCount; i++)
+                {
+                    float angleOffset = forkAngleStep * (i / 2 + 1) * (i % 2 == 0 ? 1f : -1f);
+                    FireGunProjectile(Rotate(aimDirection, angleOffset), forkDamage, empowered);
+                }
             }
+
+            if (empowered)
+                electrostaticIsCharged = false;
 
             PlayActionEffect(context.Action, ProjectileOrigin.position, context.AimAngle);
             return true;
         }
 
+        private void FireGunProjectile(Vector2 direction, float damage, bool empowered)
+        {
+            CharacterProjectile projectile = SpawnProjectile(
+                gunProjectilePrefab,
+                ProjectileOrigin.position,
+                direction,
+                gunProjectileSpeed,
+                damage,
+                targetLayer,
+                skillId: 0,
+                empowered: empowered);
+
+            if (projectile == null)
+                return;
+
+            // 바운스 마법 / 폭발 마법
+            bool explosive = HasExplosiveProjectile;
+            int bounces = explosive ? 0 : ProjectileBounceCount;
+            projectile.ConfigureAugmentBehavior(bounces, explosive, ExplosiveProjectileDamageMultiplier);
+
+            if (empowered)
+                gunEmpoweredProjectiles.Add(projectile);
+        }
+
+        private static Vector2 Rotate(Vector2 v, float degrees)
+        {
+            float rad = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(rad);
+            float sin = Mathf.Sin(rad);
+            return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+        }
+
         protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
         {
-            if (reason != ProjectileDespawnReason.HitCharacter || projectile != gunEmpoweredProjectile)
+            bool empowered = gunEmpoweredProjectiles.Remove(projectile);
+            if (reason != ProjectileDespawnReason.HitCharacter || !empowered)
                 return;
 
             ApplyControlSeal(hitTarget, CharacterControlType.All, electrostaticStunDuration);
@@ -240,6 +276,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnResetCharacter()
         {
+            gunEmpoweredProjectiles.Clear();
             // 타이머는 CharacterBase에서 모두 Stop 해준다.
 
             isTeslaFieldActive = false;
@@ -257,6 +294,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override void OnCharacterDespawned()
         {
+            gunEmpoweredProjectiles.Clear();
             if (!HasStateAuthority)
                 return;
 

@@ -10,6 +10,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [Header("Basic Attack Settings")]
         [SerializeField] private CharacterProjectile projectilePrefab;
         [SerializeField] private float slashSpeed = 20f;
+        [Min(0f)][SerializeField] private float forkAngleStep = 12f;
         [Tooltip("탄창(연속으로 벨 수 있는 횟수). 다 쓰면 재장전.")]
         [Min(1)] [SerializeField] private int magazineSize = 4;
         [Tooltip("재장전 시간(초). 0 이하면 캐릭터 정의의 기본공격 쿨타임을 쓴다(예전 '4번째 공격 뒤 쿨타임'과 같은 값).")]
@@ -102,16 +103,25 @@ namespace ProjectMS.CharacterSystem.Examples
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {
-            CharacterProjectile projectile = SpawnProjectile(
-                 projectilePrefab,
-                 AttackOrigin.position,
-                 context.AimDirection,
-                 slashSpeed,
-                 context.Damage,
-                 LayerMask.GetMask("Player")
-            );
+            if (projectilePrefab == null)
+                return false;
 
-            // CharacterProjectile의 LifeTime으로 Distance구현
+            Vector2 aimDirection = context.AimDirection.sqrMagnitude > 0.0001f
+                ? context.AimDirection.normalized
+                : new Vector2(FacingDirection, 0f);
+            FireSlash(aimDirection, context.Damage);
+
+            // 갈래 마법
+            int forkCount = ForkedProjectileCount;
+            if (forkCount > 0)
+            {
+                float forkDamage = context.Damage * ForkedProjectileDamageMultiplier;
+                for (int i = 0; i < forkCount; i++)
+                {
+                    float angleOffset = forkAngleStep * (i / 2 + 1) * (i % 2 == 0 ? 1f : -1f);
+                    FireSlash(Rotate(aimDirection, angleOffset), forkDamage);
+                }
+            }
 
             // 탄창: 다른 캐릭터와 같은 방식(충전 수 = 남은 탄, 마지막 발이면 쿨타임을 재장전 시간으로).
             if (isFirstBasicAttack)
@@ -133,6 +143,33 @@ namespace ProjectMS.CharacterSystem.Examples
             }
 
             return true;
+        }
+
+        private void FireSlash(Vector2 direction, float damage)
+        {
+            CharacterProjectile projectile = SpawnProjectile(
+                projectilePrefab,
+                AttackOrigin.position,
+                direction,
+                slashSpeed,
+                damage,
+                LayerMask.GetMask("Player"));
+
+            if (projectile == null)
+                return;
+
+            // 바운스 마법 / 폭발 마법
+            bool explosive = HasExplosiveProjectile;
+            int bounces = explosive ? 0 : ProjectileBounceCount;
+            projectile.ConfigureAugmentBehavior(bounces, explosive, ExplosiveProjectileDamageMultiplier);
+        }
+
+        private static Vector2 Rotate(Vector2 v, float degrees)
+        {
+            float rad = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(rad);
+            float sin = Mathf.Sin(rad);
+            return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
         }
 
         // 휠 수동 재장전.

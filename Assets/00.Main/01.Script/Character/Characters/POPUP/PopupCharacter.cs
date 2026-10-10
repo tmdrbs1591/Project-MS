@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace ProjectMS.CharacterSystem.Examples
 {
@@ -17,17 +18,14 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(1)][SerializeField] private int errorThrowableFireCount = 5;
         [Min(0f)][SerializeField] private float errorReloadingDuration = 1.2f;
         [Min(0f)][SerializeField] private float errorThrowableMaxVelocity = 3f;
-        [Min(0)] [SerializeField] private int errorThrowableMaxCount = 5;
+        [Min(0.1f)] [SerializeField] private int errorThrowableMaxCount = 5;
+        [Tooltip("바운스 마법 증강 획득 시 반사 속력 배율 (1이면 던진 속도 그대로)")]
+        [Min(0f)][SerializeField] private float errorThrowableBounceForce = 1f;
+        [Min(0f)][SerializeField] private float errorThrowableForkAngleStep = 12.5f;
 
         [Header("Another Throw Error Settings")]
         [SerializeField] private bool useAnotherErrorThrow = true;
         [SerializeField] private float anotherErrorThrowableSpeed = 1f;
-
-        [Header("Old Throw Error Settings")]
-        [SerializeField] private bool useOldErrorThorw = false;
-        [Min(0.01f)] [SerializeField] private float errorThrowableMinFlightTime = 0.1f;
-        [Min(0.01f)] [SerializeField] private float errorThrowableMaxFlightTime = 1.25f;
-        [Min(0.01f)] [SerializeField] private float errorThrowableMaxDistance = 10f;
 
         [Header("Skill Q - Occur Aiming Bug")]
         [SerializeField] private CharacterProjectile aimingBugHackingCDProjectile;
@@ -99,17 +97,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             Vector2 errorVelocity = default;
             
-            if (useOldErrorThorw)
-            {
-                errorVelocity = CalculateThrowVelocityOldVersion(
-                    ProjectileOrigin.position,
-                    context.AimWorldPosition,
-                    errorThrowableMaxDistance,
-                    errorThrowableMinFlightTime,
-                    errorThrowableMaxFlightTime,
-                    errorThrowableGravityScale);
-            }
-            else if (useAnotherErrorThrow)
+            if (useAnotherErrorThrow)
             {
                 Vector2 throwDirection = Quaternion.Euler(0, 0, AimAngle) * Vector2.right;
                 errorVelocity = throwDirection * anotherErrorThrowableSpeed;
@@ -123,23 +111,21 @@ namespace ProjectMS.CharacterSystem.Examples
                     errorThrowableGravityScale);
             }
 
-            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
-                ProjectileOrigin.position,
-                Quaternion.identity,
-                new OwnedEntityGroupId((int)context.Action),
-                maxCount: errorThrowableMaxCount,
-                overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
-                initialVelocity: errorVelocity);
-
-            OwnedEntitySpawnResult<PopupErrorThrowable> result = SpawnThrowable(
-                errorThrowablePrefab,
-                in request,
-                initialize: (errorThrowable) => errorThrowable.Initialize(context.Damage));
-
-            if (!result.Success)
-            {
-                Debug.LogWarning("[PopupCharacter] 에러 투럭!(기본 공격) 발사체를 소환하는데 실패했습니다!");
+            bool isSucceedToThrowError = ThrowError(errorVelocity, 0f, context.Damage);
+            if (!isSucceedToThrowError)
                 return false;
+
+            if (ForkedProjectileCount > 0)
+            {
+                float forkDamage = context.Damage * ForkedProjectileDamageMultiplier;
+                for (int i = 0; i < ForkedProjectileCount; i++)
+                {
+                    float angleOffset = errorThrowableForkAngleStep * (i / 2 + 1) * (i % 2 == 0 ? 1f : -1f);
+                    bool isSucceedToThrowForkError = ThrowError(errorVelocity, angleOffset, forkDamage);
+
+                    if (!isSucceedToThrowForkError)
+                        return false;
+                }
             }
 
             bool shouldReload = GetActionCharges(CharacterActionType.BasicAttack) - 1 == 0;
@@ -151,6 +137,37 @@ namespace ProjectMS.CharacterSystem.Examples
             }
             else
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
+
+            return true;
+        }
+
+        private bool ThrowError(Vector2 velocity, float zAngle, float damage)
+        {
+            Vector2 rotatedVelocity = Rotate(velocity, zAngle);
+
+            OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
+                ProjectileOrigin.position,
+                Quaternion.identity,
+                new OwnedEntityGroupId((int)CharacterActionType.BasicAttack),
+                maxCount: errorThrowableMaxCount,
+                overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
+                initialVelocity: rotatedVelocity);
+
+            OwnedEntitySpawnResult<PopupErrorThrowable> result = SpawnThrowable(
+                errorThrowablePrefab,
+                in request,
+                initialize: (errorThrowable) => errorThrowable.Initialize(
+                    damage,
+                    ProjectileBounceCount,
+                    errorThrowableBounceForce,
+                    HasExplosiveProjectile,
+                    ExplosiveProjectileDamageMultiplier));
+
+            if (!result.Success)
+            {
+                Debug.LogWarning("[PopupCharacter] 에러 투럭!(기본 공격) 발사체를 소환하는데 실패했습니다!");
+                return false;
+            }
 
             return true;
         }
@@ -326,33 +343,6 @@ namespace ProjectMS.CharacterSystem.Examples
             SetContinuousGlitch();
         }
 
-        private Vector2 CalculateThrowVelocityOldVersion(Vector2 startPosition, Vector2 targetPosition, float maxThrowDistance, float minFlightTime, float maxFlightTime, float projectileGravityScale)
-        {
-            Vector2 offsetBeforeCheck = targetPosition - startPosition;
-            Vector2 realTargetPosition = targetPosition;
-
-            if (offsetBeforeCheck.sqrMagnitude > (maxThrowDistance * maxThrowDistance))
-                realTargetPosition = startPosition + offsetBeforeCheck.normalized * maxThrowDistance;
-
-            Vector2 offset = realTargetPosition - startPosition;
-
-            // clamp01 결과에 따라 min ~ max
-            float flightTime = Mathf.Lerp(
-                minFlightTime,
-                maxFlightTime,
-                Mathf.Clamp01(offset.sqrMagnitude / (maxThrowDistance * maxThrowDistance)));
-
-            float gravity = Physics2D.gravity.y * projectileGravityScale;
-
-            Vector2 delta = realTargetPosition - startPosition;
-
-            float velocityX = delta.x / flightTime;
-            float velocityY = (delta.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
-
-            return new Vector2(velocityX, velocityY);
-        }
-
-
         private Vector2 CalculateThrowVelocity(Vector2 startPosition, Vector2 targetPosition, float maxVelocity, float projectileGravityScale)
         {
             Vector2 delta = targetPosition - startPosition;
@@ -440,6 +430,14 @@ namespace ProjectMS.CharacterSystem.Examples
                 DealGlitchDamage();
                 SetContinuousGlitch();
             });
+        }
+
+        private static Vector2 Rotate(Vector2 v, float degrees)
+        {
+            float rad = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(rad);
+            float sin = Mathf.Sin(rad);
+            return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
         }
     }
 }

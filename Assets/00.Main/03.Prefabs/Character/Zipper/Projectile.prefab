@@ -107,7 +107,7 @@ MonoBehaviour:
   pierceCharacters: 0
   wallLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   collisionSkinWidth: 0.03
   projectileAngleOffset: 0
   hitVfxPrefab: {fileID: 7908749483598085019, guid: 9bef78cc6a871fc49a95e810ffba50bc, type: 3}

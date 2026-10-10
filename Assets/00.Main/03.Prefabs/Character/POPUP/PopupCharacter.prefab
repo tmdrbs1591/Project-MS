@@ -1461,12 +1461,10 @@ MonoBehaviour:
   errorReloadingDuration: 2.5
   errorThrowableMaxVelocity: 10
   errorThrowableMaxCount: 5
+  errorThrowableBounceForce: 0.75
+  errorThrowableForkAngleStep: 12.5
   useAnotherErrorThrow: 1
   anotherErrorThrowableSpeed: 8
-  useOldErrorThorw: 0
-  errorThrowableMinFlightTime: 0.1
-  errorThrowableMaxFlightTime: 2
-  errorThrowableMaxDistance: 8
   aimingBugHackingCDProjectile: {fileID: 1316549817603537388, guid: 249ff7b2ed603184b8fd53dea9178c5f, type: 3}
   aimingBugHackingCDSpeed: 8
   aimingBugDuration: 1
