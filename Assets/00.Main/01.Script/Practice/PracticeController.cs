@@ -11,6 +11,8 @@ using UnityEngine.UI;
 ///     F4 증강 넣어보기(목록 창). 버튼으로 눌러도 된다.
 ///   - 연습 봇: 회색으로 칠하고(처음엔 서서히 나타남) 머리 위에 이름표를 띄운다. 3초 동안 안 맞으면 체력이 다시 찬다.
 ///   - Esc: "연습장 나가기" 확인 창.
+///   - 매칭: 패널의 매칭 버튼으로 연습하면서 매칭을 걸거나 취소한다. 매칭 중에는 상단 띠에 경과 시간을 보여주고,
+///     상대가 들어오면 연습이 끝나며(PracticeSession.End) 이 화면도 저절로 닫힌다.
 ///
 /// [씬 설정]
 ///   - 게임 씬 Canvas 아래 패널에 붙인다. 숨김은 CanvasGroup으로 한다.
@@ -28,6 +30,16 @@ public class PracticeController : MonoBehaviour
     [SerializeField] private TMP_Text dummyModeLabel;
     [SerializeField] private Button augmentButton;
 
+    [Header("매칭")]
+    [SerializeField] private Button matchButton;
+    [SerializeField] private TMP_Text matchButtonLabel;
+    [SerializeField] private CanvasGroup matchBanner;
+    [SerializeField] private TMP_Text matchBannerText;
+    [Tooltip("오프라인 ↔ 매칭 세션을 바꾸는 동안(캐릭터가 잠깐 사라짐) 화면을 덮는 패널.")]
+    [SerializeField] private CanvasGroup switchOverlay;
+    [SerializeField] private TMP_Text switchOverlayText;
+    [SerializeField] private float switchOverlayFadeSpeed = 6f;
+
     [Header("증강 넣어보기")]
     [SerializeField] private CanvasGroup augmentWindow;
     [SerializeField] private RectTransform augmentListContainer;
@@ -41,7 +53,8 @@ public class PracticeController : MonoBehaviour
     [SerializeField] private Button exitNoButton;
 
     [Header("연습 봇")]
-    [SerializeField] private Color dummyTint = new Color(0.6f, 0.6f, 0.65f, 1f);
+    [Tooltip("연습 봇 색. 캐릭터가 원래 어두운 색이 많아서 회색만으론 티가 안 나므로 반투명으로 구분한다.")]
+    [SerializeField] private Color dummyTint = new Color(0.8f, 0.8f, 0.85f, 0.55f);
     [SerializeField] private float dummyFadeInDuration = 0.8f;
     [SerializeField] private float dummyRegenDelay = 3f;
     [SerializeField] private TMP_FontAsset nameTagFont;
@@ -68,6 +81,7 @@ public class PracticeController : MonoBehaviour
     private float lastComboDps;
     private bool augmentListBuilt;
     private bool lockedByMe;
+    private bool uiShown = true;
 
     private void Awake()
     {
@@ -75,6 +89,13 @@ public class PracticeController : MonoBehaviour
         SetGroup(panel, active);
         SetGroup(augmentWindow, false);
         SetGroup(exitConfirm, false);
+        SetGroup(matchBanner, false);
+        if (switchOverlay != null)
+        {
+            switchOverlay.alpha = 0f;
+            switchOverlay.blocksRaycasts = false;
+            switchOverlay.interactable = false;
+        }
         if (augmentEntryTemplate != null)
             augmentEntryTemplate.gameObject.SetActive(false);
 
@@ -92,6 +113,7 @@ public class PracticeController : MonoBehaviour
         if (augmentCloseButton != null) augmentCloseButton.onClick.AddListener(() => SetGroup(augmentWindow, false));
         if (exitYesButton != null) exitYesButton.onClick.AddListener(() => NetworkLauncher.Instance?.ReturnToLobby());
         if (exitNoButton != null) exitNoButton.onClick.AddListener(() => SetGroup(exitConfirm, false));
+        if (matchButton != null) matchButton.onClick.AddListener(ToggleMatchmaking);
     }
 
     private void OnEnable() => CharacterBase.HitRendered += OnHitRendered;
@@ -107,6 +129,21 @@ public class PracticeController : MonoBehaviour
 
     private void Update()
     {
+        UpdateSwitchOverlay();
+
+        // 매칭하면서 연습하다가 상대가 들어오면 연습이 끝난다 → 연습 화면을 숨긴다.
+        // (오프라인 ↔ 매칭 전환 중엔 같은 씬이 그대로 쓰이므로 꺼버리지 않고, 다시 연습이 켜지면 되살린다.)
+        if (!PracticeSession.IsActive)
+        {
+            HidePracticeUi();
+            return;
+        }
+        if (!uiShown)
+        {
+            uiShown = true;
+            SetGroup(panel, true);
+        }
+
         HandleHotkeys();
 
         CharacterBase local = CharacterBase.LocalPlayer;
@@ -152,6 +189,49 @@ public class PracticeController : MonoBehaviour
         if (keyboard.f2Key.wasPressedThisFrame) FillUltimate();
         if (keyboard.f3Key.wasPressedThisFrame) CycleDummyMode();
         if (keyboard.f4Key.wasPressedThisFrame) ToggleAugmentWindow();
+    }
+
+    private void ToggleMatchmaking()
+    {
+        NetworkLauncher launcher = NetworkLauncher.Instance;
+        if (launcher == null)
+            return;
+
+        if (launcher.IsMatchingInPractice)
+            launcher.CancelPracticeMatchmaking();
+        else
+            launcher.StartMatchmakingFromPractice();
+    }
+
+    private void HidePracticeUi()
+    {
+        if (!uiShown)
+            return;
+
+        uiShown = false;
+        SetGroup(panel, false);
+        SetGroup(augmentWindow, false);
+        SetGroup(exitConfirm, false);
+        SetGroup(matchBanner, false);
+        UpdateControlLock();
+        if (nameTag != null)
+            Destroy(nameTag.gameObject);
+        dummy = null;
+    }
+
+    private void UpdateSwitchOverlay()
+    {
+        if (switchOverlay == null)
+            return;
+
+        NetworkLauncher launcher = NetworkLauncher.Instance;
+        bool switching = launcher != null && launcher.IsSwitchingSession;
+        if (switching && switchOverlayText != null)
+            switchOverlayText.text = launcher.SwitchingMessage;
+
+        float target = switching ? 1f : 0f;
+        switchOverlay.alpha = Mathf.MoveTowards(switchOverlay.alpha, target, switchOverlayFadeSpeed * Time.unscaledDeltaTime);
+        switchOverlay.blocksRaycasts = switchOverlay.alpha > 0.5f;
     }
 
     private void ToggleNoCooldown() => PracticeSession.NoCooldown = !PracticeSession.NoCooldown;
@@ -239,7 +319,7 @@ public class PracticeController : MonoBehaviour
             bool isWhite = c.r >= 0.99f && c.g >= 0.99f && c.b >= 0.99f;
             bool isTinted = Mathf.Approximately(c.r, dummyTint.r) && Mathf.Approximately(c.g, dummyTint.g) && Mathf.Approximately(c.b, dummyTint.b);
             if (isWhite || isTinted)
-                sr.color = new Color(dummyTint.r, dummyTint.g, dummyTint.b, fade);
+                sr.color = new Color(dummyTint.r, dummyTint.g, dummyTint.b, dummyTint.a * fade);
         }
 
         if (nameTag != null)
@@ -319,6 +399,17 @@ public class PracticeController : MonoBehaviour
             noCooldownLabel.text = PracticeSession.NoCooldown ? "F1  쿨타임 없음  ON" : "F1  쿨타임 없음  OFF";
         if (dummyModeLabel != null)
             dummyModeLabel.text = "F3  봇: " + DummyModeName(PracticeSession.DummyMode);
+
+        NetworkLauncher launcher = NetworkLauncher.Instance;
+        bool matching = launcher != null && launcher.IsMatchingInPractice;
+        if (matchButtonLabel != null)
+            matchButtonLabel.text = matching ? "매칭 취소" : "매칭 시작";
+        SetGroup(matchBanner, matching);
+        if (matching && matchBannerText != null)
+        {
+            int seconds = Mathf.FloorToInt(launcher.MatchingElapsed);
+            matchBannerText.text = $"매칭 중...  {seconds / 60:00}:{seconds % 60:00}";
+        }
     }
 
     private static string DummyModeName(PracticeDummyMode mode)

@@ -1292,6 +1292,7 @@ MonoBehaviour:
   deadEyeProjectileCharges: 3
   deadEyeSnipingTimeLimit: 7.5
   deadEyeReuseCooltime: 0.25
+  deadEyeLockRadius: 0.3
   deadEyeActivateClip: {fileID: 8300000, guid: 3df05119871a7c64082587db628edf16, type: 3}
   deadEyeActivateVolume: 1
   deadEyeShotClip: {fileID: 8300000, guid: 085a733c0317f0f468e923d269d38114, type: 3}
@@ -1326,6 +1327,9 @@ MonoBehaviour:
   shotScale: 1.2
   shotColor: {r: 1, g: 0, b: 0, a: 1}
   shotRecoverDuration: 0.2
+  lockColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  lockPulse: 0.12
+  lockClip: {fileID: 0}
 --- !u!4 &8892872073989034078 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 514286130412363308, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}

@@ -247,6 +247,25 @@ public class MatchManager : NetworkBehaviour
             return;
         }
 
+        if (waitingForPracticeOpponent)
+        {
+            // 사라지는 중인 연습 봇을 상대로 착각하지 않게 사람 캐릭터만 센다.
+            int humans = 0;
+            foreach (CharacterBase ch in CharacterBase.All)
+            {
+                if (ch != null && ch.Object != null && !ch.IsBot)
+                    humans++;
+            }
+            if (humans < 2)
+                return;
+
+            // 상대가 들어왔다: 새 매치로 시작(MatchNumber가 오르면 양쪽에서 시작 연출이 나온다).
+            waitingForPracticeOpponent = false;
+            MatchNumber++;
+            PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
+            return;
+        }
+
         // 라운드 리셋 직후 잠깐은 사망 판정을 쉰다(리셋 RPC가 아직 상대 클라에 도착 전일 수 있음).
         if (!PhaseTimer.ExpiredOrNotRunning(Runner))
             return;
@@ -274,6 +293,32 @@ public class MatchManager : NetworkBehaviour
     // 연습장: 라운드/매치가 끝나지 않는다. 쓰러진 캐릭터는 잠시 뒤 제자리(스폰 위치)에서 다시 일어난다.
     // 연습장은 오프라인(Single)이라 모든 캐릭터의 권한이 여기 있으므로 RPC 없이 바로 리셋한다.
     private readonly Dictionary<CharacterBase, float> practiceDeadSince = new Dictionary<CharacterBase, float>();
+    // 매칭하면서 연습하던 방장이 대전으로 바뀐 직후, 상대 캐릭터가 들어올 때까지 기다리는 중인지(권한자 전용).
+    private bool waitingForPracticeOpponent;
+
+    /// <summary>연습장(매칭 세션 안)에서 기다리던 방장 쪽에서, 상대가 들어온 순간 호출(NetworkLauncher).
+    /// 매치 상태와 내 캐릭터를 처음으로 되돌리고, 상대 캐릭터가 나타나면 새 매치를 시작한다.</summary>
+    public void BeginMatchFromPractice()
+    {
+        if (Object == null || !Object.HasStateAuthority)
+            return;
+
+        practiceDeadSince.Clear();
+        Player1Wins = 0;
+        Player2Wins = 0;
+        RoundNumber = 1;
+        LastRoundWinner = PlayerRef.None;
+        Player1WantsRematch = false;
+        Player2WantsRematch = false;
+        Phase = MatchPhase.Fighting;
+        waitingForPracticeOpponent = true;
+
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (ch != null && ch.Object != null && ch.Object.HasStateAuthority && !ch.IsBot)
+                ch.ResetForNewMatch(GetSpawnPosition(ch));
+        }
+    }
     private const float PracticeRespawnDelay = 1.2f;
 
     private void TickPractice()

@@ -21,7 +21,8 @@ public enum GameModeOption
 /// modes 배열 순서대로 버튼을 만들고, available을 끈 모드는 "준비 중"으로 보여주고 누를 수 없게 한다.
 ///
 /// [모드별 동작]
-///   - 1대1 대전: 기존 매칭(MatchmakingManager.StartMatching)
+///   - 1대1 대전: 매칭을 걸고 기다리는 동안 연습장에서 연습(NetworkLauncher.StartMatchmakingWithPractice).
+///     로비 오브젝트를 지우는 연출은 연습과 같다.
 ///   - AI 대전: NetworkLauncher.StartAiMatch()로 바로 오프라인 AI 전
 ///   - 연습: 로비의 건물/포탈 등(fadeOutOnPractice)을 서서히 지운 뒤 NetworkLauncher.StartPractice()
 ///
@@ -42,7 +43,7 @@ public class ModeSelectPanel : MonoBehaviour
 
     [SerializeField] private ModeEntry[] modes =
     {
-        new ModeEntry { mode = GameModeOption.OneVsOne, title = "1대1 대전", description = "다른 플레이어와 실력을 겨룹니다.", available = true },
+        new ModeEntry { mode = GameModeOption.OneVsOne, title = "1대1 대전", description = "다른 플레이어와 겨룹니다. 상대를 찾는 동안 연습장에서 연습합니다.", available = true },
         new ModeEntry { mode = GameModeOption.AiMatch, title = "AI 대전", description = "AI 상대로 바로 대전합니다.", available = true },
         new ModeEntry { mode = GameModeOption.Practice, title = "연습", description = "연습 봇을 상대로 스킬을 자유롭게 써봅니다.", available = true },
         new ModeEntry { mode = GameModeOption.TwoVsTwo, title = "2대2 대전", description = "준비 중인 모드입니다.", available = false },
@@ -166,10 +167,11 @@ public class ModeSelectPanel : MonoBehaviour
         switch (mode)
         {
             case GameModeOption.OneVsOne:
-                Close();
-                if (matchmaking == null)
-                    matchmaking = FindObjectOfType<MatchmakingManager>();
-                matchmaking?.StartMatching();
+                starting = true;
+                SetVisible(false);
+                // 접속(1~3초)을 페이드와 동시에 시작해서 기다리는 시간을 줄인다.
+                NetworkLauncher.Instance?.StartMatchmakingWithPractice();
+                StartCoroutine(PracticeTransition(null));
                 break;
 
             case GameModeOption.AiMatch:
@@ -181,13 +183,13 @@ public class ModeSelectPanel : MonoBehaviour
             case GameModeOption.Practice:
                 starting = true;
                 SetVisible(false);
-                StartCoroutine(PracticeTransition());
+                StartCoroutine(PracticeTransition(() => NetworkLauncher.Instance?.StartPractice()));
                 break;
         }
     }
 
     // 로비 오브젝트를 서서히 지운 뒤 연습장을 연다(연습장에서는 탈출구와 연습 봇이 서서히 나타난다).
-    private IEnumerator PracticeTransition()
+    private IEnumerator PracticeTransition(Action onFaded)
     {
         var sprites = new List<SpriteRenderer>();
         var texts = new List<TMP_Text>();
@@ -229,7 +231,7 @@ public class ModeSelectPanel : MonoBehaviour
             yield return null;
         }
 
-        NetworkLauncher.Instance?.StartPractice();
+        onFaded?.Invoke();
     }
 
     private void SetVisible(bool visible)

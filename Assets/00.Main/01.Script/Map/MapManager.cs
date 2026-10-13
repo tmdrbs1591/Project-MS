@@ -48,6 +48,7 @@ public class MapManager : MonoBehaviour
     private GameObject activeMapInstance;
     private MapDefinition activeMapDefinition;
     private int activeRoundNumber = -1;
+    private bool activeIsPracticeMap;
     private readonly List<NetworkObject> spawnedStructures = new List<NetworkObject>();
 
     private void Awake()
@@ -107,7 +108,9 @@ public class MapManager : MonoBehaviour
     /// 방어적으로 호출해도 안전하다.</summary>
     public void EnsureMapForRound(NetworkRunner runner, int roundNumber)
     {
-        if (activeMapInstance != null && roundNumber == activeRoundNumber)
+        // 연습장 → 대전 전환(매칭하면서 연습)처럼 같은 1라운드라도 연습 맵 여부가 바뀌면 다시 깐다.
+        bool wantPractice = PracticeSession.IsActive && practiceMapPrefab != null;
+        if (activeMapInstance != null && roundNumber == activeRoundNumber && activeIsPracticeMap == wantPractice)
             return;
 
         if (mapPrefabs == null || mapPrefabs.Length == 0)
@@ -117,7 +120,7 @@ public class MapManager : MonoBehaviour
         }
 
         int index = ResolveMapIndex(runner, roundNumber, mapPrefabs.Length);
-        GameObject prefab = PracticeSession.IsActive && practiceMapPrefab != null ? practiceMapPrefab : mapPrefabs[index];
+        GameObject prefab = wantPractice ? practiceMapPrefab : mapPrefabs[index];
 
         if (prefab == null)
         {
@@ -135,6 +138,7 @@ public class MapManager : MonoBehaviour
         activeMapInstance = Instantiate(prefab, transform);
         activeMapDefinition = activeMapInstance.GetComponent<MapDefinition>();
         activeRoundNumber = roundNumber;
+        activeIsPracticeMap = wantPractice;
 
         if (activeMapDefinition == null)
         {

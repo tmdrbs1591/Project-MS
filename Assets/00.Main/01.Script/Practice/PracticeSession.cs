@@ -18,11 +18,15 @@ public static class PracticeSession
     /// <summary>켜면 스킬/대시/궁극기 쿨타임이 매 틱 초기화되고 궁극기 게이지도 가득 찬다.</summary>
     public static bool NoCooldown { get; set; }
 
+    /// <summary>연습 시작. 이미 연습 중(오프라인 ↔ 매칭 세션 전환)이면 봇 움직임/쿨타임 옵션은 그대로 둔다.</summary>
     public static void Begin()
     {
+        if (!IsActive)
+        {
+            DummyMode = PracticeDummyMode.Stand;
+            NoCooldown = false;
+        }
         IsActive = true;
-        DummyMode = PracticeDummyMode.Stand;
-        NoCooldown = false;
     }
 
     public static void End()
