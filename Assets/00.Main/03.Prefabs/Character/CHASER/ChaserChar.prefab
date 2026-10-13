@@ -1273,6 +1273,8 @@ MonoBehaviour:
   burstBulletProjectileSpeed: 17.5
   burstBulletProjectileFireCount: 4
   burstArcAngle: 45
+  forkAngleStep: 12
+  useBurstArcForForkedProjectiles: 1
   burstReloadingDuration: 2.5
   burstCharges: 4
   dualRevolverProjectilePrefab: {fileID: 7811597853570981533, guid: 39368bfdd1e62a94494c5c915ac212db, type: 3}

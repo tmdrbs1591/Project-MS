@@ -718,6 +718,7 @@ GameObject:
   - component: {fileID: 1703575011678952094}
   - component: {fileID: 5800080761449519547}
   - component: {fileID: 6580994708963069391}
+  - component: {fileID: 2500640893738708783}
   m_Layer: 6
   m_Name: Square (5)
   m_TagString: Untagged
@@ -830,7 +831,7 @@ BoxCollider2D:
     serializedVersion: 2
     m_Bits: 4294967295
   m_IsTrigger: 0
-  m_UsedByEffector: 0
+  m_UsedByEffector: 1
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
@@ -845,6 +846,25 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 6.33, y: 1.19}
   m_EdgeRadius: 0
+--- !u!251 &2500640893738708783
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3125530924031048463}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
 --- !u!1 &3300105889190954978
 GameObject:
   m_ObjectHideFlags: 0
@@ -1716,6 +1736,7 @@ GameObject:
   - component: {fileID: 2744504103864398234}
   - component: {fileID: 6323132052704962767}
   - component: {fileID: 2927675601296648541}
+  - component: {fileID: 5408711094843670645}
   m_Layer: 6
   m_Name: Square (3)
   m_TagString: Untagged
@@ -1828,7 +1849,7 @@ BoxCollider2D:
     serializedVersion: 2
     m_Bits: 4294967295
   m_IsTrigger: 0
-  m_UsedByEffector: 0
+  m_UsedByEffector: 1
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
@@ -1843,6 +1864,25 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 6.33, y: 1.19}
   m_EdgeRadius: 0
+--- !u!251 &5408711094843670645
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6427105882058154540}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
 --- !u!1 &8014944114404652337
 GameObject:
   m_ObjectHideFlags: 0
@@ -2463,6 +2503,7 @@ GameObject:
   - component: {fileID: 914302284138305119}
   - component: {fileID: 3618495963557325720}
   - component: {fileID: 5706819685686301523}
+  - component: {fileID: 3390804222304645160}
   m_Layer: 6
   m_Name: Square (4)
   m_TagString: Untagged
@@ -2575,7 +2616,7 @@ BoxCollider2D:
     serializedVersion: 2
     m_Bits: 4294967295
   m_IsTrigger: 0
-  m_UsedByEffector: 0
+  m_UsedByEffector: 1
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
@@ -2590,6 +2631,25 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 6.33, y: 1.19}
   m_EdgeRadius: 0
+--- !u!251 &3390804222304645160
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9074766237899935601}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
 --- !u!1 &9106067322122295374
 GameObject:
   m_ObjectHideFlags: 0

@@ -17,6 +17,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)][SerializeField] private float burstBulletProjectileSpeed = 15f;
         [Min(1)][SerializeField] private int burstBulletProjectileFireCount = 4;
         [Min(0f)][SerializeField] private float burstArcAngle = 45f;
+        [Min(0f)][SerializeField] private float forkAngleStep = 12f;
+        [Tooltip("켜면 기본탄과 갈래탄을 Burst Arc Angle 안에 균등하게 배치한다.")]
+        [SerializeField] private bool useBurstArcForForkedProjectiles;
         [Min(0f)][SerializeField] private float burstReloadingDuration = 2.5f;
         [Min(1)][SerializeField] private int burstCharges = 4;
 
@@ -192,23 +195,43 @@ namespace ProjectMS.CharacterSystem.Examples
             }
 
             if (burstBulletProjectilePrefab == null) return false;
-            Vector2 aim = context.AimDirection;
+            Vector2 aim = context.AimDirection.sqrMagnitude > 0.0001f
+                ? context.AimDirection.normalized
+                : new Vector2(FacingDirection, 0f);
 
-            for (int i = 0; i < burstBulletProjectileFireCount; i++)
+            float forkDamage = context.Damage * ForkedProjectileDamageMultiplier;
+
+            int shotCount = burstBulletProjectileFireCount + (useBurstArcForForkedProjectiles ? ForkedProjectileCount : 0);
+            int forkShotIndex = 0;
+
+            for (int i = 0; i < shotCount; i++)
             {
                 // 총알 발사 개수가 1개 일수도 있으므로 방어코드. 개수가 1개면 0.5, 아니면 나누기
-                float angleRatio = (burstBulletProjectileFireCount == 1) ? 0.5f : (float)i / (burstBulletProjectileFireCount - 1);
+                float angleRatio = shotCount == 1 ? 0.5f : (float)i / (shotCount - 1);
                 float offset = -burstArcAngle * 0.5f + burstArcAngle * angleRatio;
 
                 Vector2 dir = Rotate(aim, offset);
 
-                SpawnProjectile(
-                    burstBulletProjectilePrefab,
-                    ProjectileOrigin.position,
-                    dir,
-                    burstBulletProjectileSpeed,
-                    context.Damage,
-                    targetLayer);
+                // 갈래 마법 - BurstArc 적용 시
+                // 갈래 탄환을 기존 탄환에 섞어 골고루 쏨
+                // 쏴야할 모든 탄환을 ForkedProjectileCount로 나눠 묶음을 만들고, 해당 묶음의 가운데를 갈래 탄환으로 지정
+                bool isForkShot = useBurstArcForForkedProjectiles && forkShotIndex < ForkedProjectileCount &&
+                    i == (int)((forkShotIndex + 0.5f) * shotCount / ForkedProjectileCount);
+
+                if (isForkShot)
+                    forkShotIndex++;
+
+                FireBurstBullet(dir, isForkShot ? forkDamage : context.Damage);
+            }
+
+            // 갈래 마법 - BurstArc 미적용 시
+            if (!useBurstArcForForkedProjectiles && ForkedProjectileCount > 0)
+            {
+                for (int i = 0; i < ForkedProjectileCount; i++)
+                {
+                    float angleOffset = forkAngleStep * (i / 2 + 1) * (i % 2 == 0 ? 1f : -1f);
+                    FireBurstBullet(Rotate(aim, angleOffset), forkDamage);
+                }
             }
 
             PlayActionEffect(CharacterActionType.BasicAttack, EffectOrigin.position, context.AimAngle);
@@ -224,6 +247,25 @@ namespace ProjectMS.CharacterSystem.Examples
                 ResetCooldownDuration(CharacterActionType.BasicAttack);
 
             return true;
+        }
+
+        private void FireBurstBullet(Vector2 direction, float damage)
+        {
+            CharacterProjectile projectile = SpawnProjectile(
+                burstBulletProjectilePrefab,
+                ProjectileOrigin.position,
+                direction,
+                burstBulletProjectileSpeed,
+                damage,
+                targetLayer);
+
+            if (projectile == null)
+                return;
+
+            // 바운스 마법 / 폭발 마법
+            bool explosive = HasExplosiveProjectile;
+            int bounces = explosive ? 0 : ProjectileBounceCount;
+            projectile.ConfigureAugmentBehavior(bounces, explosive, ExplosiveProjectileDamageMultiplier);
         }
 
         private bool OnSnipingBasicAttack(CharacterActionContext context)

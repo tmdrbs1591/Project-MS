@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 4953088872526327559}
   - component: {fileID: 7231284666308662006}
   - component: {fileID: 2030522938114967760}
+  - component: {fileID: 3693889463556339573}
   m_Layer: 6
   m_Name: Rope Plank
   m_TagString: Untagged
@@ -129,7 +130,7 @@ BoxCollider2D:
     serializedVersion: 2
     m_Bits: 4294967295
   m_IsTrigger: 0
-  m_UsedByEffector: 0
+  m_UsedByEffector: 1
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
@@ -210,6 +211,8 @@ MonoBehaviour:
   rightAnchor: {fileID: 1402538850101518158}
   leftLocalAnchor: {x: -0.5, y: 0}
   rightLocalAnchor: {x: 0.5, y: 0}
+  leftRopeLine: {fileID: 0}
+  rightRopeLine: {fileID: 0}
 --- !u!114 &2030522938114967760
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -230,6 +233,25 @@ MonoBehaviour:
   - {fileID: 4953088872526327559}
   - {fileID: 7231284666308662006}
   ForceRemoteRenderTimeframe: 0
+--- !u!251 &3693889463556339573
+PlatformEffector2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453689390549741684}
+  m_Enabled: 1
+  m_UseColliderMask: 1
+  m_ColliderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RotationalOffset: 0
+  m_UseOneWay: 1
+  m_UseOneWayGrouping: 0
+  m_SurfaceArc: 180
+  m_UseSideFriction: 0
+  m_UseSideBounce: 0
+  m_SideArc: 1
 --- !u!1 &4265277475771848811
 GameObject:
   m_ObjectHideFlags: 0

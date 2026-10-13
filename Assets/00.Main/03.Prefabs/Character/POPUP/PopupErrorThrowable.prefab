@@ -44,6 +44,10 @@ PrefabInstance:
       propertyPath: m_BodyType
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1860191461874211119, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Constraints
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.02
@@ -173,6 +177,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: -1961173916970641905}
   m_SourcePrefab: {fileID: 100100000, guid: e386f165bf7d93448902311796db2199, type: 3}
+--- !u!50 &4457365517068031250 stripped
+Rigidbody2D:
+  m_CorrespondingSourceObject: {fileID: 1860191461874211119, guid: e386f165bf7d93448902311796db2199, type: 3}
+  m_PrefabInstance: {fileID: 2597174099252890685}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &5577890116582315349 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
@@ -220,8 +229,8 @@ MonoBehaviour:
   allowFriendlyDamage: 0
   destroyWhenOwnerDies: 1
   effectAnchor: {fileID: 0}
-  fuseStartMode: 1
-  fuseSeconds: 0.01
+  fuseStartMode: 0
+  fuseSeconds: 50
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -229,5 +238,9 @@ MonoBehaviour:
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
+  rb: {fileID: 4457365517068031250}
   destroyVfxPrefab: {fileID: 127910, guid: 44b436602194b6a4387c9f987500b13f, type: 3}
   destroyVfxLifetime: 1
+  _groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
