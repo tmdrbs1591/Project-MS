@@ -153,6 +153,11 @@ public class TwoPlayerCamera : MonoBehaviour
     /// 이미 더 강한 흔들림이 재생 중이면 무시한다.</summary>
     public void Shake(float magnitude, float duration)
     {
+        // 설정의 화면 흔들림 세기를 반영한다(0이면 흔들지 않음).
+        magnitude *= GameSettings.ScreenShakeScale;
+        if (magnitude <= 0f)
+            return;
+
         bool alreadyShaking = shakeElapsed < shakeDuration;
         if (alreadyShaking && shakeMagnitude >= magnitude)
             return;

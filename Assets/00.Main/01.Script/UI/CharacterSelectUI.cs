@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+
 using UnityEngine.UI;
 
 /// <summary>
@@ -47,6 +48,12 @@ public class CharacterSelectUI : MonoBehaviour
     [Min(0f)] [SerializeField] private float bounceScale = 0.15f;
     [Min(0.01f)] [SerializeField] private float bounceDuration = 0.25f;
 
+    [Header("캐릭터 설명")]
+    [Tooltip("선택된 캐릭터의 이름/역할/소개/스킬 설명을 보여줄 영역. 비워두면 설명 없이 동작한다.")]
+    [SerializeField] private CharacterInfoPanel infoPanel;
+    [Tooltip("켜면 버튼에 마우스를 올렸을 때 그 캐릭터 설명을 미리 보여주고, 벗어나면 선택된 캐릭터로 돌아간다.\n선택(저장)은 여전히 클릭해야 된다.")]
+    [SerializeField] private bool previewOnHover = true;
+
     [Header("카메라 연출")]
     [Tooltip("UI가 열려있는 동안 줌인할 orthographicSize. 0 이하면 줌은 그대로 두고 이동만 한다.")]
     [SerializeField] private float focusZoomSize = 3f;
@@ -74,6 +81,8 @@ public class CharacterSelectUI : MonoBehaviour
         public Image background;
         [Tooltip("이 버튼만 다른 선택 배경을 쓰고 싶을 때. 비워두면 공용 하늘색 배경을 쓴다.")]
         public Sprite selectedBackgroundOverride;
+        [Tooltip("이 버튼 캐릭터의 CharacterDefinition. 설명 패널(infoPanel)에 이 내용이 표시된다.")]
+        public CharacterDefinition definition;
     }
 
     private Coroutine animRoutine;
@@ -129,6 +138,7 @@ public class CharacterSelectUI : MonoBehaviour
         // 자기 자신을 다시 끄지 않으므로(위 Awake 주석 참고) 안전하게 활성화된 채로 남는다.
         SetPanelActive(true);
         // 다른 경로(로비 캐릭터 변경 버튼 등)로 캐릭터가 바뀌었을 수도 있으니 열 때마다 맞춘다.
+        ShowInfoForSelected();
         RefreshSelectionVisual(PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0));
         // 카메라가 도착하기 전까지는 완전히 숨겨둔다("줌이 끝나면 화면이 확 나타나는" 연출).
         SetVisualState(0f, openStartScale);
@@ -172,8 +182,47 @@ public class CharacterSelectUI : MonoBehaviour
 
         RefreshSelectionVisual(index);
         PlayBounce(index);
+        ShowInfo(index);
     }
 
+    // ── 캐릭터 설명 ───────────────────────────────────────────────────────────
+
+    private void ShowInfoForSelected()
+    {
+        ShowInfo(PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0));
+    }
+
+    private void ShowInfo(int characterIndex)
+    {
+        if (infoPanel != null)
+            infoPanel.Show(FindDefinition(characterIndex));
+    }
+
+    private CharacterDefinition FindDefinition(int characterIndex)
+    {
+        if (characterSlots == null)
+            return null;
+
+        foreach (CharacterSlot slot in characterSlots)
+        {
+            if (slot != null && slot.characterIndex == characterIndex)
+                return slot.definition;
+        }
+
+        return null;
+    }
+
+    // 마우스를 올리면 그 캐릭터 설명을 미리 보여주고, 벗어나면 선택된 캐릭터 설명으로 되돌린다.
+    private void AddHoverPreview(GameObject target, int characterIndex)
+    {
+        // EventTrigger를 쓰면 드래그 이벤트까지 가로채서 부모 스크롤뷰가 안 움직이므로 호버 전용 컴포넌트를 쓴다.
+        UIHoverRelay relay = target.GetComponent<UIHoverRelay>();
+        if (relay == null)
+            relay = target.AddComponent<UIHoverRelay>();
+
+        relay.Entered += () => ShowInfo(characterIndex);
+        relay.Exited += ShowInfoForSelected;
+    }
     // ── 버튼 연출 ─────────────────────────────────────────────────────────────
 
     private void SetupCharacterSlots()
@@ -220,6 +269,8 @@ public class CharacterSelectUI : MonoBehaviour
 
                 int index = slot.characterIndex; // 클로저에 루프 변수를 그대로 넘기면 마지막 값이 잡힌다
                 slot.button.onClick.AddListener(() => SelectCharacter(index));
+                if (previewOnHover)
+                    AddHoverPreview(slot.button.gameObject, index);
             }
         }
 

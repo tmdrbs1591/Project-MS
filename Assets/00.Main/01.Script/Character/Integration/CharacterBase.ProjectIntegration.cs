@@ -51,6 +51,9 @@ namespace ProjectMS.CharacterSystem
             IntroLocked ||
             MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting;
 
+        /// <summary>다른 창(캐릭터 선택, 매칭 대기, 설정 등)이 조작을 잠가둔 상태인지.</summary>
+        public static bool IsLobbyControlLocked => lobbyControlLocked;
+
         public static void SetLobbyControlLocked(bool locked)
         {
             lobbyControlLocked = locked;

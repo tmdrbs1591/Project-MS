@@ -54,6 +54,10 @@ namespace ProjectMS.CharacterSystem
         [Networked] private TickTimer NetReloadTimer { get; set; }
         [Networked] private float NetReloadDuration { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
+        // 피격 연출(데미지 숫자, 히트스톱, 명중음)용. 누적값이라 한 화면 프레임에 여러 번 맞아도 차이로 합계를 알 수 있다.
+        [Networked] private float NetDamageTotal { get; set; }
+        [Networked] private CharacterDamageSource NetLastDamageSource { get; set; }
+        [Networked] private PlayerRef NetLastDamageAttacker { get; set; }
         [Networked] private float NetUltimateGauge { get; set; }
         [Networked, Capacity(ActionSlotCount)]
         private NetworkArray<NetworkBool> NetActionEnabled => default;
@@ -95,6 +99,11 @@ namespace ProjectMS.CharacterSystem
         private int lastRenderedAutoHopSequence;
         private int lastRenderedReloadSequence;
         private int lastRenderedDamageSequence;
+        private float lastRenderedDamageTotal;
+
+        /// <summary>어떤 캐릭터가 맞은 것이 화면에 반영될 때(모든 클라이언트에서, 렌더 기준) 발생한다.
+        /// 데미지 숫자/히트스톱/명중음 같은 순수 연출용이며, 게임 로직에 쓰면 안 된다.</summary>
+        public static event Action<CharacterBase, CharacterHitRenderInfo> HitRendered;
         private bool lastRenderedDead;
         private CharacterInputSnapshot lastInput;
         private ICharacterInputSource externalInputSource;
@@ -193,6 +202,7 @@ namespace ProjectMS.CharacterSystem
             lastRenderedLandSequence = NetLandSequence;
             lastRenderedAutoHopSequence = NetAutoHopSequence;
             lastRenderedDamageSequence = NetDamageSequence;
+            lastRenderedDamageTotal = NetDamageTotal;
             lastRenderedReloadSequence = NetReloadSequence;
             lastRenderedDead = NetDead;
             InitializeControlEffects();
@@ -397,6 +407,22 @@ namespace ProjectMS.CharacterSystem
                 ApplyHeal(amount);
             else
                 Rpc_RequestHeal(amount);
+        }
+
+        /// <summary>이 캐릭터의 그림만 잠깐 멈춘다(히트스톱). 물리/네트워크/판정에는 영향이 없다.</summary>
+        public void PlayHitStop(float duration)
+        {
+            visual?.PlayHitStop(duration);
+        }
+
+        private void RaiseHitRendered()
+        {
+            float amount = NetDamageTotal - lastRenderedDamageTotal;
+            lastRenderedDamageTotal = NetDamageTotal;
+            if (amount <= 0f || HitRendered == null)
+                return;
+
+            HitRendered.Invoke(this, new CharacterHitRenderInfo(amount, NetLastDamageSource, NetLastDamageAttacker));
         }
 
         public void SetGameplayLocked(bool locked)
@@ -1570,6 +1596,9 @@ namespace ProjectMS.CharacterSystem
                 return DamageResult.Rejected(request.Amount, DamageRejectionReason.InvalidAmount);
 
             NetDamageSequence++;
+            NetDamageTotal += applied;
+            NetLastDamageSource = request.Source;
+            NetLastDamageAttacker = request.Attacker;
             CharacterDamageInfo info = new CharacterDamageInfo(request, applied);
             OnDamaged(info);
             OnHealthChanged(before, health.Current);
@@ -1948,6 +1977,7 @@ namespace ProjectMS.CharacterSystem
             {
                 lastRenderedDamageSequence = NetDamageSequence;
                 visual.PlayDamaged();
+                RaiseHitRendered();
             }
 
             if (lastRenderedReloadSequence != NetReloadSequence)
