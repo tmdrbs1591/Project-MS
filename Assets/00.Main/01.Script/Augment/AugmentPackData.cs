@@ -14,5 +14,8 @@ public class AugmentPackData : ScriptableObject
     [TextArea] public string description;
     public Sprite icon;
 
+    [Tooltip("증강 선택 카드에서 이 팩을 나타내는 색(팩 이름 글자, 마우스를 올렸을 때 테두리 빛).")]
+    public Color themeColor = new Color(0.72f, 0.55f, 1f, 1f);
+
     public AugmentData[] augments;
 }
