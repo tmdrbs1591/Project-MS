@@ -198,6 +198,44 @@ namespace ProjectMS.CharacterSystem
             return index >= 0 && index < AugmentTypeCount && System.Enum.IsDefined(typeof(AugmentType), type);
         }
 
+        /// <summary>보유한 증강과 중첩 수를 results에 채운다(결과 화면 표시용). 상대 캐릭터에도 쓸 수 있다.</summary>
+        public void GetOwnedAugments(List<KeyValuePair<AugmentData, int>> results)
+        {
+            results.Clear();
+            if (Object == null)
+                return;
+
+            for (int i = 0; i < AugmentTypeCount; i++)
+            {
+                int stack = NetAugmentStacks.Get(i);
+                if (stack <= 0)
+                    continue;
+
+                AugmentData data = FindAugmentData((AugmentType)i);
+                if (data != null)
+                    results.Add(new KeyValuePair<AugmentData, int>(data, stack));
+            }
+        }
+
+        /// <summary>재대결 시작 시 호출. 라운드 리셋에 더해 매치 단위로 쌓인 것(증강, 궁극기 게이지,
+        /// 결과 통계)까지 전부 처음 상태로 돌린다. StateAuthority에서만 동작한다.</summary>
+        public void ResetForNewMatch(Vector2 position)
+        {
+            if (Object == null || !Object.HasStateAuthority)
+                return;
+
+            // 체력 증강이 빠진 상태로 최대 체력을 다시 계산해야 하므로 증강부터 지운다.
+            for (int i = 0; i < AugmentTypeCount; i++)
+                NetAugmentStacks.Set(i, 0);
+            NetAugmentPicksRemaining = 0;
+            NetMatchDamageTaken = 0f;
+            NetMatchHitsTaken = 0;
+            NetMatchUltimatesUsed = 0;
+
+            ResetCharacter(position);
+            NetUltimateGauge = 0f;
+        }
+
         private AugmentData FindAugmentData(AugmentType type)
         {
             AugmentPoolEntry match = GetAugmentPool().Find(entry => entry.Data != null && entry.Data.type == type);

@@ -457,6 +457,14 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         if (SceneManager.GetActiveScene().name != gameSceneName)
             return;
 
+        // 결과 화면에서는 바로 끌어내지 않는다. MatchEndUI가 "상대가 나갔습니다"를 띄우고
+        // 재대결을 막은 뒤, 내가 "로비로"를 눌러 직접 나간다.
+        if (MatchEndUI.IsShowing)
+        {
+            SetStatus("상대방이 나갔습니다.");
+            return;
+        }
+
         SetStatus("상대방이 나갔습니다. 로비로 돌아갑니다.");
         ReturnToLobby();
     }

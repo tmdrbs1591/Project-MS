@@ -107,6 +107,14 @@ public class MatchResultUI : MonoBehaviour
                 break;
 
             case MatchPhase.MatchEnd:
+                // 전용 결과 화면(MatchEndUI)이 씬에 있으면 그쪽이 맡는다.
+                if (MatchEndUI.Instance != null)
+                {
+                    SetPanelActive(false);
+                    SetReturnButtonActive(false);
+                    break;
+                }
+
                 SetPanelActive(true);
                 SetReturnButtonActive(true);
                 SetTitle(wonLastRound ? "VICTORY" : "DEFEAT");

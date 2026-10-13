@@ -55,6 +55,10 @@ public class MatchManager : NetworkBehaviour
     [Networked] public int RoundNumber { get; private set; }
     [Networked] public PlayerRef LastRoundWinner { get; private set; }
     [Networked] private TickTimer PhaseTimer { get; set; }
+    /// <summary>재대결할 때마다 1씩 오른다. 시작 연출(VS, ME 마커)이 새 매치를 알아채는 데 쓴다.</summary>
+    [Networked] public int MatchNumber { get; private set; }
+    [Networked] public NetworkBool Player1WantsRematch { get; private set; }
+    [Networked] public NetworkBool Player2WantsRematch { get; private set; }
 
     public int TotalWins => Player1Wins + Player2Wins;
 
@@ -70,6 +74,7 @@ public class MatchManager : NetworkBehaviour
             Player1Wins = 0;
             Player2Wins = 0;
             RoundNumber = 1;
+            MatchNumber = 1;
             Phase = MatchPhase.Fighting;
             PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
         }
@@ -106,7 +111,9 @@ public class MatchManager : NetworkBehaviour
                 break;
 
             case MatchPhase.MatchEnd:
-                // 결과 화면을 띄운 채 대기. 로비 복귀 등은 UI 쪽에서 별도로 처리한다.
+                // 결과 화면을 띄운 채 대기. 양쪽이 재대결을 원하면 새 매치를 시작한다.
+                // 로비 복귀는 UI 쪽에서 별도로 처리한다.
+                TickMatchEnd();
                 break;
         }
     }
@@ -122,6 +129,84 @@ public class MatchManager : NetworkBehaviour
         if (p2.MatchPlayer == player)
             return Player2Wins;
         return 0;
+    }
+
+    /// <summary>player 가 재대결을 요청했는지. AI 봇은 항상 원한다.</summary>
+    public bool WantsRematch(PlayerRef player)
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return false;
+
+        if (p1.MatchPlayer == player)
+            return p1.IsBot || Player1WantsRematch;
+        if (p2.MatchPlayer == player)
+            return p2.IsBot || Player2WantsRematch;
+        return false;
+    }
+
+    /// <summary>결과 화면의 재대결 버튼에서 호출. 내 요청을 매치 매니저 권한자에게 보낸다.</summary>
+    public void RequestRematch()
+    {
+        if (Object == null || Phase != MatchPhase.MatchEnd)
+            return;
+
+        Rpc_RequestRematch();
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void Rpc_RequestRematch(RpcInfo info = default)
+    {
+        if (Phase != MatchPhase.MatchEnd || !TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return;
+
+        // 보낸 사람 본인의 표만 받는다(오프라인 AI 전에서는 로컬 호출이라 Source가 비어 있을 수 있음).
+        PlayerRef sender = info.Source == PlayerRef.None ? Runner.LocalPlayer : info.Source;
+        if (p1.MatchPlayer == sender)
+            Player1WantsRematch = true;
+        else if (p2.MatchPlayer == sender)
+            Player2WantsRematch = true;
+    }
+
+    private void TickMatchEnd()
+    {
+        if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
+            return;
+
+        if (WantsRematch(p1.MatchPlayer) && WantsRematch(p2.MatchPlayer))
+            StartRematch(p1, p2);
+    }
+
+    private void StartRematch(CharacterBase p1, CharacterBase p2)
+    {
+        // 라운드 리셋과 같은 순서: 1라운드 맵을 먼저 준비해야 그 맵의 스폰 위치를 구할 수 있다.
+        MapManager.Instance?.PrepareMapForRound(Runner, 1);
+
+        Rpc_BroadcastMatchReset(p1.MatchPlayer, GetSpawnPosition(p1), p2.MatchPlayer, GetSpawnPosition(p2));
+
+        Player1Wins = 0;
+        Player2Wins = 0;
+        RoundNumber = 1;
+        LastRoundWinner = PlayerRef.None;
+        Player1WantsRematch = false;
+        Player2WantsRematch = false;
+        MatchNumber++;
+        Phase = MatchPhase.Fighting;
+        PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_BroadcastMatchReset(PlayerRef owner1, Vector2 pos1, PlayerRef owner2, Vector2 pos2)
+    {
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (!ch.Object.HasStateAuthority)
+                continue;
+
+            if (ch.MatchPlayer == owner1)
+                ch.ResetForNewMatch(pos1);
+            else if (ch.MatchPlayer == owner2)
+                ch.ResetForNewMatch(pos2);
+        }
     }
 
     /// <summary>player 가 Player1(스폰 기준 왼쪽)인지 여부. UI에서 좌우 표시 순서를 맞추는 데 쓴다.</summary>

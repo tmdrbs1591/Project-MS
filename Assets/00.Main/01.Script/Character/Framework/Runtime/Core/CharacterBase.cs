@@ -59,6 +59,11 @@ namespace ProjectMS.CharacterSystem
         [Networked] private CharacterDamageSource NetLastDamageSource { get; set; }
         [Networked] private PlayerRef NetLastDamageAttacker { get; set; }
         [Networked] private float NetUltimateGauge { get; set; }
+        // 결과 화면 통계(매치 누적). 라운드가 바뀌어도 유지되고 재대결 때만 지운다.
+        // 1대1이라 "상대가 받은 피해/적중"이 곧 "내가 가한 피해/적중"이다.
+        [Networked] private float NetMatchDamageTaken { get; set; }
+        [Networked] private int NetMatchHitsTaken { get; set; }
+        [Networked] private int NetMatchUltimatesUsed { get; set; }
         [Networked, Capacity(ActionSlotCount)]
         private NetworkArray<NetworkBool> NetActionEnabled => default;
         [Networked, Capacity(ActionSlotCount)]
@@ -138,6 +143,12 @@ namespace ProjectMS.CharacterSystem
         public bool IsUltimateGaugeMode => definition != null && definition.UltimateUsesGauge;
         public float UltimateGaugeCurrent => NetUltimateGauge;
         public float UltimateGaugeMax => definition != null ? definition.UltimateGaugeMax : 0f;
+
+        /// <summary>이번 매치에서 상대에게 받은 피해 합계(낙사 등 환경 피해 제외).</summary>
+        public float MatchDamageTaken => Object != null ? NetMatchDamageTaken : 0f;
+        /// <summary>이번 매치에서 상대에게 맞은 횟수(지속 피해/환경 피해 제외).</summary>
+        public int MatchHitsTaken => Object != null ? NetMatchHitsTaken : 0;
+        public int MatchUltimatesUsed => Object != null ? NetMatchUltimatesUsed : 0;
 
         // 접근 충전(UltimateGaugePerApproachDistance)이 "직전 틱보다 가까워졌는지"를 판단하는 데 쓰는
         // 기준값이다. [Networked]가 아닌 시뮬레이션 로컬 값 — 매 틱 자기 자신이 계산해서 갱신하고,
@@ -1550,7 +1561,10 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             if (action == CharacterActionType.Ultimate)
+            {
                 PlayUltimateFlashEffect();
+                NetMatchUltimatesUsed++;
+            }
 
             actionState.ConsumeCharge(action);
             if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode)
@@ -1599,6 +1613,12 @@ namespace ProjectMS.CharacterSystem
             NetDamageTotal += applied;
             NetLastDamageSource = request.Source;
             NetLastDamageAttacker = request.Attacker;
+            if (request.Source != CharacterDamageSource.Environment)
+            {
+                NetMatchDamageTaken += applied;
+                if (request.Source != CharacterDamageSource.Periodic)
+                    NetMatchHitsTaken++;
+            }
             CharacterDamageInfo info = new CharacterDamageInfo(request, applied);
             OnDamaged(info);
             OnHealthChanged(before, health.Current);
