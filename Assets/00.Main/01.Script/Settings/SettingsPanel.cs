@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ProjectMS.CharacterSystem;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -44,6 +45,8 @@ public class SettingsPanel : MonoBehaviour
     private CanvasGroup canvasGroup;
     private bool isOpen;
     private bool lockedByMe;
+    private bool lockedAtEndOfLastFrame;
+    private bool typingAtEndOfLastFrame;
     private readonly List<Vector2Int> resolutions = new List<Vector2Int>();
 
     public bool IsOpen => isOpen;
@@ -90,8 +93,36 @@ public class SettingsPanel : MonoBehaviour
 
         if (isOpen)
             Close();
-        else if (!CharacterBase.IsLobbyControlLocked)
+        else if (CanOpenWithEscape())
             Open();
+    }
+
+    private void LateUpdate()
+    {
+        lockedAtEndOfLastFrame = CharacterBase.IsLobbyControlLocked;
+        typingAtEndOfLastFrame = IsTypingInInputField();
+    }
+
+    // 다른 창(매칭 대기, 캐릭터 선택 등)이 같은 Esc로 자기를 닫으면서 잠금을 이번 프레임에 풀 수 있다.
+    // 스크립트 실행 순서에 따라 그 직후에 이 검사가 돌면 "잠금 없음"으로 보여 설정까지 같이 열리므로,
+    // 직전 프레임 끝에도 잠겨 있지 않았을 때만 연다. 채팅 등 입력창에 글을 쓰는 중에도 열지 않는다.
+    private bool CanOpenWithEscape()
+    {
+        return !CharacterBase.IsLobbyControlLocked && !lockedAtEndOfLastFrame &&
+               !IsTypingInInputField() && !typingAtEndOfLastFrame;
+    }
+
+    private static bool IsTypingInInputField()
+    {
+        GameObject selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+        if (selected == null)
+            return false;
+
+        TMP_InputField tmpInput = selected.GetComponent<TMP_InputField>();
+        if (tmpInput != null && tmpInput.isFocused)
+            return true;
+        InputField input = selected.GetComponent<InputField>();
+        return input != null && input.isFocused;
     }
 
     public void Toggle()
