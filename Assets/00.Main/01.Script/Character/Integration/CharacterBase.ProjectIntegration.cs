@@ -246,6 +246,81 @@ namespace ProjectMS.CharacterSystem
             }
         }
 
+        // ---------------- 연습장 전용 ----------------
+
+        private static readonly CharacterActionType[] PracticeRefreshActions =
+        {
+            CharacterActionType.SkillQ, CharacterActionType.SkillE, CharacterActionType.Dash, CharacterActionType.Ultimate,
+        };
+
+        /// <summary>연습장 "쿨타임 없음": 기본공격을 뺀 스킬 쿨타임과 충전을 채우고 궁극기 게이지도 가득 채운다.
+        /// (기본공격은 쿨타임이 곧 연사 속도/재장전이라 건드리지 않는다.)</summary>
+        public void PracticeRefreshSkills()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority)
+                return;
+
+            foreach (CharacterActionType action in PracticeRefreshActions)
+            {
+                ClearCooldown(action);
+                int capacity = GetChargeCapacity(action);
+                if (capacity > 0)
+                {
+                    SetActionCharges(action, capacity);
+                    ClearChargeRecharge(action);
+                }
+            }
+            PracticeFillUltimate();
+        }
+
+        public void PracticeFillUltimate()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority)
+                return;
+            NetUltimateGauge = UltimateGaugeMax;
+        }
+
+        /// <summary>연습 봇 체력 회복용.</summary>
+        public void PracticeFullHeal()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority || IsDead)
+                return;
+
+            float previous = health.Current;
+            health.SetMaxHealth(MaxHealth);
+            health.FullHeal();
+            if (!Mathf.Approximately(previous, health.Current))
+                OnHealthChanged(previous, health.Current);
+        }
+
+        /// <summary>연습장에서 증강을 한 스택 넣어본다(픽 수와 무관, Max_Stack까지).</summary>
+        public void PracticeGrantAugment(AugmentType type)
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority || !IsAugmentType(type))
+                return;
+
+            AugmentData data = FindAugmentData(type);
+            if (data == null)
+                return;
+
+            int current = NetAugmentStacks.Get((int)type);
+            if (current >= Mathf.Max(1, data.maxStack))
+                return;
+
+            NetAugmentStacks.Set((int)type, current + 1);
+            AppendAugmentHistory(type);
+        }
+
+        public void PracticeClearAugments()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority)
+                return;
+
+            for (int i = 0; i < AugmentTypeCount; i++)
+                NetAugmentStacks.Set(i, 0);
+            NetAugmentHistoryCount = 0;
+        }
+
         /// <summary>재대결 시작 시 호출. 라운드 리셋에 더해 매치 단위로 쌓인 것(증강, 궁극기 게이지,
         /// 결과 통계)까지 전부 처음 상태로 돌린다. StateAuthority에서만 동작한다.</summary>
         public void ResetForNewMatch(Vector2 position)

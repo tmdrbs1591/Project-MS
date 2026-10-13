@@ -91,6 +91,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         vsBot = false;
         sessionJoinedTime = -1f;
         matchStartTime = Time.unscaledTime;
+        PracticeSession.End();
 
         SetStatus(MatchingStatus);
 
@@ -100,6 +101,37 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         // (목록 조회 후 판단하는 방식은 두 클라가 동시에 접속하면 서로 다른 방을
         //  각자 만들어버리는 경쟁 조건이 있어서 제거했다.)
         _ = TryJoinQuickMatchSlot(0);
+    }
+
+    /// <summary>모드 선택의 "AI 대전". 매칭 대기 없이 바로 오프라인 AI 전을 시작한다.</summary>
+    public void StartAiMatch()
+    {
+        if (isMatching || gameSceneRequested)
+            return;
+
+        PracticeSession.End();
+        BeginOfflineSession();
+        _ = StartOfflineBotMatch();
+    }
+
+    /// <summary>모드 선택의 "연습". 오프라인으로 게임 씬을 연습장(연습 맵 + 연습 봇)으로 연다.</summary>
+    public void StartPractice()
+    {
+        if (isMatching || gameSceneRequested)
+            return;
+
+        PracticeSession.Begin();
+        BeginOfflineSession();
+        _ = StartOfflineBotMatch();
+    }
+
+    private void BeginOfflineSession()
+    {
+        isMatching = true;
+        playerSpawnedInGameScene = false;
+        vsBot = false;
+        sessionJoinedTime = -1f;
+        matchStartTime = Time.unscaledTime;
     }
 
     /// <summary>
@@ -158,6 +190,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         gameSceneRequested = false;
         vsBot = false;
         sessionJoinedTime = -1f;
+        PracticeSession.End();
 
         try
         {

@@ -241,6 +241,12 @@ public class MatchManager : NetworkBehaviour
 
     private void TickFighting()
     {
+        if (PracticeSession.IsActive)
+        {
+            TickPractice();
+            return;
+        }
+
         // 라운드 리셋 직후 잠깐은 사망 판정을 쉰다(리셋 RPC가 아직 상대 클라에 도착 전일 수 있음).
         if (!PhaseTimer.ExpiredOrNotRunning(Runner))
             return;
@@ -263,6 +269,38 @@ public class MatchManager : NetworkBehaviour
         LastRoundWinner = winner.MatchPlayer;
         Phase = MatchPhase.RoundEnd;
         PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundEndDisplayDuration);
+    }
+
+    // 연습장: 라운드/매치가 끝나지 않는다. 쓰러진 캐릭터는 잠시 뒤 제자리(스폰 위치)에서 다시 일어난다.
+    // 연습장은 오프라인(Single)이라 모든 캐릭터의 권한이 여기 있으므로 RPC 없이 바로 리셋한다.
+    private readonly Dictionary<CharacterBase, float> practiceDeadSince = new Dictionary<CharacterBase, float>();
+    private const float PracticeRespawnDelay = 1.2f;
+
+    private void TickPractice()
+    {
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (ch == null || ch.Object == null || !ch.Object.HasStateAuthority)
+                continue;
+
+            if (!ch.IsDead)
+            {
+                practiceDeadSince.Remove(ch);
+                continue;
+            }
+
+            if (!practiceDeadSince.TryGetValue(ch, out float since))
+            {
+                practiceDeadSince[ch] = Runner.SimulationTime;
+                continue;
+            }
+
+            if (Runner.SimulationTime - since >= PracticeRespawnDelay)
+            {
+                practiceDeadSince.Remove(ch);
+                ch.ResetCharacter(GetSpawnPosition(ch));
+            }
+        }
     }
 
     private void OnRoundEndExpired()

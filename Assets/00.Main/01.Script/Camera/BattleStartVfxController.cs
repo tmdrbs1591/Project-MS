@@ -44,7 +44,16 @@ public class BattleStartVfxController : MonoBehaviour
         }
 
         if (lastPhase == MatchPhase.PackSelect && match.Phase == MatchPhase.Fighting)
-            Play(match);
+        {
+            // 연습장은 VS 연출 없이 바로 시작한다.
+            if (PracticeSession.IsActive)
+            {
+                hasPlayed = true;
+                playedMatchNumber = match.MatchNumber;
+            }
+            else
+                Play(match);
+        }
 
         lastPhase = match.Phase;
     }
