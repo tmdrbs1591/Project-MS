@@ -88,7 +88,7 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private CharacterSkillInfo skillEInfo;
         [SerializeField] private CharacterSkillInfo ultimateInfo;
 
-        [Header("Input")]
+        [Header("Input (미사용 — 실제 키는 사용자 키 설정 KeyBindings에서 읽는다)")]
         [SerializeField] private Key moveLeft = Key.A;
         [SerializeField] private Key moveRight = Key.D;
         [SerializeField] private Key jump = Key.Space;

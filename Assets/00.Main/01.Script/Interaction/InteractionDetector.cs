@@ -39,8 +39,7 @@ public class InteractionDetector : MonoBehaviour
         if (!IsMine) return;
         if (currentInteractable == null) return;
 
-        var kb = Keyboard.current;
-        if (kb != null && kb.fKey.wasPressedThisFrame)
+        if (KeyBindings.WasPressed(BindableAction.Interact))
         {
             currentInteractable.Interact();
 

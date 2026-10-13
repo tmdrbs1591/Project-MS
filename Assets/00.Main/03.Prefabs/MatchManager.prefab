@@ -65,7 +65,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MatchManager
   roundEndDisplayDuration: 3
-  augmentSelectDuration: 5
+  augmentSelectDuration: 10
   roundStartGraceDuration: 1
   _Phase: 0
   _Player1Wins: 0

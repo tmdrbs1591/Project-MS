@@ -21,6 +21,13 @@ namespace ProjectMS.CharacterSystem
         // Rpc_BeginAugmentSelect로 배정하고, AugmentSelectUI가 이 값을 폴링해 선택 UI를 띄운다.
         [Networked] private int NetAugmentPicksRemaining { get; set; }
 
+        // 증강을 고른 순서 기록(HUD의 증강 기록 표시용). 값 = (int)AugmentType.
+        // 한 매치에서 고를 수 있는 픽은 최대 4개(패자 2픽 × 2번)라 여유 있게 잡는다.
+        private const int AugmentHistoryCapacity = 12;
+        [Networked, Capacity(AugmentHistoryCapacity)]
+        private NetworkArray<byte> NetAugmentHistory => default;
+        [Networked] private int NetAugmentHistoryCount { get; set; }
+
         public int AugmentPicksRemaining => NetAugmentPicksRemaining;
 
         public static readonly List<CharacterBase> All = new List<CharacterBase>();
@@ -106,6 +113,26 @@ namespace ProjectMS.CharacterSystem
 
             NetAugmentStacks.Set((int)type, current + 1);
             NetAugmentPicksRemaining--;
+            AppendAugmentHistory(type);
+        }
+
+        private void AppendAugmentHistory(AugmentType type)
+        {
+            if (NetAugmentHistoryCount >= AugmentHistoryCapacity)
+                return;
+            NetAugmentHistory.Set(NetAugmentHistoryCount, (byte)type);
+            NetAugmentHistoryCount++;
+        }
+
+        /// <summary>이번 매치에서 고른 증강 수(고른 순서 기록 기준).</summary>
+        public int AugmentHistoryCount => Object != null ? NetAugmentHistoryCount : 0;
+
+        /// <summary>index번째로 고른 증강의 데이터. 찾지 못하면 null.</summary>
+        public AugmentData GetAugmentHistoryData(int index)
+        {
+            if (Object == null || index < 0 || index >= NetAugmentHistoryCount)
+                return null;
+            return FindAugmentData((AugmentType)NetAugmentHistory.Get(index));
         }
 
         /// <summary>이번 AugmentSelect 구간에 이 캐릭터가 고를 수 있는 픽 수를 배정한다.
@@ -179,6 +206,7 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             NetAugmentStacks.Set((int)type, current + 1);
+            AppendAugmentHistory(type);
         }
 
         /// <summary>테스트 전용 치트. 보유한 증강을 전부 초기화한다.</summary>
@@ -189,6 +217,7 @@ namespace ProjectMS.CharacterSystem
 
             for (int i = 0; i < AugmentTypeCount; i++)
                 NetAugmentStacks.Set(i, 0);
+            NetAugmentHistoryCount = 0;
         }
 #endif
 
@@ -228,6 +257,7 @@ namespace ProjectMS.CharacterSystem
             for (int i = 0; i < AugmentTypeCount; i++)
                 NetAugmentStacks.Set(i, 0);
             NetAugmentPicksRemaining = 0;
+            NetAugmentHistoryCount = 0;
             NetMatchDamageTaken = 0f;
             NetMatchHitsTaken = 0;
             NetMatchUltimatesUsed = 0;

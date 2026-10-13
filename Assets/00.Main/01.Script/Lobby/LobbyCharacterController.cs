@@ -36,11 +36,6 @@ public class LobbyCharacterController : MonoBehaviour
     [Min(0f)] [SerializeField] private float autoHopForce = 5f;
     [Min(0f)] [SerializeField] private float autoHopMoveThreshold = 0.05f;
 
-    [Header("Keys")]
-    [SerializeField] private Key moveLeft = Key.A;
-    [SerializeField] private Key moveRight = Key.D;
-    [SerializeField] private Key jump = Key.Space;
-
     [Header("Visual (선택)")]
     [SerializeField] private CharacterVisualController visual;
 
@@ -113,8 +108,8 @@ public class LobbyCharacterController : MonoBehaviour
         float deltaTime = Time.deltaTime;
 
         float dir = 0f;
-        if (kb[moveLeft].isPressed) dir -= 1f;
-        if (kb[moveRight].isPressed) dir += 1f;
+        if (KeyBindings.IsHeld(BindableAction.MoveLeft)) dir -= 1f;
+        if (KeyBindings.IsHeld(BindableAction.MoveRight)) dir += 1f;
 
         rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
 
@@ -125,7 +120,7 @@ public class LobbyCharacterController : MonoBehaviour
         // 프레임"이 얼마 안 된다 — isGrounded를 그 프레임에 직접 보고 판정하면 스페이스바가
         // 계속 씹힌다. 인게임(CharacterMovementHandler.Jump)과 같은 방식으로 받아준다.
         coyoteTimer = isGrounded ? coyoteTime : coyoteTimer - deltaTime;
-        jumpBufferTimer = kb[jump].wasPressedThisFrame ? jumpBufferTime : jumpBufferTimer - deltaTime;
+        jumpBufferTimer = (KeyBindings.WasPressed(BindableAction.Jump) || KeyBindings.WasPressed(BindableAction.JumpAlt)) ? jumpBufferTime : jumpBufferTimer - deltaTime;
 
         if (jumpBufferTimer > 0f && coyoteTimer > 0f)
         {
@@ -140,7 +135,7 @@ public class LobbyCharacterController : MonoBehaviour
         }
 
         TickAutoHop(dir, deltaTime);
-        ApplyBetterGravity(kb[jump].isPressed, deltaTime);
+        ApplyBetterGravity(KeyBindings.IsHeld(BindableAction.Jump) || KeyBindings.IsHeld(BindableAction.JumpAlt), deltaTime);
 
         if (!wasGrounded && isGrounded)
         {

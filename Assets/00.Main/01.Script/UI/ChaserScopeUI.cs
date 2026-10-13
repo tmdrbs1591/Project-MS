@@ -15,6 +15,8 @@ using UnityEngine.UI;
 ///   - 이 스크립트를 ultCanvas 안에 붙여도 되지만, 그 경우엔 오브젝트를 끄지 않고 Canvas 컴포넌트만 켜고 끈다
 ///     (오브젝트를 끄면 이 스크립트도 멈추기 때문).
 ///   - scope 이미지의 원래 색이 평소 색, shotColor 가 쏠 때 번쩍이는 색이다.
+///   - 락온: 지금 쏘면 적이 맞는 위치에 조준경이 있으면 lockColor로 바뀌고 두근거린다.
+///     처음 락온될 때 lockClip을 재생한다(판정 반경은 ChaserCharacter의 Dead Eye Lock Radius).
 /// </summary>
 public class ChaserScopeUI : MonoBehaviour
 {
@@ -31,9 +33,13 @@ public class ChaserScopeUI : MonoBehaviour
     [SerializeField] private Color shotColor = Color.red;
     [Tooltip("커지고 빨개졌다가 원래대로 돌아오는 시간(초)")]
     [SerializeField] private float shotRecoverDuration = 0.2f;
+    [SerializeField] private Color lockColor = new Color(1f, 0.25f, 0.25f, 1f);
+    [Min(0f)] [SerializeField] private float lockPulse = 0.12f;
+    [SerializeField] private AudioClip lockClip;
 
     private RectTransform scopeRect;
     private Color normalColor;
+    private bool wasLocked;
     private Vector3 normalScale;
     private bool toggleCanvasComponentsOnly;
     private bool visible = true;
@@ -84,7 +90,31 @@ public class ChaserScopeUI : MonoBehaviour
             shotTime = Time.unscaledTime;
         }
 
-        UpdateShotVisual();
+        if (shotTime >= 0f)
+            UpdateShotVisual();
+        else
+            UpdateLockVisual();
+    }
+
+    private void UpdateLockVisual()
+    {
+        bool locked = false;
+        Camera worldCamera = Camera.main;
+        Mouse mouse = Mouse.current;
+        if (worldCamera != null && mouse != null)
+        {
+            Vector2 screen = mouse.position.ReadValue();
+            Vector3 world = worldCamera.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -worldCamera.transform.position.z));
+            locked = chaser.IsAimOnEnemy(world);
+        }
+
+        if (locked && !wasLocked)
+            SoundManager.Instance?.PlaySfx(lockClip);
+        wasLocked = locked;
+
+        float pulse = locked ? 1f + lockPulse * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 18f)) : 1f;
+        scopeRect.localScale = normalScale * pulse;
+        scope.color = locked ? lockColor : normalColor;
     }
 
     private void SetVisible(bool value)
@@ -135,6 +165,7 @@ public class ChaserScopeUI : MonoBehaviour
     private void ResetShotVisual()
     {
         shotTime = -1f;
+        wasLocked = false;
         if (scopeRect == null)
             return;
         scopeRect.localScale = normalScale;

@@ -27,6 +27,8 @@ public class SettingsPanel : MonoBehaviour
     [Header("열기/닫기")]
     [SerializeField] private Button closeButton;
     [SerializeField] private bool openWithEscape = true;
+    [Tooltip("키 설정 창을 여는 버튼(선택). 키 설정 창(KeyBindingsPanel)은 씬에서 찾아 연다.")]
+    [SerializeField] private Button keyBindingsButton;
 
     [Header("볼륨")]
     [SerializeField] private Slider masterVolumeSlider;
@@ -47,6 +49,7 @@ public class SettingsPanel : MonoBehaviour
     private bool lockedByMe;
     private bool lockedAtEndOfLastFrame;
     private bool typingAtEndOfLastFrame;
+    private bool keyBindingsOpenAtEndOfLastFrame;
     private readonly List<Vector2Int> resolutions = new List<Vector2Int>();
 
     public bool IsOpen => isOpen;
@@ -59,6 +62,8 @@ public class SettingsPanel : MonoBehaviour
 
         if (closeButton != null)
             closeButton.onClick.AddListener(Close);
+        if (keyBindingsButton != null)
+            keyBindingsButton.onClick.AddListener(() => { if (KeyBindingsPanel.Instance != null) KeyBindingsPanel.Instance.Open(); });
 
         SetupSlider(masterVolumeSlider, v => SoundManager.Instance?.SetMasterVolume(v));
         SetupSlider(sfxVolumeSlider, v => SoundManager.Instance?.SetSfxVolume(v));
@@ -91,6 +96,11 @@ public class SettingsPanel : MonoBehaviour
         if (kb == null || !kb.escapeKey.wasPressedThisFrame)
             return;
 
+        // 키 설정 창이 열려 있으면 Esc는 그 창(입력 취소/창 닫기)이 쓴다. 같은 프레임에 그 창이 먼저
+        // 닫혔을 수도 있으니 직전 프레임 상태도 본다.
+        if (KeyBindingsPanel.IsOpen || keyBindingsOpenAtEndOfLastFrame)
+            return;
+
         if (isOpen)
             Close();
         else if (CanOpenWithEscape())
@@ -101,6 +111,7 @@ public class SettingsPanel : MonoBehaviour
     {
         lockedAtEndOfLastFrame = CharacterBase.IsLobbyControlLocked;
         typingAtEndOfLastFrame = IsTypingInInputField();
+        keyBindingsOpenAtEndOfLastFrame = KeyBindingsPanel.IsOpen;
     }
 
     // 다른 창(매칭 대기, 캐릭터 선택 등)이 같은 Esc로 자기를 닫으면서 잠금을 이번 프레임에 풀 수 있다.
@@ -158,6 +169,8 @@ public class SettingsPanel : MonoBehaviour
         isOpen = false;
         SetVisible(false);
         ReleaseLock();
+        if (KeyBindingsPanel.IsOpen)
+            KeyBindingsPanel.Instance.Close();
     }
 
     private void ReleaseLock()

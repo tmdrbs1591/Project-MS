@@ -35,17 +35,18 @@ namespace ProjectMS.CharacterSystem
             moveDirection = 0f;
             if (keyboard != null)
             {
-                if (IsHeld(keyboard, definition.MoveLeft))
+                // 키는 사용자 키 설정(KeyBindings)에서 읽는다. CharacterDefinition의 키 칸은 더 이상 쓰지 않는다.
+                if (KeyBindings.IsHeld(BindableAction.MoveLeft))
                     moveDirection -= 1f;
-                if (IsHeld(keyboard, definition.MoveRight))
+                if (KeyBindings.IsHeld(BindableAction.MoveRight))
                     moveDirection += 1f;
 
-                jumpHeld = IsHeld(keyboard, definition.Jump);
-                jumpPressed |= WasPressed(keyboard, definition.Jump);
-                skillQPressed |= WasPressed(keyboard, definition.SkillQ);
-                skillEPressed |= WasPressed(keyboard, definition.SkillE);
-                dashPressed |= WasPressed(keyboard, definition.Dash);
-                ultimatePressed |= WasPressed(keyboard, definition.Ultimate);
+                jumpHeld = KeyBindings.IsHeld(BindableAction.Jump) || KeyBindings.IsHeld(BindableAction.JumpAlt);
+                jumpPressed |= KeyBindings.WasPressed(BindableAction.Jump) || KeyBindings.WasPressed(BindableAction.JumpAlt);
+                skillQPressed |= KeyBindings.WasPressed(BindableAction.SkillQ);
+                skillEPressed |= KeyBindings.WasPressed(BindableAction.SkillE);
+                dashPressed |= KeyBindings.WasPressed(BindableAction.Dash);
+                ultimatePressed |= KeyBindings.WasPressed(BindableAction.Ultimate);
             }
 
             if (mouse != null)
@@ -95,16 +96,6 @@ namespace ProjectMS.CharacterSystem
             dashPressed = false;
             ultimatePressed = false;
             reloadPressed = false;
-        }
-
-        private static bool IsHeld(Keyboard keyboard, Key key)
-        {
-            return key != Key.None && keyboard[key].isPressed;
-        }
-
-        private static bool WasPressed(Keyboard keyboard, Key key)
-        {
-            return key != Key.None && keyboard[key].wasPressedThisFrame;
         }
 
         private static Vector2 ReadMouseWorldPosition(Camera targetCamera, Vector3 fallback, Mouse mouse)
