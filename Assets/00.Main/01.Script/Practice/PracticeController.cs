@@ -82,10 +82,12 @@ public class PracticeController : MonoBehaviour
     private bool augmentListBuilt;
     private bool lockedByMe;
     private bool uiShown = true;
+    private bool hasSettingsPanel;
 
     private void Awake()
     {
         bool active = PracticeSession.IsActive;
+        hasSettingsPanel = FindObjectOfType<SettingsPanel>(true) != null;
         SetGroup(panel, active);
         SetGroup(augmentWindow, false);
         SetGroup(exitConfirm, false);
@@ -179,10 +181,13 @@ public class PracticeController : MonoBehaviour
 
         if (keyboard.escapeKey.wasPressedThisFrame)
         {
+            // 게임 씬에 설정 창이 있으면 Esc는 설정 창(그 안의 "연습장 나가기")이 쓴다.
             if (IsShown(augmentWindow))
                 SetGroup(augmentWindow, false);
-            else
-                SetGroup(exitConfirm, !IsShown(exitConfirm));
+            else if (IsShown(exitConfirm))
+                SetGroup(exitConfirm, false);
+            else if (!hasSettingsPanel)
+                SetGroup(exitConfirm, true);
         }
 
         if (keyboard.f1Key.wasPressedThisFrame) ToggleNoCooldown();

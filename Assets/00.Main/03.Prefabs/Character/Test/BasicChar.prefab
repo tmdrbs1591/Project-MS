@@ -940,7 +940,7 @@ MonoBehaviour:
   blinkSpeed: 10
   completeFlashDuration: 0.25
   completePopScale: 1.25
-  reloadCompleteClip: {fileID: 0}
+  reloadCompleteClip: {fileID: 8300000, guid: 510ef97ec057fbd499b60b89715278ba, type: 3}
 --- !u!1 &5604264823855070135
 GameObject:
   m_ObjectHideFlags: 0

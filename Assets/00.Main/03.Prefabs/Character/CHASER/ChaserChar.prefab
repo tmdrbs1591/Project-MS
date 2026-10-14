@@ -1329,7 +1329,7 @@ MonoBehaviour:
   shotRecoverDuration: 0.2
   lockColor: {r: 1, g: 0.25, b: 0.25, a: 1}
   lockPulse: 0.12
-  lockClip: {fileID: 0}
+  lockClip: {fileID: 8300000, guid: b4a7470d48b329e4cbfc4e646ae78b9e, type: 3}
 --- !u!4 &8892872073989034078 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 514286130412363308, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}

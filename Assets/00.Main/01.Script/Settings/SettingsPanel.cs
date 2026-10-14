@@ -15,6 +15,8 @@ using UnityEngine.UI;
 ///   - Esc는 다른 창(캐릭터 선택, 매칭 대기 등)이 조작을 잠가둔 동안에는 설정을 열지 않는다.
 ///     그 창들이 Esc를 "닫기"로 먼저 쓰기 때문이다.
 ///   - 열려 있는 동안 내 캐릭터 조작을 막는다(로비/인게임 공통). 멀티라 게임 시간은 멈추지 않는다.
+///   - 게임 씬에서는 "나가기" 버튼(leaveButton)으로 대전/연습장을 나갈 수 있다(확인 창을 거친다).
+///     로비에서는 비워두면 된다.
 ///
 /// [씬 설정]
 ///   - Canvas 아래 패널을 만들고 이 스크립트를 붙인다. 숨김은 CanvasGroup으로 하므로(없으면 자동 추가)
@@ -43,6 +45,14 @@ public class SettingsPanel : MonoBehaviour
 
     [Header("화면 흔들림")]
     [SerializeField] private Slider screenShakeSlider;
+
+    [Header("나가기 (게임 씬 전용, 로비에선 비워둠)")]
+    [SerializeField] private Button leaveButton;
+    [SerializeField] private TMP_Text leaveButtonLabel;
+    [SerializeField] private CanvasGroup leaveConfirm;
+    [SerializeField] private TMP_Text leaveConfirmText;
+    [SerializeField] private Button leaveYesButton;
+    [SerializeField] private Button leaveNoButton;
 
     private CanvasGroup canvasGroup;
     private bool isOpen;
@@ -78,6 +88,14 @@ public class SettingsPanel : MonoBehaviour
         SetupResolutionDropdown();
         SetupFrameLimitDropdown();
 
+        if (leaveButton != null)
+            leaveButton.onClick.AddListener(ShowLeaveConfirm);
+        if (leaveYesButton != null)
+            leaveYesButton.onClick.AddListener(() => NetworkLauncher.Instance?.ReturnToLobby());
+        if (leaveNoButton != null)
+            leaveNoButton.onClick.AddListener(() => SetGroupVisible(leaveConfirm, false));
+        SetGroupVisible(leaveConfirm, false);
+
         SetVisible(false);
     }
 
@@ -102,7 +120,13 @@ public class SettingsPanel : MonoBehaviour
             return;
 
         if (isOpen)
-            Close();
+        {
+            // 나가기 확인 창이 떠 있으면 Esc는 그 창만 닫는다.
+            if (leaveConfirm != null && leaveConfirm.alpha > 0.5f)
+                SetGroupVisible(leaveConfirm, false);
+            else
+                Close();
+        }
         else if (CanOpenWithEscape())
             Open();
     }
@@ -152,6 +176,8 @@ public class SettingsPanel : MonoBehaviour
         isOpen = true;
         RefreshValues();
         SetVisible(true);
+        if (leaveButtonLabel != null)
+            leaveButtonLabel.text = PracticeSession.IsActive ? "연습장 나가기" : "로비로 나가기";
 
         if (!CharacterBase.IsLobbyControlLocked)
         {
@@ -168,6 +194,7 @@ public class SettingsPanel : MonoBehaviour
 
         isOpen = false;
         SetVisible(false);
+        SetGroupVisible(leaveConfirm, false);
         ReleaseLock();
         if (KeyBindingsPanel.IsOpen)
             KeyBindingsPanel.Instance.Close();
@@ -278,6 +305,22 @@ public class SettingsPanel : MonoBehaviour
     {
         if (slider != null)
             slider.SetValueWithoutNotify(value);
+    }
+
+    private void ShowLeaveConfirm()
+    {
+        if (leaveConfirmText != null)
+            leaveConfirmText.text = PracticeSession.IsActive ? "연습장을 나갈까요?" : "대전을 포기하고 로비로 나갈까요?";
+        SetGroupVisible(leaveConfirm, true);
+    }
+
+    private static void SetGroupVisible(CanvasGroup group, bool visible)
+    {
+        if (group == null)
+            return;
+        group.alpha = visible ? 1f : 0f;
+        group.interactable = visible;
+        group.blocksRaycasts = visible;
     }
 
     private void SetVisible(bool visible)
