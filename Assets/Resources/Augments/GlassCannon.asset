@@ -16,7 +16,7 @@ MonoBehaviour:
   title: "\uC720\uB9AC \uB300\uD3EC"
   description: "\uACF5\uACA9\uB825\uC774 50% \uC99D\uAC00\uD558\uC9C0\uB9CC, \uCD5C\uB300
     \uCCB4\uB825\uC774 30% \uAC10\uC18C\uD569\uB2C8\uB2E4."
-  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
+  icon: {fileID: 7513065474429622654, guid: c199eab457b86e24296d7c714eb02d29, type: 3}
   maxStack: 1
   percentValue: 0.5
   secondaryPercentValue: 0.3

@@ -16,7 +16,7 @@ MonoBehaviour:
   title: "\uBC14\uC6B4\uC2A4 \uB9C8\uBC95"
   description: "\uAE30\uBCF8\uAE30\uC758 \uD22C\uC0AC\uCCB4\uAC00 \uBCBD\uC5D0 1\uD68C
     \uD295\uAE41\uB2C8\uB2E4."
-  icon: {fileID: -4193103072154739754, guid: df9c645ba0257b54b821d9ffa6d76c90, type: 3}
+  icon: {fileID: -706762197512760877, guid: 4e8b08dcd4e3a9e42bb9b1dbf771ffaf, type: 3}
   maxStack: 2
   percentValue: 0
   secondaryPercentValue: 0
