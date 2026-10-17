@@ -280,7 +280,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
   - curve:
       serializedVersion: 2
       m_Curve:
@@ -332,7 +332,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
   m_FloatCurves:
   - serializedVersion: 2
     curve:
@@ -1077,7 +1077,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_Alpha
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 225
     script: {fileID: 0}
     flags: 0
@@ -1107,7 +1107,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 1
     script: {fileID: 0}
     flags: 0
@@ -1155,7 +1155,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_Alpha
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 225
     script: {fileID: 0}
     flags: 0
@@ -1185,7 +1185,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 1
     script: {fileID: 0}
     flags: 0
@@ -2952,7 +2952,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_Alpha
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 225
     script: {fileID: 0}
     flags: 0
@@ -2982,7 +2982,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 1
     script: {fileID: 0}
     flags: 0
@@ -3039,7 +3039,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.x
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 224
     script: {fileID: 0}
     flags: 0
@@ -3096,7 +3096,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.y
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 224
     script: {fileID: 0}
     flags: 0
@@ -3153,7 +3153,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.z
-    path: augment ingame ui (1)
+    path: augment ingame ui 2
     classID: 224
     script: {fileID: 0}
     flags: 0
@@ -3201,7 +3201,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_Alpha
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 225
     script: {fileID: 0}
     flags: 0
@@ -3231,7 +3231,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 1
     script: {fileID: 0}
     flags: 0
@@ -3288,7 +3288,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.x
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 224
     script: {fileID: 0}
     flags: 0
@@ -3345,7 +3345,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.y
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 224
     script: {fileID: 0}
     flags: 0
@@ -3402,7 +3402,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.z
-    path: augment ingame ui (2)
+    path: augment ingame ui 3
     classID: 224
     script: {fileID: 0}
     flags: 0
