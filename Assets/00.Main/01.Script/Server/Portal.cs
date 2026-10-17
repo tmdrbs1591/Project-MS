@@ -34,6 +34,13 @@ public class Portal : MonoBehaviour, IInteractable
     /// <summary>플레이어가 범위 안에서 F 를 눌렀을 때 호출된다.</summary>
     public void Interact()
     {
+        // 모드 선택 창이 있으면 먼저 모드(1대1/AI/연습 ...)를 고르게 한다.
+        if (ModeSelectPanel.Instance != null)
+        {
+            ModeSelectPanel.Instance.Open();
+            return;
+        }
+
         // Awake() 시점에 못 찾았을 수 있으니(초기화 순서 등으로, 특히 로비 씬을 두 번째
         // 로드할 때 재현됨) 실제로 쓰는 이 시점에 한 번 더 시도한다.
         if (matchmaking == null)

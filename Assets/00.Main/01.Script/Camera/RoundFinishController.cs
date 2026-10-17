@@ -13,7 +13,7 @@ using UnityEngine;
 ///     아직 안 보이면(NetDead 동기화가 Phase 보다 한두 프레임 늦게 도착하는 경우) 매 프레임
 ///     다시 찾아본다 — RoundEnd 인 동안은 계속 재시도하다가 찾으면 그때 1회 재생한다.
 ///   - deathVolume: 피니시 연출이 시작되는 순간(FinishRoutine 진입) 켜지고, 증강 선택 화면이
-///     뜨기 직전(RoundEnd → AugmentSelect 전환 감지) 꺼진다.
+///     뜨기 직전(RoundEnd → AugmentSelect/MatchEnd 전환 감지) 꺼진다.
 ///   - flashObject: 다음 라운드가 시작되는 순간(AugmentSelect → Fighting) 켜지고, 다음 피니시
 ///     연출이 시작될 때(FinishRoutine 진입) 다시 꺼져서 재사용을 준비한다(SetActive(true)는
 ///     이미 켜져 있으면 파티클/애니메이션을 재시작시키지 않기 때문).
@@ -95,9 +95,10 @@ public class RoundFinishController : MonoBehaviour
 
         if (phase != lastObservedPhase)
         {
-            if (phase == MatchPhase.AugmentSelect)
+            if (phase == MatchPhase.AugmentSelect || phase == MatchPhase.MatchEnd)
             {
-                // 증강 선택 화면이 뜨기 전에 데스 볼륨을 끈다.
+                // 증강 선택 화면/결과 화면이 뜨기 전에 데스 볼륨을 끈다.
+                // (마지막 라운드는 AugmentSelect를 거치지 않고 바로 MatchEnd로 간다.)
                 if (deathVolume != null)
                     deathVolume.SetActive(false);
             }

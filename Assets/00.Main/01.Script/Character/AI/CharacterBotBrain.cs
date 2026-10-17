@@ -35,6 +35,8 @@ namespace ProjectMS.CharacterSystem.AI
                 GunnerCharacter _ => character.gameObject.AddComponent<GunnerBotBrain>(),
                 SparkCharacter _ => character.gameObject.AddComponent<SparkBotBrain>(),
                 ChaserCharacter _ => character.gameObject.AddComponent<ChaserBotBrain>(),
+                PopupCharacter _ => character.gameObject.AddComponent<PopupBotBrain>(),
+                ZipperCharacter _ => character.gameObject.AddComponent<ZipperBotBrain>(),
                 _ => null
             };
 
@@ -242,9 +244,63 @@ namespace ProjectMS.CharacterSystem.AI
 
         protected bool Roll(float chance) => Random.value < chance;
 
+        /// <summary>궁극기를 지금 쓸 수 있는지. 게이지형 궁극기는 게이지가 가득 찼는지도 본다
+        /// (게이지가 덜 찼으면 눌러도 안 나가므로 헛누르지 않게).</summary>
+        protected bool IsUltimateReady()
+        {
+            if (!IsReady(CharacterActionType.Ultimate))
+                return false;
+            return !Self.IsUltimateGaugeMode || Self.UltimateGaugeCurrent >= Self.UltimateGaugeMax;
+        }
+
+        private float keepRangeStrafe;
+        private float nextKeepRangeDecision;
+
+        /// <summary>적과 minRange~maxRange 거리를 유지하며 좌우로 흔드는 기본 이동(수류탄 회피/높이 차 점프 포함).
+        /// 너무 가까우면 retreatDashChance 확률로 대시를 요청한다(wantDash).</summary>
+        protected float MoveKeepingRange(Vector2 me, Vector2 targetPos, float distance, bool lineOfSight,
+            float minRange, float maxRange, float retreatDashChance, out bool wantDash)
+        {
+            wantDash = false;
+            float toTarget = Mathf.Sign(targetPos.x - me.x);
+
+            float escape = EnemyGrenadeEscapeDirection();
+            if (!Mathf.Approximately(escape, 0f))
+            {
+                float escapeMove = SafeMove(escape);
+                if (Mathf.Approximately(escapeMove, 0f))
+                    RequestJump(0.3f);
+                return escapeMove;
+            }
+
+            if (targetPos.y - me.y > 1.5f && Mathf.Abs(targetPos.x - me.x) < 4f)
+                RequestJump(0.35f);
+
+            if (Clock >= nextKeepRangeDecision)
+            {
+                float r = Random.value;
+                keepRangeStrafe = r < 0.4f ? -1f : r < 0.8f ? 1f : 0.2f * toTarget;
+                nextKeepRangeDecision = Clock + Random.Range(0.5f, 1.2f);
+            }
+
+            if (!lineOfSight || distance > maxRange)
+                return SafeMove(toTarget);
+
+            if (distance < minRange)
+            {
+                wantDash = IsReady(CharacterActionType.Dash) && Random.value < retreatDashChance;
+                return SafeMove(-toTarget);
+            }
+
+            return SafeMove(keepRangeStrafe);
+        }
+
         // ================= 이동 =================
 
         /// <summary>그 방향으로 걸어가도 안전한지(발밑 앞쪽에 땅이 있는지).</summary>
+        /// <summary>이 깊이 안에 땅이 있으면 뛰어내려도 되는 턱으로 본다(맵 높이보다 충분히 깊게).</summary>
+        private const float SafeDropDepth = 20f;
+
         protected bool IsGroundAhead(float direction, float lookAhead = 0.9f, float maxDrop = 3.5f)
         {
             if (Mathf.Approximately(direction, 0f))
@@ -270,8 +326,22 @@ namespace ProjectMS.CharacterSystem.AI
                 return 0f;
 
             float dir = Mathf.Sign(desired);
-            if (!IsGroundAhead(dir))
+            // 발판 끝이라도 그 아래 어딘가에 땅이 있으면 뛰어내려도 되는 턱이다. 아래가 텅 빈 구덩이(낙사)일 때만 멈춘다.
+            // (예전엔 3.5 이상 낙차면 무조건 멈춰서, 높은 발판에서 시작한 근거리 AI가 못 내려오고 굳어버렸다.)
+            if (!IsGroundAhead(dir) && !IsGroundAhead(dir, 0.9f, SafeDropDepth))
+            {
+                // 공중에서 멈추면 구덩이로 떨어지므로 하던 방향 그대로 간다.
+                if (!Self.IsGrounded)
+                    return dir;
+
+                // 좁은 구덩이: 건너편에 땅이 있으면 점프해서 건넌다.
+                if (IsGroundAhead(dir, 2.2f, SafeDropDepth) || IsGroundAhead(dir, 3.2f, SafeDropDepth))
+                {
+                    RequestJump(0.3f);
+                    return dir;
+                }
                 return 0f;
+            }
 
             if (Self.IsGrounded && IsWallAhead(dir))
                 RequestJump(0.25f);

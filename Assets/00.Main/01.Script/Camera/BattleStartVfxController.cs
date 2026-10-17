@@ -22,6 +22,7 @@ public class BattleStartVfxController : MonoBehaviour
 
     private MatchPhase lastPhase = MatchPhase.PackSelect;
     private bool hasPlayed;
+    private int playedMatchNumber;
 
     private void Awake()
     {
@@ -30,21 +31,41 @@ public class BattleStartVfxController : MonoBehaviour
 
     private void Update()
     {
-        if (hasPlayed)
-            return;
-
         MatchManager match = MatchManager.Instance;
         if (match == null)
             return;
 
+        if (hasPlayed)
+        {
+            // 재대결로 새 매치가 시작되면(MatchNumber 증가) 시작 연출을 처음부터 다시 튼다.
+            if (match.MatchNumber != playedMatchNumber && match.Phase == MatchPhase.Fighting)
+                Play(match);
+            return;
+        }
+
         if (lastPhase == MatchPhase.PackSelect && match.Phase == MatchPhase.Fighting)
         {
-            SetVfxActive(true);
-            SoundManager.Instance?.PlaySfx(battleStartClip);
-            hasPlayed = true;
+            // 연습장은 VS 연출 없이 바로 시작한다.
+            if (PracticeSession.IsActive)
+            {
+                hasPlayed = true;
+                playedMatchNumber = match.MatchNumber;
+            }
+            else
+                Play(match);
         }
 
         lastPhase = match.Phase;
+    }
+
+    private void Play(MatchManager match)
+    {
+        // 이미 켜져 있던 오브젝트도 OnEnable(VsIntroUI 등)이 다시 돌도록 껐다 켠다.
+        SetVfxActive(false);
+        SetVfxActive(true);
+        SoundManager.Instance?.PlaySfx(battleStartClip);
+        hasPlayed = true;
+        playedMatchNumber = match.MatchNumber;
     }
 
     private void SetVfxActive(bool active)

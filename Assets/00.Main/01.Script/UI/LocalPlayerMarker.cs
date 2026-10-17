@@ -57,6 +57,7 @@ public class LocalPlayerMarker : MonoBehaviour
 
     private MatchPhase lastPhase = MatchPhase.PackSelect;
     private bool hasShownOnce;
+    private int shownMatchNumber;
     private bool pending;   // 전투 시작은 감지했지만 아직 띄울 때가 아닌 상태(시작 연출 대기/내 캐릭터 대기)
     private float pendingElapsed;
     private bool showing;
@@ -101,6 +102,13 @@ public class LocalPlayerMarker : MonoBehaviour
         MatchManager match = MatchManager.Instance;
         if (match != null)
         {
+            // 재대결로 새 매치가 시작되면 첫 라운드처럼 다시 보여준다.
+            if (match.MatchNumber != shownMatchNumber)
+            {
+                shownMatchNumber = match.MatchNumber;
+                hasShownOnce = false;
+            }
+
             if (lastPhase != MatchPhase.Fighting && match.Phase == MatchPhase.Fighting &&
                 (!hasShownOnce || showEveryRound))
             {

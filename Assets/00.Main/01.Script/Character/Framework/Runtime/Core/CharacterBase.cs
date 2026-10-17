@@ -54,7 +54,16 @@ namespace ProjectMS.CharacterSystem
         [Networked] private TickTimer NetReloadTimer { get; set; }
         [Networked] private float NetReloadDuration { get; set; }
         [Networked] private int NetDamageSequence { get; set; }
+        // 피격 연출(데미지 숫자, 히트스톱, 명중음)용. 누적값이라 한 화면 프레임에 여러 번 맞아도 차이로 합계를 알 수 있다.
+        [Networked] private float NetDamageTotal { get; set; }
+        [Networked] private CharacterDamageSource NetLastDamageSource { get; set; }
+        [Networked] private PlayerRef NetLastDamageAttacker { get; set; }
         [Networked] private float NetUltimateGauge { get; set; }
+        // 결과 화면 통계(매치 누적). 라운드가 바뀌어도 유지되고 재대결 때만 지운다.
+        // 1대1이라 "상대가 받은 피해/적중"이 곧 "내가 가한 피해/적중"이다.
+        [Networked] private float NetMatchDamageTaken { get; set; }
+        [Networked] private int NetMatchHitsTaken { get; set; }
+        [Networked] private int NetMatchUltimatesUsed { get; set; }
         [Networked, Capacity(ActionSlotCount)]
         private NetworkArray<NetworkBool> NetActionEnabled => default;
         [Networked, Capacity(ActionSlotCount)]
@@ -95,6 +104,11 @@ namespace ProjectMS.CharacterSystem
         private int lastRenderedAutoHopSequence;
         private int lastRenderedReloadSequence;
         private int lastRenderedDamageSequence;
+        private float lastRenderedDamageTotal;
+
+        /// <summary>어떤 캐릭터가 맞은 것이 화면에 반영될 때(모든 클라이언트에서, 렌더 기준) 발생한다.
+        /// 데미지 숫자/히트스톱/명중음 같은 순수 연출용이며, 게임 로직에 쓰면 안 된다.</summary>
+        public static event Action<CharacterBase, CharacterHitRenderInfo> HitRendered;
         private bool lastRenderedDead;
         private CharacterInputSnapshot lastInput;
         private ICharacterInputSource externalInputSource;
@@ -129,6 +143,12 @@ namespace ProjectMS.CharacterSystem
         public bool IsUltimateGaugeMode => definition != null && definition.UltimateUsesGauge;
         public float UltimateGaugeCurrent => NetUltimateGauge;
         public float UltimateGaugeMax => definition != null ? definition.UltimateGaugeMax : 0f;
+
+        /// <summary>이번 매치에서 상대에게 받은 피해 합계(낙사 등 환경 피해 제외).</summary>
+        public float MatchDamageTaken => Object != null ? NetMatchDamageTaken : 0f;
+        /// <summary>이번 매치에서 상대에게 맞은 횟수(지속 피해/환경 피해 제외).</summary>
+        public int MatchHitsTaken => Object != null ? NetMatchHitsTaken : 0;
+        public int MatchUltimatesUsed => Object != null ? NetMatchUltimatesUsed : 0;
 
         // 접근 충전(UltimateGaugePerApproachDistance)이 "직전 틱보다 가까워졌는지"를 판단하는 데 쓰는
         // 기준값이다. [Networked]가 아닌 시뮬레이션 로컬 값 — 매 틱 자기 자신이 계산해서 갱신하고,
@@ -193,6 +213,7 @@ namespace ProjectMS.CharacterSystem
             lastRenderedLandSequence = NetLandSequence;
             lastRenderedAutoHopSequence = NetAutoHopSequence;
             lastRenderedDamageSequence = NetDamageSequence;
+            lastRenderedDamageTotal = NetDamageTotal;
             lastRenderedReloadSequence = NetReloadSequence;
             lastRenderedDead = NetDead;
             InitializeControlEffects();
@@ -397,6 +418,22 @@ namespace ProjectMS.CharacterSystem
                 ApplyHeal(amount);
             else
                 Rpc_RequestHeal(amount);
+        }
+
+        /// <summary>이 캐릭터의 그림만 잠깐 멈춘다(히트스톱). 물리/네트워크/판정에는 영향이 없다.</summary>
+        public void PlayHitStop(float duration)
+        {
+            visual?.PlayHitStop(duration);
+        }
+
+        private void RaiseHitRendered()
+        {
+            float amount = NetDamageTotal - lastRenderedDamageTotal;
+            lastRenderedDamageTotal = NetDamageTotal;
+            if (amount <= 0f || HitRendered == null)
+                return;
+
+            HitRendered.Invoke(this, new CharacterHitRenderInfo(amount, NetLastDamageSource, NetLastDamageAttacker));
         }
 
         public void SetGameplayLocked(bool locked)
@@ -1491,14 +1528,6 @@ namespace ProjectMS.CharacterSystem
 
         private void TryExecute(CharacterActionType action, bool pressed)
         {
-            // [임시 진단] 궁극기를 눌렀는데 안 나가는 이유 기록. 원인 찾으면 지운다.
-            if (pressed && action == CharacterActionType.Ultimate && !IsBot)
-            {
-                Debug.Log($"[UltDebug] {name} R 입력: 사용가능={actionState.CanUse(action)} 활성={((ICharacterActionStateStore)this).GetEnabled(action)} " +
-                          $"쿨타임남음={actionState.GetCooldownRemaining(action):F2} 충전={actionState.GetCharges(action)} " +
-                          $"게이지모드={IsUltimateGaugeMode} 게이지={NetUltimateGauge:F1}/{UltimateGaugeMax} 이동허용={NetMovementEnabled}");
-            }
-
             if (!pressed || !actionState.CanUse(action))
                 return;
             // 재장전 중엔 기본공격 불가(쿨타임과 별개로 확실히 막는다).
@@ -1524,7 +1553,10 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             if (action == CharacterActionType.Ultimate)
+            {
                 PlayUltimateFlashEffect();
+                NetMatchUltimatesUsed++;
+            }
 
             actionState.ConsumeCharge(action);
             if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode)
@@ -1570,6 +1602,15 @@ namespace ProjectMS.CharacterSystem
                 return DamageResult.Rejected(request.Amount, DamageRejectionReason.InvalidAmount);
 
             NetDamageSequence++;
+            NetDamageTotal += applied;
+            NetLastDamageSource = request.Source;
+            NetLastDamageAttacker = request.Attacker;
+            if (request.Source != CharacterDamageSource.Environment)
+            {
+                NetMatchDamageTaken += applied;
+                if (request.Source != CharacterDamageSource.Periodic)
+                    NetMatchHitsTaken++;
+            }
             CharacterDamageInfo info = new CharacterDamageInfo(request, applied);
             OnDamaged(info);
             OnHealthChanged(before, health.Current);
@@ -1948,6 +1989,7 @@ namespace ProjectMS.CharacterSystem
             {
                 lastRenderedDamageSequence = NetDamageSequence;
                 visual.PlayDamaged();
+                RaiseHitRendered();
             }
 
             if (lastRenderedReloadSequence != NetReloadSequence)

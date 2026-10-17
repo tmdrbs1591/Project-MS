@@ -21,6 +21,13 @@ namespace ProjectMS.CharacterSystem
         // Rpc_BeginAugmentSelect로 배정하고, AugmentSelectUI가 이 값을 폴링해 선택 UI를 띄운다.
         [Networked] private int NetAugmentPicksRemaining { get; set; }
 
+        // 증강을 고른 순서 기록(HUD의 증강 기록 표시용). 값 = (int)AugmentType.
+        // 한 매치에서 고를 수 있는 픽은 최대 4개(패자 2픽 × 2번)라 여유 있게 잡는다.
+        private const int AugmentHistoryCapacity = 12;
+        [Networked, Capacity(AugmentHistoryCapacity)]
+        private NetworkArray<byte> NetAugmentHistory => default;
+        [Networked] private int NetAugmentHistoryCount { get; set; }
+
         public int AugmentPicksRemaining => NetAugmentPicksRemaining;
 
         public static readonly List<CharacterBase> All = new List<CharacterBase>();
@@ -50,6 +57,9 @@ namespace ProjectMS.CharacterSystem
         private static bool IsProjectGameplayLocked =>
             IntroLocked ||
             MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting;
+
+        /// <summary>다른 창(캐릭터 선택, 매칭 대기, 설정 등)이 조작을 잠가둔 상태인지.</summary>
+        public static bool IsLobbyControlLocked => lobbyControlLocked;
 
         public static void SetLobbyControlLocked(bool locked)
         {
@@ -103,6 +113,26 @@ namespace ProjectMS.CharacterSystem
 
             NetAugmentStacks.Set((int)type, current + 1);
             NetAugmentPicksRemaining--;
+            AppendAugmentHistory(type);
+        }
+
+        private void AppendAugmentHistory(AugmentType type)
+        {
+            if (NetAugmentHistoryCount >= AugmentHistoryCapacity)
+                return;
+            NetAugmentHistory.Set(NetAugmentHistoryCount, (byte)type);
+            NetAugmentHistoryCount++;
+        }
+
+        /// <summary>이번 매치에서 고른 증강 수(고른 순서 기록 기준).</summary>
+        public int AugmentHistoryCount => Object != null ? NetAugmentHistoryCount : 0;
+
+        /// <summary>index번째로 고른 증강의 데이터. 찾지 못하면 null.</summary>
+        public AugmentData GetAugmentHistoryData(int index)
+        {
+            if (Object == null || index < 0 || index >= NetAugmentHistoryCount)
+                return null;
+            return FindAugmentData((AugmentType)NetAugmentHistory.Get(index));
         }
 
         /// <summary>이번 AugmentSelect 구간에 이 캐릭터가 고를 수 있는 픽 수를 배정한다.
@@ -176,6 +206,7 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             NetAugmentStacks.Set((int)type, current + 1);
+            AppendAugmentHistory(type);
         }
 
         /// <summary>테스트 전용 치트. 보유한 증강을 전부 초기화한다.</summary>
@@ -186,6 +217,7 @@ namespace ProjectMS.CharacterSystem
 
             for (int i = 0; i < AugmentTypeCount; i++)
                 NetAugmentStacks.Set(i, 0);
+            NetAugmentHistoryCount = 0;
         }
 #endif
 
@@ -193,6 +225,120 @@ namespace ProjectMS.CharacterSystem
         {
             int index = (int)type;
             return index >= 0 && index < AugmentTypeCount && System.Enum.IsDefined(typeof(AugmentType), type);
+        }
+
+        /// <summary>보유한 증강과 중첩 수를 results에 채운다(결과 화면 표시용). 상대 캐릭터에도 쓸 수 있다.</summary>
+        public void GetOwnedAugments(List<KeyValuePair<AugmentData, int>> results)
+        {
+            results.Clear();
+            if (Object == null)
+                return;
+
+            for (int i = 0; i < AugmentTypeCount; i++)
+            {
+                int stack = NetAugmentStacks.Get(i);
+                if (stack <= 0)
+                    continue;
+
+                AugmentData data = FindAugmentData((AugmentType)i);
+                if (data != null)
+                    results.Add(new KeyValuePair<AugmentData, int>(data, stack));
+            }
+        }
+
+        // ---------------- 연습장 전용 ----------------
+
+        private static readonly CharacterActionType[] PracticeRefreshActions =
+        {
+            CharacterActionType.SkillQ, CharacterActionType.SkillE, CharacterActionType.Dash, CharacterActionType.Ultimate,
+        };
+
+        /// <summary>연습장 "쿨타임 없음": 기본공격을 뺀 스킬 쿨타임과 충전을 채우고 궁극기 게이지도 가득 채운다.
+        /// (기본공격은 쿨타임이 곧 연사 속도/재장전이라 건드리지 않는다.)</summary>
+        public void PracticeRefreshSkills()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority)
+                return;
+
+            foreach (CharacterActionType action in PracticeRefreshActions)
+            {
+                ClearCooldown(action);
+                int capacity = GetChargeCapacity(action);
+                if (capacity > 0)
+                {
+                    SetActionCharges(action, capacity);
+                    ClearChargeRecharge(action);
+                }
+            }
+            PracticeFillUltimate();
+        }
+
+        public void PracticeFillUltimate()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority)
+                return;
+            NetUltimateGauge = UltimateGaugeMax;
+        }
+
+        /// <summary>연습 봇 체력 회복용.</summary>
+        public void PracticeFullHeal()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority || IsDead)
+                return;
+
+            float previous = health.Current;
+            health.SetMaxHealth(MaxHealth);
+            health.FullHeal();
+            if (!Mathf.Approximately(previous, health.Current))
+                OnHealthChanged(previous, health.Current);
+        }
+
+        /// <summary>연습장에서 증강을 한 스택 넣어본다(픽 수와 무관, Max_Stack까지).</summary>
+        public void PracticeGrantAugment(AugmentType type)
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority || !IsAugmentType(type))
+                return;
+
+            AugmentData data = FindAugmentData(type);
+            if (data == null)
+                return;
+
+            int current = NetAugmentStacks.Get((int)type);
+            if (current >= Mathf.Max(1, data.maxStack))
+                return;
+
+            NetAugmentStacks.Set((int)type, current + 1);
+            AppendAugmentHistory(type);
+        }
+
+        public void PracticeClearAugments()
+        {
+            if (!PracticeSession.IsActive || Object == null || !Object.HasStateAuthority)
+                return;
+
+            for (int i = 0; i < AugmentTypeCount; i++)
+                NetAugmentStacks.Set(i, 0);
+            NetAugmentHistoryCount = 0;
+        }
+
+        /// <summary>재대결 시작 시 호출. 라운드 리셋에 더해 매치 단위로 쌓인 것(증강, 궁극기 게이지,
+        /// 결과 통계)까지 전부 처음 상태로 돌린다. StateAuthority에서만 동작한다.</summary>
+        public void ResetForNewMatch(Vector2 position)
+        {
+            if (Object == null || !Object.HasStateAuthority)
+                return;
+
+            // 체력 증강이 빠진 상태로 최대 체력을 다시 계산해야 하므로 증강부터 지운다.
+            for (int i = 0; i < AugmentTypeCount; i++)
+                NetAugmentStacks.Set(i, 0);
+            NetAugmentPicksRemaining = 0;
+            NetAugmentHistoryCount = 0;
+            NetMatchDamageTaken = 0f;
+            NetMatchHitsTaken = 0;
+            NetMatchUltimatesUsed = 0;
+
+            ResetCharacter(position);
+            NetUltimateGauge = 0f;
         }
 
         private AugmentData FindAugmentData(AugmentType type)

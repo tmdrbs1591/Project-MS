@@ -45,6 +45,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0)][SerializeField] private int deadEyeProjectileCharges = 3;
         [Min(0f)][SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
         [Min(0f)][SerializeField] private float deadEyeReuseCooltime = 0.25f;
+        [Tooltip("조준점이 적 위에 있다고 표시(락온)할 반경. 데드아이 투사체 판정 크기의 절반 정도로 맞춘다.")]
+        [Min(0f)][SerializeField] private float deadEyeLockRadius = 0.3f;
 
         [Header("Ultimate - Dead Eye Sounds")]
         [Tooltip("궁극기(저격 모드)를 켤 때 재생")]
@@ -95,6 +97,12 @@ namespace ProjectMS.CharacterSystem.Examples
 
         /// <summary>데드아이(궁극기 저격 모드) 중인지. 조준경 UI(ChaserScopeUI) 등 연출용.</summary>
         public bool IsSniping => Object != null && NetIsSniping;
+
+        /// <summary>지금 aimWorld를 쏘면 적이 맞는지(조준점 락온 표시용, 내 화면에서만 쓴다).</summary>
+        public bool IsAimOnEnemy(Vector2 aimWorld)
+        {
+            return FindEnemiesInCircle(aimWorld, deadEyeLockRadius, targetLayer).Count > 0;
+        }
         /// <summary>저격 모드에서 쏜 발 수(누적). 값이 바뀌면 한 발 쏜 것 — 조준경 반동 연출용.</summary>
         public int SnipeShotCount => Object != null ? NetSnipeShotSequence : 0;
 

@@ -82,6 +82,8 @@ namespace ProjectMS.CharacterSystem
         private CounterFlipSolver[] counterFlips;
         private Color baseColor = Color.white;
         private float hitFlashTimer;
+        private float hitStopTimer;
+        private float animatorSpeedBeforeHitStop = 1f;
 
         private void Awake()
         {
@@ -127,6 +129,13 @@ namespace ProjectMS.CharacterSystem
         {
             if (!enabled || profile == null)
                 return;
+
+            // 히트스톱 중에는 몸통 스쿼시/애니메이션만 멈춘다(그림만 멈춤 — 위치·판정·네트워크는 그대로 진행).
+            if (TickHitStop())
+            {
+                aimVisual.Apply(state.AimDirection, state.AimAngle);
+                return;
+            }
 
             squashStretch.Tick(state);
             aimVisual.Apply(state.AimDirection, state.AimAngle);
@@ -249,6 +258,37 @@ namespace ProjectMS.CharacterSystem
             ParticleSystem.EmissionModule emission = dustEffect.emission;
             if (emission.enabled != enabledState)
                 emission.enabled = enabledState;
+        }
+
+        /// <summary>그림만 duration초 동안 멈춘다(히트스톱). 이미 멈춰 있으면 더 긴 쪽으로 늘린다.</summary>
+        public void PlayHitStop(float duration)
+        {
+            if (duration <= 0f)
+                return;
+
+            if (hitStopTimer <= 0f && animator != null)
+            {
+                animatorSpeedBeforeHitStop = animator.speed;
+                animator.speed = 0f;
+            }
+
+            hitStopTimer = Mathf.Max(hitStopTimer, duration);
+        }
+
+        // true면 아직 히트스톱 중. 실제 시간(unscaled) 기준이라 피니시 슬로우모션과 겹쳐도 길어지지 않는다.
+        private bool TickHitStop()
+        {
+            if (hitStopTimer <= 0f)
+                return false;
+
+            hitStopTimer -= Time.unscaledDeltaTime;
+            if (hitStopTimer > 0f)
+                return true;
+
+            hitStopTimer = 0f;
+            if (animator != null)
+                animator.speed = animatorSpeedBeforeHitStop;
+            return false;
         }
 
         private void UpdateHitFlash(float deltaTime)

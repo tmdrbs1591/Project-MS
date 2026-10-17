@@ -55,6 +55,31 @@ MonoBehaviour:
   skillEIcon: {fileID: 4056622184079890754, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
   dashIcon: {fileID: 8475406714918343715, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
   ultimateIcon: {fileID: -4938686240281382914, guid: 54c3b37274cf7c040bc9b802cd968752, type: 3}
+  role: "\uC6D0\uAC70\uB9AC \uB51C\uB7EC"
+  description: "\uD0C4\uCC3D\uC2DD \uAD8C\uCD1D\uC73C\uB85C \uAFB8\uC900\uD788 \uACAC\uC81C\uD558\uACE0,
+    \uC2A4\uD0AC\uC744 \uC4F8 \uB54C\uB9C8\uB2E4 \uB2E4\uC74C \uD55C \uBC1C\uC774
+    \uAC15\uD574\uC9C0\uB294 \uC6D0\uAC70\uB9AC \uB51C\uB7EC\uC785\uB2C8\uB2E4."
+  portrait: {fileID: 0}
+  passiveIcon: {fileID: 0}
+  passiveInfo:
+    name: "\uAC15\uD654\uD0C4"
+    description: "Q, E, R \uC911 \uD558\uB098\uB97C \uC0AC\uC6A9\uD558\uBA74 \uB2E4\uC74C
+      \uAE30\uBCF8\uACF5\uACA9 \uD55C \uBC1C\uC758 \uD53C\uD574\uAC00 30% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  skillQInfo:
+    name: "\uD53C\uC5B4\uC2F1 \uB77C\uC774\uD2B8"
+    description: "\uC815\uBA74 \uC9C1\uC0AC\uAC01\uD615 \uBC94\uC704 \uC548\uC758
+      \uBAA8\uB4E0 \uC801\uC5D0\uAC8C \uC989\uC2DC \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4."
+  skillEInfo:
+    name: "\uC218\uB958\uD0C4"
+    description: "\uC218\uB958\uD0C4\uC744 \uB358\uC9D1\uB2C8\uB2E4. \uC77C\uC815
+      \uC2DC\uAC04\uC774 \uC9C0\uB098\uAC70\uB098 \uC790\uC2E0\uC758 \uCD1D\uC54C\uC5D0
+      \uB9DE\uC73C\uBA74 \uD3ED\uBC1C\uD574 \uC8FC\uBCC0 \uC801\uC5D0\uAC8C \uD53C\uD574\uB97C
+      \uC90D\uB2C8\uB2E4."
+  ultimateInfo:
+    name: "\uBC14\uC8FC\uCE74"
+    description: "\uAC15\uB825\uD55C \uB85C\uCF13\uC744 \uBC1C\uC0AC\uD569\uB2C8\uB2E4.
+      \uAC8C\uC774\uC9C0\uAC00 \uAC00\uB4DD \uCC28\uC57C \uC0AC\uC6A9\uD560 \uC218
+      \uC788\uC2B5\uB2C8\uB2E4."
   moveLeft: 15
   moveRight: 18
   jump: 1

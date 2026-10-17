@@ -42,10 +42,13 @@ public class MapManager : MonoBehaviour
     [Tooltip("켜면 라운드가 바뀔 때마다 맵을 다시 고른다(세션이름+라운드번호 해시). " +
              "끄면 매치 시작 때 고른 맵을 매치 내내 그대로 쓴다.")]
     [SerializeField] private bool rotateMapEachRound = false;
+    [Tooltip("연습장(PracticeSession)일 때 mapPrefabs 대신 쓰는 맵. 비워두면 평소 맵을 쓴다.")]
+    [SerializeField] private GameObject practiceMapPrefab;
 
     private GameObject activeMapInstance;
     private MapDefinition activeMapDefinition;
     private int activeRoundNumber = -1;
+    private bool activeIsPracticeMap;
     private readonly List<NetworkObject> spawnedStructures = new List<NetworkObject>();
 
     private void Awake()
@@ -105,7 +108,9 @@ public class MapManager : MonoBehaviour
     /// 방어적으로 호출해도 안전하다.</summary>
     public void EnsureMapForRound(NetworkRunner runner, int roundNumber)
     {
-        if (activeMapInstance != null && roundNumber == activeRoundNumber)
+        // 연습장 → 대전 전환(매칭하면서 연습)처럼 같은 1라운드라도 연습 맵 여부가 바뀌면 다시 깐다.
+        bool wantPractice = PracticeSession.IsActive && practiceMapPrefab != null;
+        if (activeMapInstance != null && roundNumber == activeRoundNumber && activeIsPracticeMap == wantPractice)
             return;
 
         if (mapPrefabs == null || mapPrefabs.Length == 0)
@@ -115,8 +120,9 @@ public class MapManager : MonoBehaviour
         }
 
         int index = ResolveMapIndex(runner, roundNumber, mapPrefabs.Length);
+        GameObject prefab = wantPractice ? practiceMapPrefab : mapPrefabs[index];
 
-        if (mapPrefabs[index] == null)
+        if (prefab == null)
         {
             // 배열에 빈 칸이 있으면 여기서 막아서 최소한 캐릭터 스폰(GetSpawnPosition의 폴백)은
             // 계속 진행되게 한다 — Instantiate(null)은 예외를 던져서 이 호출부인
@@ -129,13 +135,14 @@ public class MapManager : MonoBehaviour
         DespawnActiveStructures(runner);
         DestroyAllMapInstances();
 
-        activeMapInstance = Instantiate(mapPrefabs[index], transform);
+        activeMapInstance = Instantiate(prefab, transform);
         activeMapDefinition = activeMapInstance.GetComponent<MapDefinition>();
         activeRoundNumber = roundNumber;
+        activeIsPracticeMap = wantPractice;
 
         if (activeMapDefinition == null)
         {
-            Debug.LogError($"[MapManager] 맵 프리팹 '{mapPrefabs[index].name}'에 MapDefinition이 없습니다.", activeMapInstance);
+            Debug.LogError($"[MapManager] 맵 프리팹 '{prefab.name}'에 MapDefinition이 없습니다.", activeMapInstance);
             return;
         }
 

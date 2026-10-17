@@ -75,7 +75,20 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private Sprite dashIcon;
         [SerializeField] private Sprite ultimateIcon;
 
-        [Header("Input")]
+        [Header("Character Info (캐릭터 선택 UI 설명)")]
+        [Tooltip("역할 한 줄 (예: 원거리 딜러).")]
+        [SerializeField] private string role;
+        [TextArea(2, 5)] [SerializeField] private string description;
+        [Tooltip("캐릭터 선택 화면의 초상화.")]
+        [SerializeField] private Sprite portrait;
+        [Tooltip("패시브 아이콘. 쿨타임 HUD에는 패시브 슬롯이 없어서 설명 UI에서만 쓴다.")]
+        [SerializeField] private Sprite passiveIcon;
+        [SerializeField] private CharacterSkillInfo passiveInfo;
+        [SerializeField] private CharacterSkillInfo skillQInfo;
+        [SerializeField] private CharacterSkillInfo skillEInfo;
+        [SerializeField] private CharacterSkillInfo ultimateInfo;
+
+        [Header("Input (미사용 — 실제 키는 사용자 키 설정 KeyBindings에서 읽는다)")]
         [SerializeField] private Key moveLeft = Key.A;
         [SerializeField] private Key moveRight = Key.D;
         [SerializeField] private Key jump = Key.Space;
@@ -85,6 +98,24 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private Key ultimate = Key.R;
 
         public string DisplayName => displayName;
+
+        public string Role => role;
+        public string Description => description;
+        public Sprite Portrait => portrait;
+        public Sprite PassiveIcon => passiveIcon;
+        public CharacterSkillInfo PassiveInfo => passiveInfo;
+
+        /// <summary>설명 UI용 스킬 이름/설명. 평타 등 설명이 없는 액션은 빈 값.</summary>
+        public CharacterSkillInfo GetSkillInfo(CharacterActionType action)
+        {
+            return action switch
+            {
+                CharacterActionType.SkillQ => skillQInfo,
+                CharacterActionType.SkillE => skillEInfo,
+                CharacterActionType.Ultimate => ultimateInfo,
+                _ => default
+            };
+        }
         public Sprite CharacterMainSprite => characterMainSprite;
         public float MaxHealth => maxHealth;
         public float MoveSpeed => moveSpeed;

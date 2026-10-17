@@ -389,7 +389,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OutOfBoundsZone
   fallDamagePercent: 0.1
   bounceVelocity: 20
-  bounceDuration: 0.5
+  bounceDuration: 0.75
 --- !u!1 &5190077366004595933
 GameObject:
   m_ObjectHideFlags: 0

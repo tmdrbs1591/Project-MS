@@ -95,7 +95,11 @@ public class PlayerSpawner : MonoBehaviour
             return;
         }
 
-        CharacterBotBrain.AttachTo(character, botDifficulty);
+        // 연습장에서는 AI 대신 연습 봇 입력(서있기/좌우 이동/점프)을 붙인다.
+        if (PracticeSession.IsActive)
+            PracticeDummyInput.AttachTo(character);
+        else
+            CharacterBotBrain.AttachTo(character, botDifficulty);
         Debug.Log($"[PlayerSpawner] 봇 스폰 @ {spawnPos} ({prefab.name}, Player {botPlayer.PlayerId}, {botDifficulty})");
     }
 
