@@ -25,6 +25,14 @@ public class PlayerCornerHUD : MonoBehaviour
 
     [Header("HP")]
     [SerializeField] private Image hpFillImage;
+    [Tooltip("HP가 깎이면 잠깐 머물렀다가 천천히 따라 줄어드는 흰 잔상 바(hpFillImage 뒤, Filled Horizontal). 선택 사항.")]
+    [SerializeField] private Image hpTrailImage;
+    [Min(0f)] [SerializeField] private float trailDelay = 0.35f;
+    [Min(0.1f)] [SerializeField] private float trailSpeed = 0.9f;
+
+    [Header("캐릭터 이름")]
+    [Tooltip("지금 이 코너 캐릭터의 이름(CharacterDefinition.DisplayName)을 보여줄 글자.")]
+    [SerializeField] private TMP_Text characterNameText;
 
     [Header("이름 (임시)")]
     [SerializeField] private TMP_Text nameText;
@@ -38,6 +46,9 @@ public class PlayerCornerHUD : MonoBehaviour
     [SerializeField] private Image characterImage;
 
     private CharacterBase character;
+    private float trailFill = 1f;
+    private float lastFill = 1f;
+    private float lastHitTime = -10f;
 
     private void Awake()
     {
@@ -75,17 +86,41 @@ public class PlayerCornerHUD : MonoBehaviour
 
     private void UpdateHp()
     {
+        if (characterNameText != null)
+        {
+            string name = character != null && character.Definition != null ? character.Definition.DisplayName : string.Empty;
+            if (characterNameText.text != name)
+                characterNameText.text = name;
+        }
+
         if (hpFillImage == null)
             return;
 
         if (character == null)
         {
             hpFillImage.fillAmount = 0f;
+            if (hpTrailImage != null)
+                hpTrailImage.fillAmount = 0f;
+            trailFill = lastFill = 0f;
             return;
         }
 
         float max = character.MaxHealth;
-        hpFillImage.fillAmount = max > 0f ? character.CurrentHealth / max : 0f;
+        float fill = max > 0f ? character.CurrentHealth / max : 0f;
+        hpFillImage.fillAmount = fill;
+
+        if (hpTrailImage == null)
+            return;
+
+        // 깎이면 잔상은 잠깐 그대로 있다가 천천히 따라 내려오고, 회복은 바로 따라간다.
+        if (fill < lastFill - 0.0001f)
+            lastHitTime = Time.unscaledTime;
+        lastFill = fill;
+        if (fill > trailFill)
+            trailFill = fill;
+        else if (Time.unscaledTime - lastHitTime > trailDelay)
+            trailFill = Mathf.MoveTowards(trailFill, fill, trailSpeed * Time.unscaledDeltaTime);
+        hpTrailImage.fillAmount = trailFill;
     }
 
     private void UpdateScore()

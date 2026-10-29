@@ -107,6 +107,10 @@ public class MapSlotMachine : MonoBehaviour
 
     private IEnumerator SpinRoutine(int resultIndex)
     {
+        // 로딩 화면이 떠 있는 동안 돌면 아무도 못 본다 — 로딩이 걷힌 뒤에 돌기 시작한다.
+        while (SceneTransition.Instance != null && SceneTransition.Instance.IsBusy)
+            yield return null;
+
         if (!Build())
         {
             routine = null;

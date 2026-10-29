@@ -68,6 +68,38 @@ public class CharacterSelectUI : MonoBehaviour
     [Tooltip("카메라 도착을 최대 이 시간(초)까지만 기다린다. SmoothDamp는 목표에 '거의' 다가간\n뒤로도 완전히 수렴하기까지 꼬리가 길게 남아서, 정확히 도착할 때까지 기다리면 체감상\n너무 늦게 열린다 — 그래서 이 시간이 지나면 아직 덜 도착했어도 그냥 보여준다.")]
     [Min(0f)] [SerializeField] private float maxFocusWait = 0.25f;
 
+    [Tooltip("패널이 열려 있는 동안 페이드아웃해서 숨길 로비 HUD(채팅, 키 안내, 플레이어 이름 등).\n" +
+        "CanvasGroup이 없으면 자동으로 붙는다.")]
+    [SerializeField] private CanvasGroup[] hideWhileOpen;
+
+    [Header("사운드")]
+    [SerializeField] private AudioClip openSound;
+    [SerializeField] private AudioClip closeSound;
+    [Tooltip("캐릭터를 골랐을 때(클릭) 나는 소리.")]
+    [SerializeField] private AudioClip selectSound;
+    [Range(0f, 1f)] [SerializeField] private float sfxVolume = 0.6f;
+
+    [Header("선택 연출")]
+    [Tooltip("고른 캐릭터 카드 위에 뜨는 대사 말풍선.")]
+    [SerializeField] private CharacterLineBubble lineBubble;
+    [Tooltip("선택된 카드 뒤를 따라다니는 은은한 빛.")]
+    [SerializeField] private RectTransform selectionGlow;
+    [Tooltip("창이 열려 있는 동안 뒤의 로비 화면을 흐리게 하는 배경 블러.")]
+    [SerializeField] private UIBackgroundBlur backgroundBlur;
+    [Tooltip("창을 닫은 뒤 이 시간(초)이 지나면 로비 캐릭터 교체 연출이 나온다(카메라가 돌아오는 시간).")]
+    [Min(0f)] [SerializeField] private float lobbySwapDelay = 0.3f;
+
+    [Header("카드 등장 연출")]
+    [Tooltip("카드마다 등장 시작을 이만큼(초)씩 늦춰서 왼쪽부터 촤라락 펼쳐지게 한다.")]
+    [Min(0f)] [SerializeField] private float cardDealStagger = 0.06f;
+    [Min(0.01f)] [SerializeField] private float cardDealDuration = 0.45f;
+    [Tooltip("카드가 날아오기 시작하는 위치(제자리 기준 오프셋).")]
+    [SerializeField] private Vector2 cardDealOffset = new Vector2(0f, -160f);
+    [Tooltip("가장 바깥 카드가 시작할 때 기울어진 각도. 가운데에서 멀수록 더 기울어 부채꼴처럼 펼쳐진다.")]
+    [SerializeField] private float cardDealSpreadAngle = 14f;
+    [Tooltip("카드가 펼쳐지기 시작하고 이 시간(초) 뒤에 설명 패널이 아래에서 올라온다.")]
+    [Min(0f)] [SerializeField] private float infoIntroDelay = 0.15f;
+
     /// <summary>캐릭터 버튼 하나. 배경 이미지는 버튼마다 따로 있어서 선택된 것만 하늘색으로 바꾼다.</summary>
     [System.Serializable]
     private sealed class CharacterSlot
@@ -87,10 +119,12 @@ public class CharacterSelectUI : MonoBehaviour
 
     private Coroutine animRoutine;
     private bool isOpen;
+    private int indexWhenOpened;
 
     private Sprite[] normalBackgrounds;
     private Vector3[] slotBaseScales;
     private Coroutine[] bounceRoutines;
+    private CharacterSelectCard[] cards;
 
     private void Awake()
     {
@@ -119,9 +153,84 @@ public class CharacterSelectUI : MonoBehaviour
         if (!isOpen)
             return;
 
+        UpdateSelectionGlow();
+
         Keyboard kb = Keyboard.current;
-        if (kb != null && kb.escapeKey.wasPressedThisFrame)
+        if (kb == null)
+            return;
+
+        if (kb.escapeKey.wasPressedThisFrame)
+        {
             Close();
+            return;
+        }
+
+        // 등장 연출 중에는 키 입력을 받지 않는다(카드가 아직 날아오는 중).
+        if (canvasGroup != null && !canvasGroup.interactable)
+            return;
+
+        if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+            StepSelection(-1);
+        else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+            StepSelection(1);
+        else if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+            Close();
+        else if (infoPanel != null)
+        {
+            if (kb.tabKey.wasPressedThisFrame)
+                infoPanel.SelectNextSkill();
+            else if (kb.qKey.wasPressedThisFrame)
+                infoPanel.SelectSkill(false, CharacterActionType.SkillQ);
+            else if (kb.eKey.wasPressedThisFrame)
+                infoPanel.SelectSkill(false, CharacterActionType.SkillE);
+            else if (kb.rKey.wasPressedThisFrame)
+                infoPanel.SelectSkill(false, CharacterActionType.Ultimate);
+            else if (kb.pKey.wasPressedThisFrame)
+                infoPanel.SelectSkill(true, CharacterActionType.None);
+        }
+    }
+
+    /// <summary>←/→ 키로 화면에 놓인 순서대로 옆 카드를 고른다. 버튼을 누른 것과 똑같이 처리해서
+    /// 로비 캐릭터 교체(CharacterChangeUi)까지 같이 일어난다.</summary>
+    private void StepSelection(int direction)
+    {
+        if (characterSlots == null || characterSlots.Length == 0)
+            return;
+
+        int selectedIndex = PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0);
+        int current = 0;
+        for (int i = 0; i < characterSlots.Length; i++)
+        {
+            if (characterSlots[i] != null && characterSlots[i].characterIndex == selectedIndex)
+                current = i;
+        }
+
+        int next = Mathf.Clamp(current + direction, 0, characterSlots.Length - 1);
+        if (next == current || characterSlots[next] == null || characterSlots[next].button == null)
+            return;
+
+        characterSlots[next].button.onClick.Invoke();
+    }
+
+    /// <summary>선택된 카드 뒤의 빛이 카드를 부드럽게 따라간다.</summary>
+    private void UpdateSelectionGlow()
+    {
+        if (selectionGlow == null || characterSlots == null)
+            return;
+
+        int selectedIndex = PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0);
+        foreach (CharacterSlot slot in characterSlots)
+        {
+            if (slot == null || slot.button == null || slot.characterIndex != selectedIndex)
+                continue;
+
+            RectTransform target = (RectTransform)slot.button.transform;
+            float k = 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime);
+            Vector2 pos = selectionGlow.anchoredPosition;
+            pos.x = Mathf.Lerp(pos.x, target.anchoredPosition.x, k);
+            selectionGlow.anchoredPosition = pos;
+            return;
+        }
     }
 
     /// <summary>focusPoint(건물 위치 등)로 카메라를 줌인시키고, 다 도착한 뒤에 패널을 보여준다.</summary>
@@ -137,9 +246,11 @@ public class CharacterSelectUI : MonoBehaviour
         // 에디터에서 비활성 상태로 시작했더라도 여기서 켜준다. 이 시점엔 Awake가 더 이상
         // 자기 자신을 다시 끄지 않으므로(위 Awake 주석 참고) 안전하게 활성화된 채로 남는다.
         SetPanelActive(true);
+        indexWhenOpened = PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0);
+        SnapSelectionGlow();
         // 다른 경로(로비 캐릭터 변경 버튼 등)로 캐릭터가 바뀌었을 수도 있으니 열 때마다 맞춘다.
         ShowInfoForSelected();
-        RefreshSelectionVisual(PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0));
+        RefreshSelectionVisual(PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0), instant: true);
         // 카메라가 도착하기 전까지는 완전히 숨겨둔다("줌이 끝나면 화면이 확 나타나는" 연출).
         SetVisualState(0f, openStartScale);
         SetInteractable(false);
@@ -163,7 +274,31 @@ public class CharacterSelectUI : MonoBehaviour
         if (LobbyCameraFocusController.Instance != null)
             LobbyCameraFocusController.Instance.ReturnToDefault();
 
+        SoundManager.Instance?.PlaySfx(closeSound, sfxVolume);
+        if (backgroundBlur != null)
+            backgroundBlur.SetTarget(0f);
         RestartRoutine(CloseSequence());
+
+        // 창이 열려 있는 동안 캐릭터를 바꿨다면, 카메라가 돌아왔을 때 로비 캐릭터가 뿅 하고 바뀌는 걸 보여준다.
+        if (PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0) != indexWhenOpened && LobbyCharacterChange.Instance != null)
+            LobbyCharacterChange.Instance.PlaySwapEffect(lobbySwapDelay);
+    }
+
+    private void SnapSelectionGlow()
+    {
+        if (selectionGlow == null || characterSlots == null)
+            return;
+
+        int selectedIndex = PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0);
+        foreach (CharacterSlot slot in characterSlots)
+        {
+            if (slot != null && slot.button != null && slot.characterIndex == selectedIndex)
+            {
+                Vector2 pos = selectionGlow.anchoredPosition;
+                pos.x = ((RectTransform)slot.button.transform).anchoredPosition.x;
+                selectionGlow.anchoredPosition = pos;
+            }
+        }
     }
 
     private void RestartRoutine(IEnumerator routine)
@@ -180,9 +315,31 @@ public class CharacterSelectUI : MonoBehaviour
         PlayerPrefs.SetInt(SelectedCharacterIndexKey, index);
         PlayerPrefs.Save();
 
+        SoundManager.Instance?.PlaySfx(selectSound, sfxVolume * 0.5f, 0.03f);
         RefreshSelectionVisual(index);
         PlayBounce(index);
         ShowInfo(index);
+        PlayConfirmEffects(index);
+    }
+
+    /// <summary>고른 카드의 확정 연출 + 대사 말풍선.</summary>
+    private void PlayConfirmEffects(int characterIndex)
+    {
+        if (characterSlots == null)
+            return;
+
+        for (int i = 0; i < characterSlots.Length; i++)
+        {
+            CharacterSlot slot = characterSlots[i];
+            if (slot == null || slot.characterIndex != characterIndex)
+                continue;
+
+            if (cards != null && cards[i] != null)
+                cards[i].PlayConfirm();
+            if (lineBubble != null && slot.definition != null && slot.button != null)
+                lineBubble.Show(slot.definition.SelectLine, (RectTransform)slot.button.transform);
+            break;
+        }
     }
 
     // ── 캐릭터 설명 ───────────────────────────────────────────────────────────
@@ -233,6 +390,7 @@ public class CharacterSelectUI : MonoBehaviour
         normalBackgrounds = new Sprite[characterSlots.Length];
         slotBaseScales = new Vector3[characterSlots.Length];
         bounceRoutines = new Coroutine[characterSlots.Length];
+        cards = new CharacterSelectCard[characterSlots.Length];
 
         // characterIndex를 하나도 안 채웠으면(전부 0) 배열 순서를 번호로 쓴다.
         bool indicesUnset = true;
@@ -266,6 +424,7 @@ public class CharacterSelectUI : MonoBehaviour
             if (slot.button != null)
             {
                 slotBaseScales[i] = slot.button.transform.localScale;
+                cards[i] = slot.button.GetComponent<CharacterSelectCard>();
 
                 int index = slot.characterIndex; // 클로저에 루프 변수를 그대로 넘기면 마지막 값이 잡힌다
                 slot.button.onClick.AddListener(() => SelectCharacter(index));
@@ -274,11 +433,23 @@ public class CharacterSelectUI : MonoBehaviour
             }
         }
 
-        RefreshSelectionVisual(PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0));
+        RefreshSelectionVisual(PlayerPrefs.GetInt(SelectedCharacterIndexKey, 0), instant: true);
+
+        if (infoPanel != null)
+        {
+            var definitions = new System.Collections.Generic.List<CharacterDefinition>();
+            foreach (CharacterSlot slot in characterSlots)
+            {
+                if (slot != null && slot.definition != null)
+                    definitions.Add(slot.definition);
+            }
+            infoPanel.SetStatRange(definitions);
+        }
     }
 
-    /// <summary>선택된 버튼만 하늘색 배경으로, 나머지는 원래 배경으로 되돌린다.</summary>
-    private void RefreshSelectionVisual(int selectedIndex)
+    /// <summary>선택된 버튼만 선택 배경으로, 나머지는 원래 배경으로 되돌린다.
+    /// 카드 연출(CharacterSelectCard)이 붙어 있으면 테두리/글로우/띄우기도 같이 바꾼다.</summary>
+    private void RefreshSelectionVisual(int selectedIndex, bool instant = false)
     {
         if (characterSlots == null)
             return;
@@ -286,7 +457,13 @@ public class CharacterSelectUI : MonoBehaviour
         for (int i = 0; i < characterSlots.Length; i++)
         {
             CharacterSlot slot = characterSlots[i];
-            if (slot == null || slot.background == null)
+            if (slot == null)
+                continue;
+
+            if (cards != null && cards[i] != null)
+                cards[i].SetSelected(slot.characterIndex == selectedIndex, instant);
+
+            if (slot.background == null)
                 continue;
 
             if (slot.characterIndex == selectedIndex)
@@ -358,9 +535,36 @@ public class CharacterSelectUI : MonoBehaviour
             }
         }
 
+        SoundManager.Instance?.PlaySfx(openSound, sfxVolume);
+        if (backgroundBlur != null)
+            backgroundBlur.SetTarget(1f);
+        PlayCardDealIn();
+        if (infoPanel != null)
+            infoPanel.PlayIntro(infoIntroDelay);
+
         yield return FadeTo(1f, 1f, openDuration, useOvershoot: true);
         SetInteractable(true);
         animRoutine = null;
+    }
+
+    /// <summary>카드들이 아래에서 부채꼴로 기울어진 채 날아와 왼쪽부터 차례로 펼쳐진다.</summary>
+    private void PlayCardDealIn()
+    {
+        if (cards == null)
+            return;
+
+        int count = cards.Length;
+        float center = (count - 1) * 0.5f;
+        for (int i = 0; i < count; i++)
+        {
+            if (cards[i] == null)
+                continue;
+
+            // 가운데에서 먼 카드일수록 더 기울고 더 바깥쪽(가운데 반대편)에서 시작한다.
+            float side = center > 0f ? (i - center) / center : 0f;
+            Vector2 from = cardDealOffset + new Vector2(-side * 60f, 0f);
+            cards[i].PlayDealIn(i * cardDealStagger, cardDealDuration, from, -side * cardDealSpreadAngle);
+        }
     }
 
     /// <summary>바로 페이드아웃하며 줄어들었다가, 다 끝나면 패널을 비활성화한다.</summary>
@@ -412,6 +616,18 @@ public class CharacterSelectUI : MonoBehaviour
 
         if (panel != null)
             panel.transform.localScale = new Vector3(scale, scale, 1f);
+
+        // 패널이 나타나는 만큼 로비 HUD는 사라져서 겹치지 않게 한다.
+        if (hideWhileOpen == null)
+            return;
+
+        foreach (CanvasGroup hud in hideWhileOpen)
+        {
+            if (hud == null)
+                continue;
+            hud.alpha = 1f - alpha;
+            hud.blocksRaycasts = alpha < 0.5f;
+        }
     }
 
     private void SetInteractable(bool interactable)

@@ -54,7 +54,19 @@ public class SettingsPanel : MonoBehaviour
     [SerializeField] private Button leaveYesButton;
     [SerializeField] private Button leaveNoButton;
 
+    [Header("연출")]
+    [Tooltip("열고 닫을 때 살짝 커지며 나타나는 창(배경 어둡게 깔리는 부분 제외). 비우면 창 전체가 그대로 페이드된다.")]
+    [SerializeField] private RectTransform window;
+    [Tooltip("열 때 줄들이 차례로 밀려 들어오게 할 목록(비워도 된다).")]
+    [SerializeField] private UIStaggerReveal rowsReveal;
+    [SerializeField] private AudioClip openSound;
+    [SerializeField] private AudioClip closeSound;
+    [Range(0f, 1f)] [SerializeField] private float soundVolume = 0.6f;
+    [Min(0.01f)] [SerializeField] private float fadeDuration = 0.16f;
+
     private CanvasGroup canvasGroup;
+    private float visibleT;
+    private bool targetVisible;
     private bool isOpen;
     private bool lockedByMe;
     private bool lockedAtEndOfLastFrame;
@@ -97,6 +109,8 @@ public class SettingsPanel : MonoBehaviour
         SetGroupVisible(leaveConfirm, false);
 
         SetVisible(false);
+        visibleT = 0f;
+        ApplyVisibility();
     }
 
     private void OnDisable()
@@ -133,6 +147,13 @@ public class SettingsPanel : MonoBehaviour
 
     private void LateUpdate()
     {
+        float target = targetVisible ? 1f : 0f;
+        if (!Mathf.Approximately(visibleT, target))
+        {
+            visibleT = Mathf.MoveTowards(visibleT, target, Time.unscaledDeltaTime / fadeDuration);
+            ApplyVisibility();
+        }
+
         lockedAtEndOfLastFrame = CharacterBase.IsLobbyControlLocked;
         typingAtEndOfLastFrame = IsTypingInInputField();
         keyBindingsOpenAtEndOfLastFrame = KeyBindingsPanel.IsOpen;
@@ -176,6 +197,9 @@ public class SettingsPanel : MonoBehaviour
         isOpen = true;
         RefreshValues();
         SetVisible(true);
+        if (rowsReveal != null)
+            rowsReveal.Play();
+        SoundManager.Instance?.PlaySfx(openSound, soundVolume);
         if (leaveButtonLabel != null)
             leaveButtonLabel.text = PracticeSession.IsActive ? "연습장 나가기" : "로비로 나가기";
 
@@ -194,6 +218,7 @@ public class SettingsPanel : MonoBehaviour
 
         isOpen = false;
         SetVisible(false);
+        SoundManager.Instance?.PlaySfx(closeSound, soundVolume);
         SetGroupVisible(leaveConfirm, false);
         ReleaseLock();
         if (KeyBindingsPanel.IsOpen)
@@ -323,10 +348,22 @@ public class SettingsPanel : MonoBehaviour
         group.blocksRaycasts = visible;
     }
 
+    // 클릭 가능 여부는 바로 바꾸고, 보이는 건 LateUpdate에서 짧게 페이드한다.
     private void SetVisible(bool visible)
     {
-        canvasGroup.alpha = visible ? 1f : 0f;
+        targetVisible = visible;
         canvasGroup.interactable = visible;
         canvasGroup.blocksRaycasts = visible;
+    }
+
+    private void ApplyVisibility()
+    {
+        float e = 1f - (1f - visibleT) * (1f - visibleT);
+        canvasGroup.alpha = e;
+        if (window != null)
+        {
+            float s = Mathf.Lerp(0.95f, 1f, e);
+            window.localScale = new Vector3(s, s, 1f);
+        }
     }
 }

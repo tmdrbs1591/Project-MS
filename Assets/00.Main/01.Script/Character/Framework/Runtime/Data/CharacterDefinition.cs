@@ -90,6 +90,8 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private CharacterSkillInfo skillQInfo;
         [SerializeField] private CharacterSkillInfo skillEInfo;
         [SerializeField] private CharacterSkillInfo ultimateInfo;
+        [Tooltip("캐릭터 선택 화면에서 이 캐릭터를 골랐을 때 말풍선으로 뜨는 한 줄 대사.")]
+        [SerializeField] private string selectLine;
 
         [Header("Input (미사용 — 실제 키는 사용자 키 설정 KeyBindings에서 읽는다)")]
         [SerializeField] private Key moveLeft = Key.A;
@@ -107,6 +109,7 @@ namespace ProjectMS.CharacterSystem
         public Sprite Portrait => portrait;
         public Sprite PassiveIcon => passiveIcon;
         public CharacterSkillInfo PassiveInfo => passiveInfo;
+        public string SelectLine => selectLine;
 
         /// <summary>설명 UI용 스킬 이름/설명. 평타 등 설명이 없는 액션은 빈 값.</summary>
         public CharacterSkillInfo GetSkillInfo(CharacterActionType action)

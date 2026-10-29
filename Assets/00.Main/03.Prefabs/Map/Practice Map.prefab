@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2011195890997259060
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5573,8 +5573,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PracticeExitPortal
   interactRadius: 1.6
-  promptText: {fileID: 8426780807297397150}
-  promptFormat: "{0}  \uB098\uAC00\uAE30"
+  keyPromptPrefab: {fileID: 7757925576958473948, guid: 71fd0c05c4d51db4895021bb2c67a628, type: 3}
+  promptLabel: "\uB098\uAC00\uAE30"
+  promptOffset: {x: 0, y: 0.35}
   fadeInDuration: 0.8
 --- !u!1 &1427239617544535106
 GameObject:
@@ -10658,6 +10659,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84931a9754a587a4ab78e22d38de5ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapDefinition
+  thumbnail: {fileID: 0}
   spawnPoints:
   - {fileID: 3648464217167898650}
   - {fileID: 1719823187622208522}

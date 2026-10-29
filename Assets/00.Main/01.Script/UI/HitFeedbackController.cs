@@ -21,6 +21,11 @@ public class HitFeedbackController : MonoBehaviour
 {
     [Header("데미지 숫자")]
     [SerializeField] private TMP_FontAsset font;
+    [Tooltip("외곽선/그림자가 들어간 숫자 전용 폰트 머티리얼. 비우면 숫자마다 외곽선을 따로 켠다(머티리얼이 숫자마다 복사됨).")]
+    [SerializeField] private Material fontMaterial;
+    [Tooltip("피해가 이만큼 이상이면 숫자가 최대 크기 배율(bigHitScale)까지 커진다.")]
+    [Min(1f)] [SerializeField] private float bigHitDamage = 40f;
+    [Range(1f, 2f)] [SerializeField] private float bigHitScale = 1.3f;
     [SerializeField] private Color dealtColor = new Color(1f, 0.85f, 0.2f);
     [SerializeField] private Color takenColor = new Color(1f, 0.3f, 0.3f);
     [SerializeField] private Color minorColor = new Color(1f, 1f, 1f, 0.75f);
@@ -131,6 +136,8 @@ public class HitFeedbackController : MonoBehaviour
         int value = Mathf.Max(1, Mathf.RoundToInt(hit.Amount));
         Color color = hit.IsNonImpact ? minorColor : dealtByMe ? dealtColor : takenByMe ? takenColor : Color.white;
         float size = numberSize * (hit.IsNonImpact ? minorSizeScale : dealtByMe ? 1.15f : 1f);
+        if (!hit.IsNonImpact)
+            size *= Mathf.Lerp(1f, bigHitScale, Mathf.Clamp01(hit.Amount / bigHitDamage));
 
         TextMeshPro text = Acquire();
         text.text = value.ToString();
@@ -158,12 +165,13 @@ public class HitFeedbackController : MonoBehaviour
                 continue;
             }
 
-            // 처음엔 살짝 커졌다가(팝) 위로 떠오르며 사라진다.
-            float pop = t < 0.15f ? Mathf.Lerp(1.4f, 1f, t / 0.15f) : 1f;
+            // 살짝 크게 떴다가 제 크기로 돌아오고, 천천히 감속하며 조금 올라가다 사라진다.
+            float pop = t < 0.12f ? Mathf.Lerp(1.2f, 1f, t / 0.12f) : 1f;
             popup.Text.fontSize = popup.BaseSize * pop;
-            popup.Text.transform.position = popup.Start + Vector3.up * (riseDistance * (1f - (1f - t) * (1f - t)));
+            float rise = 1f - (1f - t) * (1f - t);
+            popup.Text.transform.position = popup.Start + new Vector3(0f, riseDistance * rise, 0f);
             Color c = popup.Color;
-            c.a *= t < 0.6f ? 1f : 1f - (t - 0.6f) / 0.4f;
+            c.a *= t < 0.65f ? 1f : 1f - (t - 0.65f) / 0.35f;
             popup.Text.color = c;
         }
     }
@@ -191,9 +199,14 @@ public class HitFeedbackController : MonoBehaviour
         if (font != null)
             text.font = font;
         text.alignment = TextAlignmentOptions.Center;
-        text.fontStyle = FontStyles.Bold;
-        text.outlineWidth = 0.25f;
-        text.outlineColor = new Color32(0, 0, 0, 200);
+        if (fontMaterial != null)
+            text.fontSharedMaterial = fontMaterial;
+        else
+        {
+            text.fontStyle = FontStyles.Bold;
+            text.outlineWidth = 0.25f;
+            text.outlineColor = new Color32(0, 0, 0, 200);
+        }
         text.enableWordWrapping = false;
         text.raycastTarget = false;
         text.sortingLayerID = SortingLayer.NameToID(sortingLayerName);

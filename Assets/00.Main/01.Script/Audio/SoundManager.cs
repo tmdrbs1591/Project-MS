@@ -105,8 +105,57 @@ public class SoundManager : MonoBehaviour
 
     public void StopMusic()
     {
+        if (musicFade != null)
+        {
+            StopCoroutine(musicFade);
+            musicFade = null;
+        }
         if (musicSource != null)
             musicSource.Stop();
+    }
+
+    /// <summary>지금 배경음을 서서히 줄이고 clip으로 바꿔 서서히 키운다. clip이 null이면 줄이고 끝낸다.</summary>
+    public void CrossfadeMusic(AudioClip clip, float duration = 0.6f)
+    {
+        EnsureMusicSource();
+        if (clip != null && musicSource.clip == clip && musicSource.isPlaying)
+            return;
+        if (musicFade != null)
+            StopCoroutine(musicFade);
+        musicFade = StartCoroutine(CrossfadeRoutine(clip, Mathf.Max(0.01f, duration)));
+    }
+
+    private Coroutine musicFade;
+
+    private System.Collections.IEnumerator CrossfadeRoutine(AudioClip clip, float duration)
+    {
+        float half = duration * 0.5f;
+        float target = MusicVolume * MasterVolume;
+        if (musicSource.isPlaying)
+        {
+            float start = musicSource.volume;
+            for (float t = 0f; t < half; t += Time.unscaledDeltaTime)
+            {
+                musicSource.volume = Mathf.Lerp(start, 0f, t / half);
+                yield return null;
+            }
+            musicSource.Stop();
+        }
+
+        if (clip != null)
+        {
+            musicSource.clip = clip;
+            musicSource.loop = true;
+            musicSource.volume = 0f;
+            musicSource.Play();
+            for (float t = 0f; t < half; t += Time.unscaledDeltaTime)
+            {
+                musicSource.volume = Mathf.Lerp(0f, target, t / half);
+                yield return null;
+            }
+            musicSource.volume = target;
+        }
+        musicFade = null;
     }
 
     public void SetMasterVolume(float value)

@@ -273,6 +273,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
         sessionJoinedTime = -1f;
         PracticeSession.End();
         IsSwitchingSession = false;
+        SceneTransition.Instance?.Play("로비", "로비로 돌아가는 중", new Color(0.55f, 0.65f, 1f, 1f));
 
         try
         {

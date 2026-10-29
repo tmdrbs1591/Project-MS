@@ -32,13 +32,24 @@ public class CooldownSlotUI : MonoBehaviour
     [SerializeField] private TMP_Text remainingText;
     [SerializeField] private Image gaugeFillImage;
     [SerializeField] private TMP_Text chargeCountText;
+    [Tooltip("충전 숫자 뒤의 동그란 바탕(선택). 충전형이 아닌 스킬이면 숫자와 함께 숨긴다.")]
+    [SerializeField] private GameObject chargeBadge;
     [Tooltip("충전형 스킬에서 충전이 1개 이상 남아(쓸 수 있는 상태) 재충전 중일 때, 쿨타임 오버레이의 " +
              "투명도에 곱하는 값. 0이면 안 보이고 1이면 충전 0개일 때와 똑같이 진하다.")]
     [Range(0f, 1f)] [SerializeField] private float usableOverlayAlphaScale = 0.4f;
     [Tooltip("게이지형 궁극기가 덜 찼을 때 게이지 뒤에 깔리는 아이콘 색(아이콘 원래 색에 곱해짐. 알파를 낮추면 뒤 배경이 비쳐 하얗게 바래므로 1 권장).")]
     [SerializeField] private Color gaugeEmptyIconColor = new Color(0.5f, 0.5f, 0.55f, 1f);
 
+    [Header("준비 완료 반짝임 (선택)")]
+    [Tooltip("쿨타임/게이지가 끝나 다시 쓸 수 있게 되는 순간 한 번 번쩍이는 테두리 빛.")]
+    [SerializeField] private Image readyFlash;
+    [Tooltip("반짝일 때 살짝 튀는 묶음(아이콘/테두리를 감싼 자식).")]
+    [SerializeField] private RectTransform punchTarget;
+    [Min(0.05f)] [SerializeField] private float readyFlashDuration = 0.45f;
+
     private Image gaugeBackdrop;
+    private bool wasReady = true;
+    private float readyTime = -10f;
 
     private Color overlayBaseColor;
     private bool overlayColorCached;
@@ -64,6 +75,37 @@ public class CooldownSlotUI : MonoBehaviour
         if (chargeCountText != null)
             chargeCountText.text = string.Empty;
         SetChargeCountActive(false); // 충전형이 아닌 스킬이면 숫자 오브젝트는 꺼둔다.
+        MarkReady(!onCooldown);
+    }
+
+    /// <summary>못 쓰던 상태 → 쓸 수 있는 상태로 바뀌는 순간 반짝임을 튼다.</summary>
+    private void MarkReady(bool ready)
+    {
+        if (ready && !wasReady)
+            readyTime = Time.unscaledTime;
+        wasReady = ready;
+    }
+
+    private void Update()
+    {
+        if (readyFlash == null && punchTarget == null)
+            return;
+
+        float t = Mathf.Clamp01((Time.unscaledTime - readyTime) / readyFlashDuration);
+        float k = 1f - t;
+        if (readyFlash != null)
+        {
+            Color c = readyFlash.color;
+            c.a = k * k;
+            readyFlash.color = c;
+            float s = 1f + t * 0.25f;
+            readyFlash.rectTransform.localScale = new Vector3(s, s, 1f);
+        }
+        if (punchTarget != null)
+        {
+            float p = 1f + Mathf.Sin(t * Mathf.PI) * 0.1f * (t < 1f ? 1f : 0f);
+            punchTarget.localScale = new Vector3(p, p, 1f);
+        }
     }
 
     /// <summary>충전형 스킬 표시. currentCharges는 남은 충전 수, rechargeRemaining/Total은 다음
@@ -92,6 +134,7 @@ public class CooldownSlotUI : MonoBehaviour
 
         if (gaugeFillImage != null)
             gaugeFillImage.fillAmount = 0f;
+        MarkReady(charges > 0);
     }
 
     private void SetOverlayAlphaScale(float scale)
@@ -116,12 +159,13 @@ public class CooldownSlotUI : MonoBehaviour
     /// 달리, 실제로 게이지가 차오르는 걸 그대로 보여준다.</summary>
     public void UpdateGauge(float current, float max)
     {
+        float gaugeFill = max > 0f ? Mathf.Clamp01(current / max) : 0f;
         if (gaugeFillImage != null)
         {
-            float fill = max > 0f ? Mathf.Clamp01(current / max) : 0f;
-            gaugeFillImage.fillAmount = fill;
-            UpdateGaugeBackdrop(fill < 1f);
+            gaugeFillImage.fillAmount = gaugeFill;
+            UpdateGaugeBackdrop(gaugeFill < 1f);
         }
+        MarkReady(gaugeFill >= 1f);
 
         // 게이지 모드로 갱신 중이면 쿨타임 오버레이/텍스트/충전 숫자는 관여하지 않는 상태이므로 비운다.
         if (cooldownOverlay != null)
@@ -136,6 +180,8 @@ public class CooldownSlotUI : MonoBehaviour
 
     private void SetChargeCountActive(bool active)
     {
+        if (chargeBadge != null && chargeBadge.activeSelf != active)
+            chargeBadge.SetActive(active);
         if (chargeCountText == null)
             return;
 

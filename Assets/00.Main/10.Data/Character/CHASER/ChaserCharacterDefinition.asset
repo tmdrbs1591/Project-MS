@@ -36,6 +36,9 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  standOnLayers:
+    serializedVersion: 2
+    m_Bits: 0
   coyoteTime: 0.1
   jumpBufferTime: 0.12
   fallGravityMultiplier: 2.2
@@ -82,6 +85,7 @@ MonoBehaviour:
       \uC774\uB3D9\uACFC \uB2E4\uB978 \uC2A4\uD0AC\uC744 \uC4F8 \uC218 \uC5C6\uB294
       \uB300\uC2E0, \uC870\uC900\uD55C \uC9C0\uC810\uC5D0 \uAC15\uB825\uD55C \uC800\uACA9\uC744
       \uC815\uD574\uC9C4 \uBC1C \uC218\uB9CC\uD07C \uC3E9\uB2C8\uB2E4."
+  selectLine: "\uD0C0\uAC9F \uD655\uC778. \uC228\uC5B4\uB3C4 \uC18C\uC6A9\uC5C6\uC5B4."
   moveLeft: 15
   moveRight: 18
   jump: 1
