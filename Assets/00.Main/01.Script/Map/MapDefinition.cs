@@ -18,6 +18,8 @@ using UnityEngine;
 /// </summary>
 public class MapDefinition : MonoBehaviour
 {
+    [Tooltip("시작 연출의 맵 슬롯머신(MapSlotMachine)에 보여줄 이 맵의 대표 이미지.")]
+    [SerializeField] private Sprite thumbnail;
     [Tooltip("PlayerId 오름차순(1, 2, ...)에 대응하는 스폰 지점.")]
     [SerializeField] private Transform[] spawnPoints;
 
@@ -27,6 +29,7 @@ public class MapDefinition : MonoBehaviour
     [Tooltip("RopePlank 등 마스터 클라가 Runner.Spawn해야 하는 동적 구조물.")]
     [SerializeField] private MapStructureSpawn[] structureSpawns = Array.Empty<MapStructureSpawn>();
 
+    public Sprite Thumbnail => thumbnail;
     public Transform[] SpawnPoints => spawnPoints;
     public Collider2D CameraBounds => cameraBounds;
     public MapStructureSpawn[] StructureSpawns => structureSpawns;

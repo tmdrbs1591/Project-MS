@@ -341,8 +341,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutOfBoundsZone
   fallDamagePercent: 0.1
-  bounceVelocity: 18
-  bounceDuration: 0.75
+  bounceVelocity: 28
+  bounceDuration: 0.4
 --- !u!1 &1310067860368503813
 GameObject:
   m_ObjectHideFlags: 0
@@ -535,7 +535,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2423454108966127113
 Transform:
   m_ObjectHideFlags: 0
@@ -648,7 +648,7 @@ Transform:
   m_GameObject: {fileID: 2538169772667715833}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 9, y: 0.6, z: 0}
+  m_LocalPosition: {x: 9, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -809,7 +809,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6859526658369068895
 Transform:
   m_ObjectHideFlags: 0
@@ -2289,7 +2289,7 @@ Transform:
   m_GameObject: {fileID: 7487127587709960597}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -9, y: 0.6, z: 0}
+  m_LocalPosition: {x: -9, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2355,6 +2355,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84931a9754a587a4ab78e22d38de5ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapDefinition
+  thumbnail: {fileID: 2419730887640011300, guid: 73f414c052b7ca44e88e613fc439554a, type: 3}
   spawnPoints:
   - {fileID: 3175992284898599335}
   - {fileID: 6940212961904853130}

@@ -16,6 +16,8 @@ using UnityEngine.UI;
 ///   그 오브젝트의 위치·크기가 곧 창이고, 마스크·띠·칸은 실행할 때 자동으로 만들어진다.
 ///   - 스크립트를 다른 곳에 두려면 Slot Window에 창 오브젝트를 넣는다.
 ///   - 돌리기: Spin() / Spin(결과인덱스). Spin On Enable을 켜면 켜질 때 자동으로 돈다.
+///   - Use Map Manager(기본 켬): 맵 매니저에 등록된 맵들의 대표 이미지(MapDefinition.Thumbnail)를
+///     쓰고, 실제로 깔린 맵에서 멈춘다. 대표 이미지가 하나라도 비어 있으면 Map Sprites로 무작위로 돈다.
 /// </summary>
 public class MapSlotMachine : MonoBehaviour
 {
@@ -46,6 +48,8 @@ public class MapSlotMachine : MonoBehaviour
     [SerializeField] private AudioClip stopClip;
 
     [SerializeField] private bool spinOnEnable = true;
+    [Tooltip("켜면 맵 매니저의 맵 대표 이미지를 쓰고, 실제로 시작하는 맵에서 멈춘다.")]
+    [SerializeField] private bool useMapManager = true;
 
     [Tooltip("멈췄을 때 결과 인덱스를 알려준다.")]
     public UnityEvent<int> onResult;
@@ -70,9 +74,18 @@ public class MapSlotMachine : MonoBehaviour
 
     private void OnDisable() => routine = null;
 
-    /// <summary>랜덤한 맵으로 돌린다.</summary>
+    /// <summary>실제 맵(맵 매니저 연동 시) 또는 랜덤한 맵으로 돌린다.</summary>
     public void Spin()
     {
+        MapManager maps = useMapManager ? MapManager.Instance : null;
+        Sprite[] thumbnails = maps != null ? maps.GetMapThumbnails() : null;
+        if (thumbnails != null && maps.ActiveMapIndex >= 0)
+        {
+            mapSprites = thumbnails;
+            Spin(maps.ActiveMapIndex);
+            return;
+        }
+
         if (mapSprites != null && mapSprites.Length > 0)
             Spin(Random.Range(0, mapSprites.Length));
     }

@@ -6811,6 +6811,7 @@ MonoBehaviour:
   minSize: 5
   maxSize: 20
   boundsCollider: {fileID: 669845288}
+  clampFocusToBounds: 1
   positionSmoothTime: 0.2
   zoomSmoothTime: 0.3
   verticalDeadzone: 0.6
@@ -45037,6 +45038,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 652793779395098968, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
       insertIndex: 2
       addedObject: {fileID: 6956233609739180002}
+    - targetCorrespondingSourceObject: {fileID: 652793779395098968, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6956233609739180003}
   m_SourcePrefab: {fileID: 100100000, guid: 3e64497bb4748a54187cc31e0b4f0dd8, type: 3}
 --- !u!1 &3646246254976116557 stripped
 GameObject:
@@ -45108,9 +45112,26 @@ MonoBehaviour:
   tickVolume: 0.5
   stopClip: {fileID: 0}
   spinOnEnable: 1
+  useMapManager: 1
   onResult:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6956233609739180003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3646246254976116557}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53d973f58aff45a469ab4ba748168bc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScaleWithCameraZoom
+  targetCamera: {fileID: 0}
+  referenceSize: 5
+  fitTo: {fileID: 1556864772}
+  fitMargin: 1.01
 --- !u!1001 &6971120539330799928
 PrefabInstance:
   m_ObjectHideFlags: 0

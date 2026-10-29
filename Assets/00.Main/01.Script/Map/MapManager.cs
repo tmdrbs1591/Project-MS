@@ -49,6 +49,27 @@ public class MapManager : MonoBehaviour
     private MapDefinition activeMapDefinition;
     private int activeRoundNumber = -1;
     private bool activeIsPracticeMap;
+    private int activeMapIndex = -1;
+
+    /// <summary>지금 깔려 있는 맵의 mapPrefabs 인덱스(연습 맵이거나 아직 없으면 -1).</summary>
+    public int ActiveMapIndex => activeIsPracticeMap ? -1 : activeMapIndex;
+
+    /// <summary>mapPrefabs 순서대로 각 맵의 대표 이미지(MapDefinition.Thumbnail). 하나라도 비어 있으면 null.</summary>
+    public Sprite[] GetMapThumbnails()
+    {
+        if (mapPrefabs == null || mapPrefabs.Length == 0)
+            return null;
+
+        var thumbnails = new Sprite[mapPrefabs.Length];
+        for (int i = 0; i < mapPrefabs.Length; i++)
+        {
+            MapDefinition def = mapPrefabs[i] != null ? mapPrefabs[i].GetComponent<MapDefinition>() : null;
+            if (def == null || def.Thumbnail == null)
+                return null;
+            thumbnails[i] = def.Thumbnail;
+        }
+        return thumbnails;
+    }
     private readonly List<NetworkObject> spawnedStructures = new List<NetworkObject>();
 
     private void Awake()
@@ -139,6 +160,7 @@ public class MapManager : MonoBehaviour
         activeMapDefinition = activeMapInstance.GetComponent<MapDefinition>();
         activeRoundNumber = roundNumber;
         activeIsPracticeMap = wantPractice;
+        activeMapIndex = index;
 
         if (activeMapDefinition == null)
         {

@@ -703,6 +703,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84931a9754a587a4ab78e22d38de5ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapDefinition
+  thumbnail: {fileID: -3398082905029910599, guid: 1fc52847c2f18dc46b215d2d876aa34f, type: 3}
   spawnPoints:
   - {fileID: 3467502672670531440}
   - {fileID: 1408476170103300483}
