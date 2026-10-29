@@ -222,6 +222,10 @@ MonoBehaviour:
   packNameText: {fileID: 1625324166462723521}
   pickButton: {fileID: 2311122571008676335}
   rerollButton: {fileID: 8248587396174792558}
+  hoverLift: 18
+  hoverScale: 0.05
+  hoverSpeed: 14
+  glowDistance: {x: 5, y: 5}
 --- !u!114 &2311122571008676335
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,7 +347,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: f4647c672ffdfdf43b8b7a8b81e2f255, type: 3}
+  m_Sprite: {fileID: 8703389998563471379, guid: 463fdd3f213b49247af6bb26443ef972, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

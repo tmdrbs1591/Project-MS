@@ -51,10 +51,10 @@ MonoBehaviour:
   autoHopInterval: 0.1
   autoHopForce: 5
   autoHopMoveThreshold: 0.05
-  skillQIcon: {fileID: -5129845165933064271, guid: 31e816d8e650e5c489d2fe7a967ade47, type: 3}
-  skillEIcon: {fileID: 7625062217138964392, guid: 25720506b3b92c94f89ff81da6dfd569, type: 3}
-  dashIcon: {fileID: 7758384138714472818, guid: 425ba45b0386b21459bbd13dbb3c25f2, type: 3}
-  ultimateIcon: {fileID: -1679085568475732275, guid: f8b7a01b58bdddf49934caedb3470e6c, type: 3}
+  skillQIcon: {fileID: 4966455137468271710, guid: a461ff24efb85ac4d953a89b70ba3c53, type: 3}
+  skillEIcon: {fileID: -8190756216366609758, guid: c2e40353c8964d84baafd5081f5e63e4, type: 3}
+  dashIcon: {fileID: -7848039375673857549, guid: f32f36a6a86771145bb57608b10db19e, type: 3}
+  ultimateIcon: {fileID: 8537785646564753989, guid: 0ac3ad6aa65c7c44a91fc68b29d7c73e, type: 3}
   role: "\uAE30\uB3D9\uD615 \uB51C\uB7EC"
   description: "\uC0B0\uD0C4\uC73C\uB85C \uBAB0\uC544\uBD99\uC774\uB2E4 \uC800\uACA9
     \uBAA8\uB4DC\uB85C \uB9C8\uBB34\uB9AC\uD558\uB294 \uCE90\uB9AD\uD130\uC785\uB2C8\uB2E4.

@@ -91,7 +91,7 @@ public class AugmentSelectUI : MonoBehaviour
             foreach (AugmentChoiceSlot slot in slots)
             {
                 if (slot != null)
-                    slot.HoverEntered += _ => PlaySound(hoverClip, hoverVolume);
+                    slot.HoverEntered += _ => PlayHoverSound();
             }
         }
 
@@ -217,6 +217,7 @@ public class AugmentSelectUI : MonoBehaviour
         // 지급은 즉시(제한시간 경계와 겹쳐도 확실히 반영되게), 연출은 그 뒤에 보여준다.
         local.GrantAugment(picked.CurrentType);
         PlaySound(pickClip);
+        hoverMutedUntil = Time.unscaledTime + HoverMuteAfterAction;
         pickRoutine = StartCoroutine(PickSequence(picked));
     }
 
@@ -276,6 +277,7 @@ public class AugmentSelectUI : MonoBehaviour
             return;
 
         PlaySound(rerollClip);
+        hoverMutedUntil = Time.unscaledTime + HoverMuteAfterAction;
         slot.PlayFlipSwap(() => AssignRandom(index, resetReroll: false));
     }
 
@@ -500,9 +502,31 @@ public class AugmentSelectUI : MonoBehaviour
         }
     }
 
+    // 같은 소리가 아주 짧은 간격으로 겹쳐 울리지 않게 한다(리롤을 연달아 누르거나, 호버 진입 이벤트가
+    // 카드/리롤 버튼 사이를 오가며 여러 번 들어오는 경우 등).
+    private const float SameClipMinInterval = 0.12f;
+    private static readonly Dictionary<AudioClip, float> lastPlayedAt = new Dictionary<AudioClip, float>();
+
     private static void PlaySound(AudioClip clip, float volume = 1f)
     {
-        if (clip != null)
-            SoundManager.Instance?.PlaySfx(clip, volume);
+        if (clip == null)
+            return;
+
+        float now = Time.unscaledTime;
+        if (lastPlayedAt.TryGetValue(clip, out float last) && now - last < SameClipMinInterval)
+            return;
+        lastPlayedAt[clip] = now;
+        SoundManager.Instance?.PlaySfx(clip, volume);
+    }
+
+    // 리롤/선택 직후 잠깐은 호버 소리를 내지 않는다(카드가 접혔다 펴지며 마우스가 다시 "들어온" 것으로 잡히기 때문).
+    private const float HoverMuteAfterAction = 0.4f;
+    private float hoverMutedUntil;
+
+    private void PlayHoverSound()
+    {
+        if (Time.unscaledTime < hoverMutedUntil || state != State.Ready)
+            return;
+        PlaySound(hoverClip, hoverVolume);
     }
 }

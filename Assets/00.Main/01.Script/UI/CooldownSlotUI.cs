@@ -17,6 +17,8 @@ using ProjectMS.CharacterSystem;
 ///     Filled로 설정하되, 채워질수록(0→1) "준비됨"을 뜻하므로 cooldownOverlay와 반대 방향
 ///     느낌으로 헷갈리지 않게 색을 다르게 주는 걸 권장한다. 궁극기가 쿨타임형인 캐릭터는
 ///     이 필드를 비워둬도 된다(안 쓰임).
+///   - 게이지가 덜 찬 동안에는 gaugeFillImage 뒤에 같은 아이콘을 어둡고 흐리게(gaugeEmptyIconColor)
+///     한 장 자동으로 깔아서, 게이지가 0이어도 아이콘 모양이 보이게 한다(씬에 따로 만들 필요 없음).
 ///   - 충전형 스킬(예: Zipper Q)은 chargeCountText에 남은 충전 수를 숫자로 보여주고,
 ///     cooldownOverlay/remainingText로 "다음 충전까지"를 보여준다(UpdateCharges).
 ///     충전이 1개 이상 남아 있으면(=쓸 수 있으면) 오버레이를 연하게, 0개면 원래 진하기로
@@ -33,6 +35,10 @@ public class CooldownSlotUI : MonoBehaviour
     [Tooltip("충전형 스킬에서 충전이 1개 이상 남아(쓸 수 있는 상태) 재충전 중일 때, 쿨타임 오버레이의 " +
              "투명도에 곱하는 값. 0이면 안 보이고 1이면 충전 0개일 때와 똑같이 진하다.")]
     [Range(0f, 1f)] [SerializeField] private float usableOverlayAlphaScale = 0.4f;
+    [Tooltip("게이지형 궁극기가 덜 찼을 때 게이지 뒤에 깔리는 아이콘 색(아이콘 원래 색에 곱해짐. 알파를 낮추면 뒤 배경이 비쳐 하얗게 바래므로 1 권장).")]
+    [SerializeField] private Color gaugeEmptyIconColor = new Color(0.5f, 0.5f, 0.55f, 1f);
+
+    private Image gaugeBackdrop;
 
     private Color overlayBaseColor;
     private bool overlayColorCached;
@@ -43,6 +49,7 @@ public class CooldownSlotUI : MonoBehaviour
     public void UpdateCooldown(float remaining, float total)
     {
         bool onCooldown = total > 0f && remaining > 0f;
+        HideGaugeBackdrop();
 
         if (cooldownOverlay != null)
             cooldownOverlay.fillAmount = onCooldown ? remaining / total : 0f;
@@ -63,6 +70,7 @@ public class CooldownSlotUI : MonoBehaviour
     /// 충전까지 남은 시간/총 시간이다. 충전이 가득 차 있으면 오버레이 없이 숫자만 보인다.</summary>
     public void UpdateCharges(int currentCharges, int maxCharges, float rechargeRemaining, float rechargeTotal)
     {
+        HideGaugeBackdrop();
         // 음수 = 잔탄이 아직 초기화되지 않은 상태(사망 직후 등). 다음 리셋에서 가득 채워지므로 가득 찬 걸로 본다.
         int charges = currentCharges < 0
             ? Mathf.Max(0, maxCharges)
@@ -109,7 +117,11 @@ public class CooldownSlotUI : MonoBehaviour
     public void UpdateGauge(float current, float max)
     {
         if (gaugeFillImage != null)
-            gaugeFillImage.fillAmount = max > 0f ? Mathf.Clamp01(current / max) : 0f;
+        {
+            float fill = max > 0f ? Mathf.Clamp01(current / max) : 0f;
+            gaugeFillImage.fillAmount = fill;
+            UpdateGaugeBackdrop(fill < 1f);
+        }
 
         // 게이지 모드로 갱신 중이면 쿨타임 오버레이/텍스트/충전 숫자는 관여하지 않는 상태이므로 비운다.
         if (cooldownOverlay != null)
@@ -140,6 +152,50 @@ public class CooldownSlotUI : MonoBehaviour
     }
 
     /// <summary>이 슬롯의 아이콘을 바꾼다. null이면 빈 채로 둔다(그 액션을 안 쓰는 캐릭터 등).</summary>
+    // 게이지 Image(보통 아이콘 자체를 Vertical Fill로 쓴다) 바로 뒤에 같은 그림을 어둡게 깐다.
+    private void UpdateGaugeBackdrop(bool show)
+    {
+        if (show && gaugeBackdrop == null && gaugeFillImage.sprite != null)
+            CreateGaugeBackdrop();
+        if (gaugeBackdrop == null)
+            return;
+
+        gaugeBackdrop.sprite = gaugeFillImage.sprite;
+        gaugeBackdrop.preserveAspect = gaugeFillImage.preserveAspect;
+        gaugeBackdrop.color = gaugeEmptyIconColor;
+        gaugeBackdrop.enabled = show && gaugeFillImage.enabled && gaugeFillImage.sprite != null;
+    }
+
+    private void CreateGaugeBackdrop()
+    {
+        RectTransform source = gaugeFillImage.rectTransform;
+        var go = new GameObject("Gauge Empty Icon", typeof(RectTransform));
+        go.layer = source.gameObject.layer;
+        RectTransform rect = (RectTransform)go.transform;
+        rect.SetParent(source.parent, false);
+        rect.SetSiblingIndex(source.GetSiblingIndex());
+        rect.anchorMin = source.anchorMin;
+        rect.anchorMax = source.anchorMax;
+        rect.pivot = source.pivot;
+        rect.anchoredPosition = source.anchoredPosition;
+        rect.sizeDelta = source.sizeDelta;
+        rect.localRotation = source.localRotation;
+        rect.localScale = source.localScale;
+
+        gaugeBackdrop = go.AddComponent<Image>();
+        gaugeBackdrop.raycastTarget = false;
+        gaugeBackdrop.type = Image.Type.Simple;
+    }
+
+    private void HideGaugeBackdrop()
+    {
+        if (gaugeBackdrop != null)
+            gaugeBackdrop.enabled = false;
+        // 아이콘 자체를 게이지로 쓰는 슬롯이 쿨타임형 궁극기를 보여줄 때는 아이콘이 잘리지 않게 가득 채운다.
+        if (gaugeFillImage != null && gaugeFillImage == iconImage)
+            gaugeFillImage.fillAmount = 1f;
+    }
+
     public void SetIcon(Sprite icon)
     {
         if (iconImage == null)
