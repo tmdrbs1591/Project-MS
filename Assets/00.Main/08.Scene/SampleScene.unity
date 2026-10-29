@@ -5423,7 +5423,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -123.1, y: -13.7}
+  m_AnchoredPosition: {x: -123.1, y: -13.700001}
   m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &401737092
@@ -16077,6 +16077,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapManager
   mapPrefabs:
   - {fileID: 2920103286196289857, guid: 27b26c50781eac745acf0d2e7c7e3c89, type: 3}
+  - {fileID: 2920103286196289857, guid: 9cb379eae382ba44282b6fabe2ec1bb5, type: 3}
   - {fileID: 7573986007636902479, guid: f17fb212f8223c242ba5f8d5727c52ab, type: 3}
   rotateMapEachRound: 1
   practiceMapPrefab: {fileID: 1772446421480277671, guid: 38af510057bf08446b6fb15736c75192, type: 3}
@@ -40732,7 +40733,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 15.3, y: -14.1}
+  m_AnchoredPosition: {x: 15.299999, y: -14.099998}
   m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1937842905

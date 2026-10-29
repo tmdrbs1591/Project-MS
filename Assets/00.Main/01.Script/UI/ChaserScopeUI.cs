@@ -14,8 +14,8 @@ using UnityEngine.UI;
 ///   - 체이서 프리팹 안(루트 등)에 붙이고, ultCanvas / scope 를 인스펙터에서 연결한다.
 ///   - 이 스크립트를 ultCanvas 안에 붙여도 되지만, 그 경우엔 오브젝트를 끄지 않고 Canvas 컴포넌트만 켜고 끈다
 ///     (오브젝트를 끄면 이 스크립트도 멈추기 때문).
-///   - scope 이미지의 원래 색이 평소 색, shotColor 가 쏠 때 번쩍이는 색이다.
-///   - 락온: 지금 쏘면 적이 맞는 위치에 조준경이 있으면 lockColor로 바뀌고 두근거린다.
+///   - 평소(적을 겨누지 않음)엔 aimColor(빨강), shotColor 가 쏠 때 번쩍이는 색이다.
+///   - 락온: 지금 쏘면 적이 맞는 위치에 조준경이 있으면 lockColor(보라)로 바뀌고 두근거린다.
 ///     처음 락온될 때 lockClip을 재생한다(판정 반경은 ChaserCharacter의 Dead Eye Lock Radius).
 /// </summary>
 public class ChaserScopeUI : MonoBehaviour
@@ -33,7 +33,10 @@ public class ChaserScopeUI : MonoBehaviour
     [SerializeField] private Color shotColor = Color.red;
     [Tooltip("커지고 빨개졌다가 원래대로 돌아오는 시간(초)")]
     [SerializeField] private float shotRecoverDuration = 0.2f;
-    [SerializeField] private Color lockColor = new Color(1f, 0.25f, 0.25f, 1f);
+    [Tooltip("적을 겨누지 않았을 때(쏴도 안 맞는 위치) 조준경 색.")]
+    [SerializeField] private Color aimColor = new Color(1f, 0.25f, 0.25f, 1f);
+    [Tooltip("적을 겨눴을 때(지금 쏘면 맞는 위치) 조준경 색.")]
+    [SerializeField] private Color lockColor = new Color(0.72f, 0.35f, 1f, 1f);
     [Min(0f)] [SerializeField] private float lockPulse = 0.12f;
     [SerializeField] private AudioClip lockClip;
 
@@ -55,7 +58,7 @@ public class ChaserScopeUI : MonoBehaviour
         if (scope != null)
         {
             scopeRect = scope.rectTransform;
-            normalColor = scope.color;
+            normalColor = aimColor;
             normalScale = scopeRect.localScale;
             scope.raycastTarget = false; // 클릭을 가로채지 않게
         }

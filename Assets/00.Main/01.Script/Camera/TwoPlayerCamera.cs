@@ -25,10 +25,9 @@ using UnityEngine.InputSystem;
 ///   - SetFocusOverride(target, zoomSize) 를 호출하면 두 플레이어 자동 프레이밍을 잠깐
 ///     멈추고 target 하나로 SmoothDamp 이동/줌한다(피니시 연출 등에서 사용, RoundFinishController 참고).
 ///   - ClearFocusOverride() 로 원래의 두 플레이어 프레이밍으로 복귀한다.
-///   - 오버라이드 중엔 boundsCollider 제한을 끈다 — 죽는 위치가 맵 가장자리에 가까우면 경계
-///     클램프가 실제 타깃 위치와 화면 중심을 몇 칸씩 어긋나게 만들어서(KO 줌인이 시체가 아닌
-///     다른 곳을 비추는 것처럼 보임), 포커스 중엔 정확한 위치/줌을 우선한다. maxSize 상한만
-///     그대로 유지된다.
+///   - clampFocusToBounds(기본 켬): 오버라이드 중에도 boundsCollider 안에 화면을 가둔다. 맵 가장자리에서
+///     죽으면 시체가 화면 정중앙이 아니라 한쪽에 치우쳐 보이지만, 맵 바깥(빈 공간)이 비치지 않는다.
+///     끄면 예전처럼 시체를 정확히 가운데에 두는 대신 가장자리에선 맵 밖이 보일 수 있다.
 ///
 /// [카메라 셰이크]
 ///   - Shake(magnitude, duration) 를 아무 스크립트에서나 TwoPlayerCamera.Instance.Shake(...)
@@ -63,6 +62,8 @@ public class TwoPlayerCamera : MonoBehaviour
     [Header("카메라 영역 (콜라이더)")]
     [Tooltip("지정하면 카메라 화면이 이 콜라이더 영역 밖으로 나가지 않는다. 아래 경계가 카메라 하한이 된다. 비워두면 제한 없음.")]
     [SerializeField] private Collider2D boundsCollider;
+    [Tooltip("켜면 KO 줌인 같은 포커스 연출 중에도 카메라 영역 밖이 보이지 않게 가둔다(가장자리에선 대상이 화면 한쪽에 치우침).")]
+    [SerializeField] private bool clampFocusToBounds = true;
 
     [Header("부드러움")]
     [Tooltip("위치가 목표를 따라잡는 데 걸리는 대략적인 시간(초). 작을수록 빠릿.")]
@@ -221,13 +222,11 @@ public class TwoPlayerCamera : MonoBehaviour
         if (!TryGetFramingTarget(out Vector3 targetPos, out float targetSize))
             return;
 
-        // 포커스 오버라이드(예: KO 줌인) 중엔 영역 제한을 끈다 — 평소 게임플레이 프레이밍은
-        // 둘 다 화면 안에 담아야 해서 경계를 지켜야 하지만, 죽는 위치가 맵 가장자리에 가까우면
-        // 경계 클램프가 실제 시체 위치와 화면 중심을 몇 칸씩 어긋나게 만든다. 포커스 중엔 정확한
-        // 위치/줌이 더 중요하므로 이 제한을 건너뛴다(화면 일부가 맵 밖을 살짝 비쳐도 괜찮다).
+        // 포커스 오버라이드(예: KO 줌인) 중에도 clampFocusToBounds가 켜져 있으면 영역 제한을 유지한다.
+        // 가장자리에서 죽으면 시체가 화면 한쪽에 치우치지만 맵 바깥이 비치는 것보다 자연스럽다.
         // 비활성 콜라이더는 bounds가 (0,0,0)으로 나온다. 그대로 쓰면 줌이 0으로 수렴하고
         // 카메라가 원점에 박혀서 화면이 완전히 망가지므로, 꺼져 있으면 영역이 없는 셈 친다.
-        bool hasBounds = boundsCollider != null && boundsCollider.isActiveAndEnabled && !hasFocusOverride;
+        bool hasBounds = boundsCollider != null && boundsCollider.isActiveAndEnabled && (!hasFocusOverride || clampFocusToBounds);
         Bounds area = hasBounds ? boundsCollider.bounds : default;
         float aspect = cam.aspect > 0f ? cam.aspect : 1f;
 
@@ -281,7 +280,18 @@ public class TwoPlayerCamera : MonoBehaviour
 
         float punch = GetPunchWeight();
         cam.orthographicSize = size * (1f - punchZoomRatio * punch);
-        transform.position = smoothedPosition + (Vector3)(punchOffset * punch) + (Vector3)GetShakeOffset();
+        Vector3 finalPosition = smoothedPosition + (Vector3)(punchOffset * punch) + (Vector3)GetShakeOffset();
+        // 흔들림/펀치까지 더한 최종 위치도 영역 밖으로 나가지 않게 한 번 더 가둔다(가장자리 KO 흔들림에 맵 밖이 비치지 않게).
+        if (hasBounds)
+        {
+            float halfH = cam.orthographicSize;
+            float halfW = halfH * aspect;
+            if (area.size.x >= halfW * 2f)
+                finalPosition.x = Mathf.Clamp(finalPosition.x, area.min.x + halfW, area.max.x - halfW);
+            if (area.size.y >= halfH * 2f)
+                finalPosition.y = Mathf.Clamp(finalPosition.y, area.min.y + halfH, area.max.y - halfH);
+        }
+        transform.position = finalPosition;
     }
 
     /// <summary>목표가 데드존 밖으로 나간 만큼만 따라간다. 데드존 안의 미세한 떨림(오토홉으로

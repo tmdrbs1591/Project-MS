@@ -40,6 +40,9 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float maxSpeed = 18f;
         [Min(0f)] [SerializeField] private float groundCheckDistance = 0.08f;
         [SerializeField] private LayerMask groundLayer;
+        [Tooltip("땅은 아니지만 올라서서 점프할 수 있는 레이어(다른 캐릭터, 수류탄 같은 물체). " +
+                 "비워두면 Player + Default 레이어를 쓴다. 자기 자신과 트리거는 제외된다.")]
+        [SerializeField] private LayerMask standOnLayers;
         [Min(0f)] [SerializeField] private float coyoteTime = 0.1f;
         [Min(0f)] [SerializeField] private float jumpBufferTime = 0.12f;
         [Min(1f)] [SerializeField] private float fallGravityMultiplier = 2.2f;
@@ -125,6 +128,7 @@ namespace ProjectMS.CharacterSystem
         public float MaxSpeed => maxSpeed;
         public float GroundCheckDistance => groundCheckDistance;
         public LayerMask GroundLayer => groundLayer;
+        public LayerMask StandOnLayers => standOnLayers.value != 0 ? standOnLayers : (LayerMask)LayerMask.GetMask("Player", "Default");
         public float CoyoteTime => coyoteTime;
         public float JumpBufferTime => jumpBufferTime;
         public float FallGravityMultiplier => fallGravityMultiplier;

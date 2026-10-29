@@ -1327,7 +1327,8 @@ MonoBehaviour:
   shotScale: 1.2
   shotColor: {r: 1, g: 0, b: 0, a: 1}
   shotRecoverDuration: 0.2
-  lockColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  aimColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  lockColor: {r: 0.72, g: 0.35, b: 1, a: 1}
   lockPulse: 0.12
   lockClip: {fileID: 8300000, guid: b4a7470d48b329e4cbfc4e646ae78b9e, type: 3}
 --- !u!4 &8892872073989034078 stripped

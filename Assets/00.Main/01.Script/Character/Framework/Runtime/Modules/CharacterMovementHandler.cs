@@ -203,20 +203,39 @@ namespace ProjectMS.CharacterSystem
             CurrentVelocity = Vector2.zero;
         }
 
+        private static readonly RaycastHit2D[] GroundHits = new RaycastHit2D[8];
+
         private void CheckGround()
         {
             Bounds bounds = collider.bounds;
             Vector2 origin = new Vector2(bounds.center.x, bounds.min.y - 0.025f);
             Vector2 size = new Vector2(bounds.size.x * 0.9f, 0.05f);
-            RaycastHit2D hit = Physics2D.BoxCast(
+            int groundMask = definition.GroundLayer;
+            int count = Physics2D.BoxCastNonAlloc(
                 origin,
                 size,
                 0f,
                 Vector2.down,
+                GroundHits,
                 definition.GroundCheckDistance,
-                definition.GroundLayer);
+                groundMask | definition.StandOnLayers);
 
-            IsGrounded = hit.collider != null && rigidbody.linearVelocity.y <= 0.01f;
+            // 땅 레이어 말고도 다른 캐릭터/수류탄 같은 물체 위에 올라서 있으면 점프할 수 있다.
+            // 내 콜라이더와(땅 레이어가 아닌) 트리거는 발판으로 치지 않는다.
+            bool onSomething = false;
+            for (int i = 0; i < count; i++)
+            {
+                Collider2D hit = GroundHits[i].collider;
+                if (hit == null || hit.attachedRigidbody == rigidbody)
+                    continue;
+                bool isGroundLayer = (groundMask & (1 << hit.gameObject.layer)) != 0;
+                if (hit.isTrigger && !isGroundLayer)
+                    continue;
+                onSomething = true;
+                break;
+            }
+
+            IsGrounded = onSomething && rigidbody.linearVelocity.y <= 0.01f;
         }
 
         private void Move(float deltaTime)

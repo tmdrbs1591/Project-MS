@@ -961,6 +961,7 @@ MonoBehaviour:
     m_Bits: 128
   gunProjectilePrefab: {fileID: 4312595785935445242, guid: 2f857482da1f348438f758074b19d733, type: 3}
   gunProjectileSpeed: 20
+  forkAngleStep: 12
   magazineSize: 6
   reloadDuration: 1.5
   nodePrefab: {fileID: 5648076269895567892, guid: a40dd8da9be560f4096098dd30daa4e2, type: 3}
