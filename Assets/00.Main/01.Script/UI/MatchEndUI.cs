@@ -37,7 +37,10 @@ public class MatchEndUI : MonoBehaviour
         public Image hitsBar;
         public TMP_Text ultimateText;
         public RectTransform augmentContainer;
+        [Tooltip("결과 패널 안에 작게 보여줄 초상화(선택). portraitImage는 단상 위의 큰 캐릭터 그림.")]
+        public Image boxPortrait;
         [NonSerialized] public readonly List<GameObject> icons = new List<GameObject>();
+        [NonSerialized] public Vector2 portraitBasePosition;
     }
 
     private class SideStats
@@ -63,6 +66,16 @@ public class MatchEndUI : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private Color victoryColor = new Color(1f, 0.82f, 0.3f, 1f);
     [SerializeField] private Color defeatColor = new Color(0.65f, 0.7f, 0.85f, 1f);
+
+    [Header("배치")]
+    [Tooltip("켜면 왼쪽(left)에 승자, 오른쪽(right)에 패자를 둔다(1등/2등 단상). 끄면 스폰 기준 P1/P2.")]
+    [SerializeField] private bool winnerOnLeft = true;
+    [Tooltip("패자 쪽 단상 캐릭터에 곱하는 색(어둡게).")]
+    [SerializeField] private Color loserTint = new Color(0.62f, 0.62f, 0.72f, 1f);
+    [Tooltip("승자 머리 위 왕관(선택). 승자가 단상에 내려앉은 뒤 떨어지고, 이후 통통 뜬다.")]
+    [SerializeField] private RectTransform crown;
+    [SerializeField] private float dropHeight = 420f;
+    [SerializeField] private float dropDuration = 0.45f;
 
     [Header("양쪽 정보")]
     [SerializeField] private SideView left = new SideView();
@@ -97,6 +110,7 @@ public class MatchEndUI : MonoBehaviour
     private bool opponentLeft;
     private bool rematchRequested;
     private bool revealSoundPlayed;
+    private Vector2 crownBasePosition;
     private readonly SideStats leftStats = new SideStats();
     private readonly SideStats rightStats = new SideStats();
 
@@ -110,6 +124,12 @@ public class MatchEndUI : MonoBehaviour
             lobbyButton.onClick.AddListener(OnLobbyClicked);
         if (augmentIconTemplate != null)
             augmentIconTemplate.gameObject.SetActive(false);
+        if (left.portraitImage != null)
+            left.portraitBasePosition = left.portraitImage.rectTransform.anchoredPosition;
+        if (right.portraitImage != null)
+            right.portraitBasePosition = right.portraitImage.rectTransform.anchoredPosition;
+        if (crown != null)
+            crownBasePosition = crown.anchoredPosition;
 
         SetVisible(false);
     }
@@ -157,9 +177,9 @@ public class MatchEndUI : MonoBehaviour
         rematchRequested = false;
         revealSoundPlayed = false;
         won = match.LastRoundWinner == local.MatchPlayer;
-        isLocalLeft = match.IsPlayer1(local.MatchPlayer);
-        leftWins = match.Player1Wins;
-        rightWins = match.Player2Wins;
+        // 승자를 왼쪽(1등 단상)에 두는 배치면 "내가 이겼는가"가 곧 "내가 왼쪽인가"다.
+        isLocalLeft = winnerOnLeft ? won : match.IsPlayer1(local.MatchPlayer);
+        SetWins(match);
         leftStats.augmentSignature = -1;
         rightStats.augmentSignature = -1;
 
@@ -196,10 +216,16 @@ public class MatchEndUI : MonoBehaviour
         return null;
     }
 
+    private void SetWins(MatchManager match)
+    {
+        bool p1OnLeft = winnerOnLeft ? match.Player1Wins >= match.Player2Wins : true;
+        leftWins = p1OnLeft ? match.Player1Wins : match.Player2Wins;
+        rightWins = p1OnLeft ? match.Player2Wins : match.Player1Wins;
+    }
+
     private void CaptureStats(MatchManager match, CharacterBase local, CharacterBase opponent)
     {
-        leftWins = match.Player1Wins;
-        rightWins = match.Player2Wins;
+        SetWins(match);
 
         CharacterBase leftChar = isLocalLeft ? local : opponent;
         CharacterBase rightChar = isLocalLeft ? opponent : local;
@@ -293,6 +319,45 @@ public class MatchEndUI : MonoBehaviour
         float maxHits = Mathf.Max(1f, Mathf.Max(leftStats.hits, rightStats.hits));
         RenderSide(left, leftStats, count, maxDamage, maxHits);
         RenderSide(right, rightStats, count, maxDamage, maxHits);
+        RenderPodium(elapsed);
+    }
+
+    // 단상 연출: 승자가 먼저, 패자가 조금 늦게 위에서 떨어져 내려앉는다. 승자가 앉으면 왕관이 내려오고 통통 뜬다.
+    private void RenderPodium(float elapsed)
+    {
+        float winnerLand = DropCharacter(left, elapsed - showDelay * 0.5f);
+        DropCharacter(right, elapsed - showDelay * 0.5f - 0.25f);
+        if (right.portraitImage != null && winnerOnLeft)
+            right.portraitImage.color = loserTint;
+
+        if (crown == null)
+            return;
+
+        float crownT = Mathf.Clamp01((elapsed - showDelay * 0.5f - dropDuration) / 0.35f);
+        if (winnerLand < 1f || crownT <= 0f)
+        {
+            crown.gameObject.SetActive(false);
+            return;
+        }
+
+        crown.gameObject.SetActive(true);
+        float fall = (1f - crownT) * (1f - crownT) * 160f;
+        float bob = Mathf.Sin((elapsed - showDelay) * 3f) * 8f * crownT;
+        crown.anchoredPosition = crownBasePosition + new Vector2(0f, fall + bob);
+    }
+
+    // 0~1 진행도를 돌려준다(1이면 내려앉음). 끝에 살짝 튀어 오른다.
+    private float DropCharacter(SideView view, float time)
+    {
+        if (view.portraitImage == null)
+            return 1f;
+
+        float t = Mathf.Clamp01(time / Mathf.Max(0.01f, dropDuration));
+        float eased = t * t;
+        float bounce = t >= 1f ? Mathf.Max(0f, Mathf.Sin(Mathf.Clamp01((time - dropDuration) / 0.25f) * Mathf.PI)) * 18f : 0f;
+        view.portraitImage.rectTransform.anchoredPosition = view.portraitBasePosition + new Vector2(0f, (1f - eased) * dropHeight + bounce);
+        view.portraitImage.canvasRenderer.SetAlpha(t > 0f ? 1f : 0f);
+        return t;
     }
 
     private void RenderSide(SideView view, SideStats stats, float count, float maxDamage, float maxHits)
@@ -304,6 +369,11 @@ public class MatchEndUI : MonoBehaviour
         {
             view.portraitImage.sprite = stats.portrait;
             view.portraitImage.enabled = stats.portrait != null;
+        }
+        if (view.boxPortrait != null)
+        {
+            view.boxPortrait.sprite = stats.portrait;
+            view.boxPortrait.enabled = stats.portrait != null;
         }
 
         if (view.damageText != null)
