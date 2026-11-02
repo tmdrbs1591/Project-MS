@@ -704,6 +704,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapDefinition
   thumbnail: {fileID: 1633723758313842295, guid: ba1986aeea6c60f4abd20cbd2d7dda10, type: 3}
+  displayName: "\uD558\uB298 \uC0B0\uB9E5"
   spawnPoints:
   - {fileID: 3467502672670531440}
   - {fileID: 1408476170103300483}

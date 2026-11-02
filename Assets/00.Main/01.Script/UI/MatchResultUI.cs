@@ -15,7 +15,7 @@ using UnityEngine.UI;
 ///   - titleText: "ROUND WIN" / "ROUND LOSE" / "VICTORY" / "DEFEAT" 표시.
 ///   - scoreText: 스폰 위치 기준 "왼쪽 : 오른쪽" 승수 표시, 내 쪽엔 "(나)" 표시(예: "1(나) : 0"). 필요 없으면 비워둬도 됨.
 ///   - leftScoreSlots/rightScoreSlots: PlayerCornerHUD와 같은 패턴의 동그라미(개수는 MatchManager.
-///     WinsRequired(=2)만큼 — 3판 2선승이라 2승 찍으면 매치가 끝나므로 그 이상은 필요 없다).
+///     WinsRequired(=3)만큼 — 5판 3선승이라 3승 찍으면 매치가 끝나므로 그 이상은 필요 없다).
 ///     승수만큼 앞에서부터 채워지고, 이번에 새로 채워진 칸 하나만 통통 튀는 팝 애니메이션이 재생된다.
 ///   - returnToLobbyButton: 매치가 완전히 끝났을 때만(MatchEnd) 나타나는 "로비로" 버튼.
 ///     누르면 나만 세션에서 나가 로비 씬으로 돌아간다(상대는 영향 없음).
@@ -31,8 +31,8 @@ public class MatchResultUI : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private Button returnToLobbyButton;
 
-    [Header("스코어 동그라미 (3판 2선승 = WinsRequired 2, 2칸)")]
-    [Tooltip("스폰 위치 기준 왼쪽 플레이어(Player1)의 동그라미. MatchManager.WinsRequired(=2)와\n같은 개수로 맞춘다 — 그 이상은 누구도 채울 일이 없다(2승 찍는 순간 매치가 끝남).")]
+    [Header("스코어 동그라미 (5판 3선승 = WinsRequired 3, 3칸)")]
+    [Tooltip("스폰 위치 기준 왼쪽 플레이어(Player1)의 동그라미. MatchManager.WinsRequired(=3)와\n같은 개수로 맞춘다 — 그 이상은 누구도 채울 일이 없다(3승 찍는 순간 매치가 끝남).")]
     [SerializeField] private Image[] leftScoreSlots;
     [Tooltip("스폰 위치 기준 오른쪽 플레이어(Player2)의 동그라미. 개수는 왼쪽과 동일하게.")]
     [SerializeField] private Image[] rightScoreSlots;
@@ -89,6 +89,14 @@ public class MatchResultUI : MonoBehaviour
 
             case MatchPhase.RoundEnd:
             case MatchPhase.AugmentSelect:
+                // 새 라운드 결과 화면(RoundResultUI)이 씬에 있으면 그쪽이 맡는다.
+                if (RoundResultUI.Instance != null)
+                {
+                    SetPanelActive(false);
+                    SetReturnButtonActive(false);
+                    break;
+                }
+
                 // RoundEnd 진입 직후엔 RoundFinishController가 히트스톱/줌/슬로우모션을 로컬로
                 // 재생 중일 수 있다. 그 연출이 화면을 다 차지하는 동안은 배너를 띄우지 않고
                 // 기다렸다가, 연출이 끝나고 화면이 정상으로 돌아온 뒤에 띄운다.

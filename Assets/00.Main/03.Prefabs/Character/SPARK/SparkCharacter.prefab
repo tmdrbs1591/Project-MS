@@ -798,7 +798,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[0].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 4e0adcc55b48fa04a9dcbd4958830ce9, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[1].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 2d5a5e45a9b9a6c4d992767aaced0dab, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[2].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 09ee9736b68219b49b21d3edfe087a57, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[0].action
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[0].volume
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[1].action
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[1].volume
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[2].action
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionSounds.Array.data[2].volume
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 4259207922424038269, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_SizeDelta.x
@@ -1086,7 +1122,7 @@ MonoBehaviour:
   overloadSlowRatio: 0.5
   overloadEffectPrefab: {fileID: 3191008303372850262, guid: 536c7d7b6adb44f4fb9aacb6282cd88e, type: 3}
   overloadEffectDuration: 0.5
-  overloadExplosionClip: {fileID: 8300000, guid: b2c144a448a8a774ebf8f72e32c95abd, type: 3}
+  overloadExplosionClip: {fileID: 8300000, guid: d0c7c316d0741d243991f00cbd9af475, type: 3}
   overloadExplosionVolume: 1
   teslaRadius: 5
   teslaDuration: 3
@@ -1096,9 +1132,9 @@ MonoBehaviour:
   teslaEffectPrefab: {fileID: 3191008303372850262, guid: ad983230bc48e864fa7e74ca8be5e854, type: 3}
   teslaFirstEffectDuration: 0.6
   teslaEffectDuration: 0.4
-  teslaCastClip: {fileID: 8300000, guid: b2c144a448a8a774ebf8f72e32c95abd, type: 3}
+  teslaCastClip: {fileID: 8300000, guid: f662bf21dc878624494024179672f254, type: 3}
   teslaCastVolume: 1
-  teslaExplosionClip: {fileID: 8300000, guid: b2c144a448a8a774ebf8f72e32c95abd, type: 3}
+  teslaExplosionClip: {fileID: 8300000, guid: 80792f14e6a341a439fe4cf707abc779, type: 3}
   teslaExplosionVolume: 1
   electrostaticMaxCharge: 100
   electrostaticChargeMultiplier: 1

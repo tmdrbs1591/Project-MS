@@ -15,6 +15,7 @@ namespace ProjectMS.CharacterSystem
         private bool jumpHeld;
         private bool jumpPressed;
         private bool basicAttackPressed;
+        private bool basicAttackHeld;
         private bool skillQPressed;
         private bool skillEPressed;
         private bool dashPressed;
@@ -52,6 +53,7 @@ namespace ProjectMS.CharacterSystem
             if (mouse != null)
             {
                 basicAttackPressed |= mouse.leftButton.wasPressedThisFrame;
+                basicAttackHeld = mouse.leftButton.isPressed;
                 // 재장전: 휠을 굴리거나(위/아래 아무 쪽) 휠 버튼을 누르면.
                 reloadPressed |= Mathf.Abs(mouse.scroll.ReadValue().y) > 0.01f || mouse.middleButton.wasPressedThisFrame;
             }
@@ -67,6 +69,7 @@ namespace ProjectMS.CharacterSystem
                 JumpPressed = jumpPressed,
                 JumpHeld = jumpHeld,
                 BasicAttackPressed = basicAttackPressed,
+                BasicAttackHeld = basicAttackHeld,
                 SkillQPressed = skillQPressed,
                 SkillEPressed = skillEPressed,
                 DashPressed = dashPressed,
@@ -91,6 +94,7 @@ namespace ProjectMS.CharacterSystem
             jumpHeld = false;
             jumpPressed = false;
             basicAttackPressed = false;
+            basicAttackHeld = false;
             skillQPressed = false;
             skillEPressed = false;
             dashPressed = false;

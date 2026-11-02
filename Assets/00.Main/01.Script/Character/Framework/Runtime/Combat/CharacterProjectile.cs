@@ -34,6 +34,13 @@ namespace ProjectMS.CharacterSystem
             "(예: SPARK 패시브로 충전된 기본공격 총알을 다른 색으로 보여줄 때 사용).")]
         [SerializeField] private Sprite empoweredSprite;
         [SerializeField] private GameObject hitVfxPrefab;
+        [Min(0.01f)] [SerializeField] private float hitVfxScale = 1f;
+        [Tooltip("생겨나는 순간 그 자리에 한 번 재생할 이펙트(예: 저격탄 탄착). 모든 클라에서 재생된다.")]
+        [SerializeField] private GameObject spawnVfxPrefab;
+        [Min(0.01f)] [SerializeField] private float spawnVfxScale = 1f;
+        [Tooltip("아무것도 못 맞히고 수명이 다해 사라질 때 그 자리에서 살짝 터지는 이펙트. 비우면 그냥 사라진다.")]
+        [SerializeField] private GameObject expireVfxPrefab;
+        [Min(0.01f)] [SerializeField] private float expireVfxScale = 1f;
         [Tooltip("이펙트 프리팹의 0도 방향 보정각. 프리팹이 +X를 향하면 0, +Y를 향하면 -90.")]
         [SerializeField] private float hitVfxAngleOffset = -90f;
         [Tooltip("이펙트를 표면 노말 방향으로 살짝 밀어 벽 안쪽에 묻히는 것을 방지한다.")]
@@ -141,6 +148,10 @@ namespace ProjectMS.CharacterSystem
 
             ApplyEmpoweredVisual();
             AlignToDirection();
+
+            // Spawned()는 모든 클라에서 불리므로 RPC 없이 각자 재생한다.
+            if (spawnVfxPrefab != null)
+                FxSpawner.Spawn(spawnVfxPrefab, transform.position, Quaternion.identity, spawnVfxScale);
         }
 
         // 스프라이트는 비행 중 안 바뀌므로 매 프레임이 아니라 Spawned() 시점에 한 번만 적용한다.
@@ -202,7 +213,11 @@ namespace ProjectMS.CharacterSystem
 
             transform.position += (Vector3)delta;
             if (LifeTimer.Expired(Runner))
+            {
+                if (expireVfxPrefab != null)
+                    Rpc_PlayExpireVfx(transform.position);
                 Complete(ProjectileDespawnReason.LifetimeExpired, transform.position, -NetDirection, null, false);
+            }
         }
 
         public override void Render()
@@ -466,7 +481,13 @@ namespace ProjectMS.CharacterSystem
             Vector2 normal = surfaceNormal.sqrMagnitude > 0.001f ? surfaceNormal.normalized : Vector2.left;
             Vector2 spawnPosition = position + normal * hitVfxSurfaceOffset;
             float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg + hitVfxAngleOffset;
-            EffectAutoDestroy.Schedule(Instantiate(hitVfxPrefab, spawnPosition, Quaternion.Euler(0f, 0f, angle)), 2f);
+            FxSpawner.Spawn(hitVfxPrefab, spawnPosition, Quaternion.Euler(0f, 0f, angle), hitVfxScale);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayExpireVfx(Vector2 position)
+        {
+            FxSpawner.Spawn(expireVfxPrefab, position, Quaternion.identity, expireVfxScale);
         }
 
         private void AlignToDirection()

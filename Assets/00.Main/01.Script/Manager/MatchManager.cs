@@ -4,7 +4,7 @@ using ProjectMS.CharacterSystem;
 using UnityEngine;
 
 /// <summary>
-/// 3판 2선승 매치의 승패를 관리하는 네트워크 매니저다. (Fusion 2 / Shared 모드)
+/// 5판 3선승 매치의 승패를 관리하는 네트워크 매니저다. (Fusion 2 / Shared 모드)
 ///
 /// [권한]
 ///   - 게임 씬 로드 후 Shared 모드 마스터 클라이언트가 한 번 스폰한다(PlayerSpawner 참고).
@@ -26,7 +26,7 @@ public class MatchManager : NetworkBehaviour
 {
     public static MatchManager Instance { get; private set; }
 
-    public const int WinsRequired = 2;
+    public const int WinsRequired = 3; // 5판 3선승
 
     /// <summary>라운드 승자가 이번 AugmentSelect 구간에 고를 수 있는 증강 개수.</summary>
     private const int WinnerAugmentPicks = 1;
@@ -376,8 +376,24 @@ public class MatchManager : NetworkBehaviour
         PhaseTimer = TickTimer.CreateFromSeconds(Runner, augmentSelectDuration);
     }
 
+    // 다음 라운드로 넘어가기 직전 화면 전환 연출(RoundTransitionUI)이 화면을 다 덮을 시간(초).
+    // 그동안 기다렸다가 맵 교체/캐릭터 순간이동을 하므로 "띡" 하고 바뀌는 게 안 보인다.
+    private const float RoundTransitionCoverTime = 0.45f;
+    private bool roundTransitionPending;
+    private TickTimer roundTransitionTimer;
+
     private void TickAugmentSelect()
     {
+        if (roundTransitionPending)
+        {
+            if (roundTransitionTimer.Expired(Runner))
+            {
+                roundTransitionPending = false;
+                AdvanceToNextRound();
+            }
+            return;
+        }
+
         if (!TryGetOrderedCharacters(out CharacterBase p1, out CharacterBase p2))
             return;
 
@@ -389,7 +405,7 @@ public class MatchManager : NetworkBehaviour
 
         if (pastGrace && bothDone)
         {
-            AdvanceToNextRound();
+            BeginRoundTransition();
             return;
         }
 
@@ -397,8 +413,23 @@ public class MatchManager : NetworkBehaviour
         {
             // 시간 초과 — 아직 못 고른 쪽은 무작위 증강으로 강제 완료시킨다.
             Rpc_ForceFinishAugmentPicks();
-            AdvanceToNextRound();
+            BeginRoundTransition();
         }
+    }
+
+    private void BeginRoundTransition()
+    {
+        if (roundTransitionPending)
+            return;
+        roundTransitionPending = true;
+        roundTransitionTimer = TickTimer.CreateFromSeconds(Runner, RoundTransitionCoverTime);
+        Rpc_PlayRoundTransition(RoundNumber + 1);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_PlayRoundTransition(int nextRound)
+    {
+        RoundTransitionUI.Play(nextRound, RoundTransitionCoverTime);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

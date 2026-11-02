@@ -51,8 +51,38 @@ namespace ProjectMS.CharacterSystem
         /// <summary>슬로우(MovementSpeedMultiplier)와는 별개로 곱해지는 지속형 배율(예: 신속의
         /// 신발 증강). 슬로우가 걸려도 증강 배율은 유지되고, 둘 다 곱해서 최종 속도가 나온다.</summary>
         public float BaseSpeedMultiplier { get; private set; } = 1f;
+        /// <summary>스킬이 직접 거는 이동 배율(예: 기 모으며 체공하는 동안 아주 느리게). 슬로우/증강 배율과 따로 곱해진다.</summary>
+        public float SkillSpeedMultiplier { get; private set; } = 1f;
+
+        public void SetSkillSpeedMultiplier(float multiplier)
+        {
+            SkillSpeedMultiplier = Mathf.Max(0f, multiplier);
+        }
         public int FacingDirection { get; private set; } = 1;
         public float MoveInput { get; private set; }
+        /// <summary>중력 배율(1 = 보통). 1보다 작으면 둥실 떠 있는 느낌 — 스킬 중 체공 연출용.</summary>
+        public float GravityMultiplier { get; private set; } = 1f;
+        /// <summary>지금 세로 속도(+위, -아래).</summary>
+        public float VerticalVelocity => rigidbody.linearVelocity.y;
+        /// <summary>평소 점프 한 번의 처음 위쪽 속도.</summary>
+        public float JumpVelocity => definition.JumpForce / Mathf.Max(0.0001f, rigidbody.mass);
+        /// <summary>GravityMultiplier가 1보다 작을 때 떨어지는 최대 속도(양수).</summary>
+        public float LowGravityMaxFallSpeed { get; private set; } = 2f;
+
+        public void SetGravityMultiplier(float multiplier, float maxFallSpeed = 2f)
+        {
+            GravityMultiplier = Mathf.Max(0f, multiplier);
+            LowGravityMaxFallSpeed = Mathf.Max(0.1f, maxFallSpeed);
+        }
+
+        /// <summary>그 자리에서 위로 툭 띄운다(점프 버튼과 달리 짧게 끊기는 낮은 점프 보정이 안 걸린다).</summary>
+        public void Launch(float upwardVelocity)
+        {
+            rigidbody.linearVelocity = new Vector2(rigidbody.linearVelocity.x, upwardVelocity);
+            IsGrounded = false;
+            playerJumping = false;
+            coyoteTimer = 0f;
+        }
         public Vector2 CurrentVelocity { get; private set; }
 
         public void Tick(CharacterInputSnapshot input, float deltaTime)
@@ -96,7 +126,8 @@ namespace ProjectMS.CharacterSystem
             if (!enabled)
             {
                 CancelDash();
-                CancelMapBounce();
+                // 낙사존(용암 등)에서 튕겨 오르는 건 끊지 않는다 — 스킬로 이동을 막는 순간(체이서 저격 모드 등)
+                // 튕김이 취소되면 맵 아래로 끝없이 떨어진다.
                 rigidbody.linearVelocity = new Vector2(0f, rigidbody.linearVelocity.y);
                 jumpBufferTimer = 0f;
                 autoHopTimer = 0f;
@@ -244,7 +275,7 @@ namespace ProjectMS.CharacterSystem
                 return;
 
             float targetX = MovementEnabled
-                ? MoveInput * definition.MoveSpeed * BaseSpeedMultiplier * MovementSpeedMultiplier
+                ? MoveInput * definition.MoveSpeed * BaseSpeedMultiplier * MovementSpeedMultiplier * SkillSpeedMultiplier
                 : 0f;
             float acceleration = IsGrounded ? definition.GroundAcceleration : definition.AirAcceleration;
             float nextX = Mathf.MoveTowards(rigidbody.linearVelocity.x, targetX, acceleration * deltaTime);
@@ -320,6 +351,17 @@ namespace ProjectMS.CharacterSystem
         {
             if (IsDashing || IsMapBouncing)
                 return;
+
+            // 저중력: 기본 중력도 줄이고, 낙하 가속 보정 대신 최대 낙하 속도를 낮게 묶는다.
+            if (GravityMultiplier < 0.999f)
+            {
+                rigidbody.gravityScale = originalGravityScale * GravityMultiplier;
+                if (rigidbody.linearVelocity.y < -LowGravityMaxFallSpeed)
+                    rigidbody.linearVelocity = new Vector2(rigidbody.linearVelocity.x, -LowGravityMaxFallSpeed);
+                return;
+            }
+            if (!Mathf.Approximately(rigidbody.gravityScale, originalGravityScale))
+                rigidbody.gravityScale = originalGravityScale;
 
             if (rigidbody.linearVelocity.y < 0f)
             {

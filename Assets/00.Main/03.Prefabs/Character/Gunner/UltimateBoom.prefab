@@ -19297,6 +19297,7 @@ GameObject:
   - component: {fileID: 8904344737530304768}
   - component: {fileID: 2373047319308453979}
   - component: {fileID: 3016715363290291777}
+  - component: {fileID: 8299626387762967825}
   m_Layer: 0
   m_Name: UltimateBoom
   m_TagString: Untagged
@@ -24334,6 +24335,21 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!114 &8299626387762967825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2520368088813305050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9740de4115ca0c647bf328cf81903ac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlaySoundOnSpawn
+  clip: {fileID: 8300000, guid: 79f60a4cfdfafc44ab7eec0219c94ec4, type: 3}
+  volume: 1
+  pitchVariance: 0.06
 --- !u!1 &2784220661284519814
 GameObject:
   m_ObjectHideFlags: 0

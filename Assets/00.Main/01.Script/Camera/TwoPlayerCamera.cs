@@ -143,6 +143,17 @@ public class TwoPlayerCamera : MonoBehaviour
         hasFocusOverride = true;
     }
 
+    private float snapUntil;
+    private float snapFactor = 1f;
+
+    /// <summary>duration(실시간 초) 동안 카메라가 목표를 훨씬 빠르게(따라가는 시간 × factor) 따라가게 한다.
+    /// KO 연출처럼 "확" 당기거나 빠지는 순간에 쓴다.</summary>
+    public void Snappy(float duration, float factor = 0.2f)
+    {
+        snapUntil = Time.unscaledTime + duration;
+        snapFactor = Mathf.Clamp(factor, 0.02f, 1f);
+    }
+
     /// <summary>포커스 오버라이드를 풀고 두 플레이어 자동 프레이밍으로 복귀한다.</summary>
     public void ClearFocusOverride()
     {
@@ -260,11 +271,13 @@ public class TwoPlayerCamera : MonoBehaviour
         sizeAnchor = ApplyDeadzone(sizeAnchor, targetSize, sDeadzone);
 
         // 펀치 줌이 cam.orthographicSize 를 잠깐 바꾸므로, 스무딩은 실제 카메라 값이 아닌 별도 값으로 한다.
-        float size = Mathf.SmoothDamp(smoothedSize, sizeAnchor, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, unscaledDeltaTime);
+        // 빠른 전환(KO 연출의 확 당겼다 확 빠지는 카메라) 동안엔 따라가는 시간을 짧게 줄인다.
+        float snap = Time.unscaledTime < snapUntil ? snapFactor : 1f;
+        float size = Mathf.SmoothDamp(smoothedSize, sizeAnchor, ref zoomVelocity, zoomSmoothTime * snap, Mathf.Infinity, unscaledDeltaTime);
         smoothedSize = size;
 
-        float x = Mathf.SmoothDamp(smoothedPosition.x, targetPos.x, ref moveVelocityX, positionSmoothTime, Mathf.Infinity, unscaledDeltaTime);
-        float y = Mathf.SmoothDamp(smoothedPosition.y, verticalAnchor, ref moveVelocityY, verticalSmoothTime, Mathf.Infinity, unscaledDeltaTime);
+        float x = Mathf.SmoothDamp(smoothedPosition.x, targetPos.x, ref moveVelocityX, positionSmoothTime * snap, Mathf.Infinity, unscaledDeltaTime);
+        float y = Mathf.SmoothDamp(smoothedPosition.y, verticalAnchor, ref moveVelocityY, verticalSmoothTime * snap, Mathf.Infinity, unscaledDeltaTime);
 
         // 영역 콜라이더 안으로 화면을 가둔다
         if (hasBounds)

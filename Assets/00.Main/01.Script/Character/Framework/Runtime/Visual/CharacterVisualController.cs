@@ -21,11 +21,14 @@ namespace ProjectMS.CharacterSystem
         [Min(0f)] [SerializeField] private float lifetime = 2f;
         [Tooltip("이펙트 프리팹의 0도 방향 보정각. 스프라이트/파티클이 +X를 바라보면 0, +Y를 바라보면 -90.\n(CharacterProjectile의 projectileAngleOffset과 같은 목적)")]
         [SerializeField] private float angleOffset;
+        [Tooltip("이펙트 크기 배율. 같은 액션에 여러 개를 넣으면 전부 같이 재생된다(머즐 + 섬광 등 겹쳐 쓰기).")]
+        [Min(0.01f)] [SerializeField] private float scale = 1f;
 
         public CharacterActionType Action => action;
         public GameObject Prefab => prefab;
         public float Lifetime => lifetime;
         public float AngleOffset => angleOffset;
+        public float Scale => scale <= 0f ? 1f : scale;
     }
 
     /// <summary>액션별 효과음. CharacterActionEffect와 같은 구조로, actionEffects와 별개로
@@ -223,15 +226,13 @@ namespace ProjectMS.CharacterSystem
                 if (effect.Action != action || effect.Prefab == null)
                     continue;
 
-                GameObject instance = Instantiate(
+                // Lifetime 뒤에 뚝 끊지 않고, 남은 파티클이 다 재생된 뒤에 지운다.
+                FxSpawner.Spawn(
                     effect.Prefab,
                     position,
-                    Quaternion.Euler(0f, 0f, angle + effect.AngleOffset));
-
-                // Lifetime 뒤에 뚝 끊지 않고, 남은 파티클이 다 재생된 뒤에 지운다.
-                if (effect.Lifetime > 0f)
-                    EffectAutoDestroy.Schedule(instance, effect.Lifetime);
-                return;
+                    Quaternion.Euler(0f, 0f, angle + effect.AngleOffset),
+                    effect.Scale,
+                    effect.Lifetime);
             }
         }
 

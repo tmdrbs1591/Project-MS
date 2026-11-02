@@ -79,8 +79,19 @@ public class ModeSelectPanel : MonoBehaviour
     [SerializeField] private AudioClip closeSound;
     [SerializeField] private AudioClip selectSound;
     [Range(0f, 1f)] [SerializeField] private float sfxVolume = 0.6f;
-    [Tooltip("모드를 누른 뒤 카드 반응을 보여주고 로딩으로 넘어가기까지의 시간(초).")]
-    [Min(0f)] [SerializeField] private float confirmDelay = 0.45f;
+
+    [Header("포탈 입장 연출")]
+    [Tooltip("모드를 고르면 카메라가 포탈로 줌인할 크기(orthographicSize).")]
+    [SerializeField] private float portalZoomSize = 3.2f;
+    [Min(0.1f)] [SerializeField] private float suckDuration = 0.75f;
+    [Tooltip("로딩 화면이 페이드로 다 덮일 때까지 기다린 뒤 씬 전환을 시작한다.")]
+    [Min(0f)] [SerializeField] private float loadingCoverDelay = 0.5f;
+    [Tooltip("빨려 들어갈 때 화면 가장자리에 조여 오는 소용돌이 셰이더(Custom/UI/PortalVortex).")]
+    [SerializeField] private Shader vortexShader;
+    [Tooltip("캐릭터 기준점(발밑)에서 몸 가운데까지 높이(캐릭터 스케일 1 기준).")]
+    [SerializeField] private float bodyCenterOffset = 0.9f;
+    [SerializeField] private AudioClip suckSound;
+    [SerializeField] private AudioClip enterPortalSound;
 
     [Header("연습장 전환 연출")]
     [Tooltip("연습을 고르면 서서히 사라질 로비 오브젝트들(마을 건물, 포탈 등).")]
@@ -93,6 +104,7 @@ public class ModeSelectPanel : MonoBehaviour
     private CanvasGroup canvasGroup;
     private bool lockedByMe;
     private bool starting;
+    private bool portalSequence;
     private readonly List<ModeCard> cards = new List<ModeCard>();
     private Coroutine fadeRoutine;
     private float visibleAmount;
@@ -196,46 +208,169 @@ public class ModeSelectPanel : MonoBehaviour
         if (starting)
             return;
 
-        // 바로 로딩으로 넘어가지 않고, 카드가 눌렸다 튀는 반응과 소리를 먼저 보여준다.
+        if (mode != GameModeOption.OneVsOne && mode != GameModeOption.AiMatch && mode != GameModeOption.Practice)
+            return;
+
+        // 누르는 즉시 창을 닫고, 포탈로 빨려 들어가는 연출 → 로딩 화면 페이드 → 씬 전환.
+        // 조작 잠금(lockedByMe)은 창을 열 때 건 것을 그대로 유지한다(씬이 바뀌며 풀린다).
         starting = true;
+        portalSequence = true;
         SoundManager.Instance?.PlaySfx(selectSound, sfxVolume);
         picked?.PlayConfirm();
-        foreach (ModeCard c in cards)
-            if (c != picked)
-                c.SetDimmed(true);
-        StartCoroutine(BeginAfterConfirm(mode));
+        IsOpen = false;
+        SetVisible(false);
+        StartCoroutine(PortalSequence(mode));
     }
 
-    private IEnumerator BeginAfterConfirm(GameModeOption mode)
+    /// <summary>카메라가 포탈로 줌인하고, 캐릭터가 살짝 움츠렸다가 포탈 가운데로 빙글 돌며 작아지며 빨려 들어간다.
+    /// 다 들어가면 로딩 화면이 페이드로 덮이고, 덮인 뒤에 실제 씬 전환을 시작한다.</summary>
+    private IEnumerator PortalSequence(GameModeOption mode)
     {
-        float end = Time.unscaledTime + confirmDelay;
-        while (Time.unscaledTime < end)
-            yield return null;
+        Portal portal = FindObjectOfType<Portal>();
+        LobbyCharacterChange player = LobbyCharacterChange.Instance;
 
-        PlayTransition(mode);
+        if (portal != null && LobbyCameraFocusController.Instance != null)
+            LobbyCameraFocusController.Instance.FocusOn(portal.transform, portalZoomSize);
+
+        if (portal != null && player != null)
+        {
+            Transform body = player.transform;
+            var rb = body.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.simulated = false;
+            }
+            var controller = body.GetComponent<LobbyCharacterController>();
+            if (controller != null)
+                controller.enabled = false;
+
+            Vector3 startPos = body.position;
+            Vector3 baseScale = body.localScale;
+            // 포탈 오브젝트의 기준점이 그림 가운데가 아닐 수 있어서, 실제로 보이는 그림의 정중앙을 노린다.
+            var portalSprite = portal.GetComponent<SpriteRenderer>();
+            Vector3 target = portalSprite != null ? portalSprite.bounds.center : portal.transform.position;
+            target.z = startPos.z;
+            // 캐릭터 기준점(발밑)이 아니라 몸 가운데가 포탈 중앙에 오도록 몸 높이 절반만큼 보정한다.
+            target.y -= bodyCenterOffset * baseScale.y;
+
+            Material vortex = CreateVortexOverlay();
+
+            // 1) 움츠림: 아래로 눌렸다가
+            yield return Animate(0.22f, t =>
+            {
+                float k = Mathf.Sin(t * Mathf.PI * 0.5f);
+                body.localScale = new Vector3(baseScale.x * (1f + 0.18f * k), baseScale.y * (1f - 0.2f * k), baseScale.z);
+                if (vortex != null) vortex.SetFloat(VortexIntensityId, 0.25f * t);
+            });
+
+            // 2) 빨려 들어감: 처음엔 천천히 끌리다 점점 빨라지며 빙글 돌고 작아진다.
+            SoundManager.Instance?.PlaySfx(suckSound, sfxVolume);
+            // 아주 낮은 호로 끌려가 포탈 정중앙에 딱 들어가게(높이 올라갔다 떨어지지 않게).
+            Vector3 control = Vector3.Lerp(startPos, target, 0.5f) + Vector3.up * 0.25f;
+            float spinDir = target.x >= startPos.x ? -1f : 1f;
+            yield return Animate(suckDuration, t =>
+            {
+                // 앞 75%: 점점 빨라지며 포탈 정중앙까지 끌려온다. 뒤 25%: 정중앙에서 빙글 돌며 작아져 사라진다.
+                float travel = Mathf.Clamp01(t / 0.65f);
+                float e = travel * travel;
+                // 포탈은 다가가면 바닥 기준으로 커져서 중심이 조금씩 움직인다 → 매 프레임 실제 중심을 다시 잡는다.
+                if (portalSprite != null)
+                {
+                    Vector3 live = portalSprite.bounds.center;
+                    target = new Vector3(live.x, live.y - bodyCenterOffset * baseScale.y, startPos.z);
+                }
+                Vector3 a = Vector3.Lerp(startPos, control, e);
+                Vector3 b = Vector3.Lerp(control, target, e);
+                body.position = Vector3.Lerp(a, b, e);
+                // 끝으로 갈수록 천천히 사라지게(뚝 꺼지지 않게) 부드러운 곡선으로 줄인다.
+                float shrink = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.45f, 1f, t));
+                float s = Mathf.Lerp(1f, 0f, shrink);
+                float stretch = 1f + Mathf.Sin(travel * Mathf.PI) * 0.35f;
+                body.localScale = new Vector3(baseScale.x * s / stretch, baseScale.y * s * stretch, baseScale.z);
+                body.rotation = Quaternion.Euler(0f, 0f, spinDir * (360f * e + 720f * shrink));
+                portal.transform.localScale = portalBaseScale(portal) * (1f + 0.15f * Mathf.Sin(t * Mathf.PI));
+                // 화면 가장자리 소용돌이가 점점 조여 온다.
+                if (vortex != null) vortex.SetFloat(VortexIntensityId, Mathf.Lerp(0.25f, 0.9f, Mathf.SmoothStep(0f, 1f, t)));
+            });
+            body.localScale = Vector3.zero;
+            SoundManager.Instance?.PlaySfx(enterPortalSound, sfxVolume);
+
+            // 3) 끊김 없이 이어서: 로딩 화면이 페이드로 덮이는 동안 소용돌이는 계속 조여 오고 카메라는 포탈로 더 밀고 들어간다.
+            PlayTransition(mode);
+            if (LobbyCameraFocusController.Instance != null)
+                LobbyCameraFocusController.Instance.FocusOn(portal.transform, portalZoomSize * 0.6f);
+            yield return Animate(loadingCoverDelay, t =>
+            {
+                if (vortex != null) vortex.SetFloat(VortexIntensityId, Mathf.Lerp(0.9f, 1f, t));
+            });
+        }
+        else
+        {
+            PlayTransition(mode);
+            yield return Animate(loadingCoverDelay, t => { });
+        }
+
         switch (mode)
         {
             case GameModeOption.OneVsOne:
-                SetVisible(false);
-                // 접속(1~3초)을 페이드와 동시에 시작해서 기다리는 시간을 줄인다.
                 NetworkLauncher.Instance?.StartMatchmakingWithPractice();
-                StartCoroutine(PracticeTransition(null));
                 break;
-
             case GameModeOption.AiMatch:
-                SetVisible(false);
                 NetworkLauncher.Instance?.StartAiMatch();
                 break;
-
             case GameModeOption.Practice:
-                SetVisible(false);
-                StartCoroutine(PracticeTransition(() => NetworkLauncher.Instance?.StartPractice()));
-                break;
-
-            default:
-                starting = false;
+                NetworkLauncher.Instance?.StartPractice();
                 break;
         }
+    }
+
+    private static readonly int VortexIntensityId = Shader.PropertyToID("_Intensity");
+
+    /// <summary>화면 전체를 덮는 소용돌이 오버레이(로딩 화면보다 아래)를 만든다. 씬이 바뀌면 같이 사라진다.</summary>
+    private Material CreateVortexOverlay()
+    {
+        if (vortexShader == null)
+            return null;
+        var go = new GameObject("Portal Vortex Overlay");
+        var canvas = go.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 4000;
+        var image = new GameObject("Vortex", typeof(RectTransform)).AddComponent<RawImage>();
+        image.transform.SetParent(go.transform, false);
+        image.raycastTarget = false;
+        RectTransform rt = image.rectTransform;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        var material = new Material(vortexShader);
+        material.SetFloat("_Aspect", (float)Screen.width / Mathf.Max(1, Screen.height));
+        material.SetFloat(VortexIntensityId, 0f);
+        image.material = material;
+        return material;
+    }
+
+    private Vector3 portalScale;
+    private bool portalScaleCaptured;
+
+    private Vector3 portalBaseScale(Portal portal)
+    {
+        if (!portalScaleCaptured)
+        {
+            portalScaleCaptured = true;
+            portalScale = portal.transform.localScale;
+        }
+        return portalScale;
+    }
+
+    private static IEnumerator Animate(float duration, Action<float> step)
+    {
+        for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
+        {
+            step(Mathf.Clamp01(elapsed / duration));
+            yield return null;
+        }
+        step(1f);
     }
 
     /// <summary>모드 이름과 테마 색으로 화면 전환 연출을 띄운다(다음 씬이 열리면 알아서 걷힌다).</summary>
@@ -344,8 +479,9 @@ public class ModeSelectPanel : MonoBehaviour
         {
             if (hud == null)
                 continue;
-            hud.alpha = 1f - v;
-            hud.blocksRaycasts = v < 0.5f;
+            // 포탈 입장 연출 중엔 HUD를 다시 띄우지 않는다.
+            hud.alpha = portalSequence ? 0f : 1f - v;
+            hud.blocksRaycasts = !portalSequence && v < 0.5f;
         }
     }
 }

@@ -63,6 +63,9 @@ public class BattleStartVfxController : MonoBehaviour
         // 이미 켜져 있던 오브젝트도 OnEnable(VsIntroUI 등)이 다시 돌도록 껐다 켠다.
         SetVfxActive(false);
         SetVfxActive(true);
+        // 라운드 시작 연출(ROUND → READY → FIGHT)이 있으면 FIGHT 연출은 그쪽이 FIGHT 순간에 켠다.
+        if (RoundIntroUI.Instance != null && battleStartVfx != null)
+            battleStartVfx.SetActive(false);
         SoundManager.Instance?.PlaySfx(battleStartClip);
         hasPlayed = true;
         playedMatchNumber = match.MatchNumber;

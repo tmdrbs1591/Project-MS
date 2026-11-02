@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.CharacterCommonSoundSet
   jumpClip: {fileID: 8300000, guid: d111a03e1e489d340853e5744f4710e1, type: 3}
   landClip: {fileID: 8300000, guid: da7d12a91ec16264ebc858171651e142, type: 3}
-  damagedClip: {fileID: 8300000, guid: 40f46126f664f484c9ea255414519f48, type: 3}
+  damagedClip: {fileID: 8300000, guid: 847decfec1277dd48968b56c9fc3aa7d, type: 3}
   damagedPitchVariance: 0.05
-  deathClip: {fileID: 8300000, guid: 40bf8ac651f857049932153a52fd7573, type: 3}
+  deathClip: {fileID: 0}
   revivedClip: {fileID: 8300000, guid: c48a972d3d024c2408a3331750786a29, type: 3}
   reloadClip: {fileID: 8300000, guid: 8c9011adf11955e4c94b9c4208af82bc, type: 3}

@@ -36,6 +36,8 @@ public class AugmentChoiceSlot : MonoBehaviour, IPointerEnterHandler, IPointerEx
     public AugmentPoolEntry CurrentEntry { get; private set; }
     public AugmentType CurrentType => CurrentEntry.Data.type;
     public bool IsAnimating => routine != null;
+    /// <summary>지금 마우스가 올라가 있고 고를 수 있는 상태인지(호버 이펙트용).</summary>
+    public bool IsHovered => hovered && interactable && routine == null;
 
     /// <summary>마우스가 카드 위로 들어왔을 때(효과음 재생용).</summary>
     public event Action<AugmentChoiceSlot> HoverEntered;

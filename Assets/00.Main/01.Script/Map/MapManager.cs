@@ -70,6 +70,23 @@ public class MapManager : MonoBehaviour
         }
         return thumbnails;
     }
+
+    /// <summary>mapPrefabs 순서대로 각 맵의 표시 이름(MapDefinition.DisplayName). 비어 있으면 프리팹 이름.</summary>
+    public string[] GetMapNames()
+    {
+        if (mapPrefabs == null || mapPrefabs.Length == 0)
+            return null;
+
+        var names = new string[mapPrefabs.Length];
+        for (int i = 0; i < mapPrefabs.Length; i++)
+        {
+            MapDefinition def = mapPrefabs[i] != null ? mapPrefabs[i].GetComponent<MapDefinition>() : null;
+            names[i] = def != null && !string.IsNullOrEmpty(def.DisplayName) ? def.DisplayName
+                : mapPrefabs[i] != null ? mapPrefabs[i].name : string.Empty;
+        }
+        return names;
+    }
+
     private readonly List<NetworkObject> spawnedStructures = new List<NetworkObject>();
 
     private void Awake()

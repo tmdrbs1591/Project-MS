@@ -64,7 +64,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25c88fa8e6cfae340bcac2b2a9d794e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MatchManager
-  roundEndDisplayDuration: 3
+  roundEndDisplayDuration: 4.6
   augmentSelectDuration: 10
   roundStartGraceDuration: 1
   _Phase: 0

@@ -1043,28 +1043,56 @@ PrefabInstance:
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.size
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[0].clip
       value: 
-      objectReference: {fileID: 8300000, guid: c261de343f2c9ad4b876ad59eb847fa4, type: 3}
+      objectReference: {fileID: 8300000, guid: b76c4a6c8ba8dee48a9d46508136ecd3, type: 3}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[1].clip
       value: 
-      objectReference: {fileID: 8300000, guid: 49ff796b6479e554bb3bde26589f769a, type: 3}
+      objectReference: {fileID: 8300000, guid: ee426a8102a1c504eacf739ad08e6144, type: 3}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[2].clip
       value: 
-      objectReference: {fileID: 8300000, guid: 16c8209a491593c4a8925660e9217f83, type: 3}
+      objectReference: {fileID: 8300000, guid: 3032b4f795c415546b7dafa4626f494e, type: 3}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[3].clip
       value: 
-      objectReference: {fileID: 8300000, guid: 510ef97ec057fbd499b60b89715278ba, type: 3}
+      objectReference: {fileID: 8300000, guid: 09ee9736b68219b49b21d3edfe087a57, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[0].scale
+      value: 0.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[1].scale
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[2].scale
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[3].scale
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[4].scale
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[5].scale
+      value: 0.6
+      objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[0].action
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[0].volume
-      value: 0.5
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[1].action
@@ -1072,7 +1100,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[1].volume
-      value: 0.5
+      value: 0.85
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[2].action
@@ -1080,15 +1108,99 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[2].volume
-      value: 0.5
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[3].action
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: actionSounds.Array.data[3].volume
-      value: 0.5
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[0].action
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[0].prefab
+      value: 
+      objectReference: {fileID: 160010, guid: d5bfc066466856148bd6f7407366ce8e, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[1].action
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[1].prefab
+      value: 
+      objectReference: {fileID: 131758, guid: 22a3c27ab34258343b98aa08ed0f7835, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[2].action
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[2].prefab
+      value: 
+      objectReference: {fileID: 134162, guid: c49de3291c8b48841a7dbd15e3f74c2b, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[3].action
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[3].prefab
+      value: 
+      objectReference: {fileID: 1678477063493488, guid: 7e5f12ae14890794591cb6e704b39abe, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[4].action
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[4].prefab
+      value: 
+      objectReference: {fileID: 139844, guid: bd9cbf3a6ae77524788b4bbdb5422498, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[5].action
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[5].prefab
+      value: 
+      objectReference: {fileID: 1197010802093610, guid: 9512773bce5218343a8e521647e7865f, type: 3}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[0].lifetime
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[1].lifetime
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[2].lifetime
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[3].lifetime
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[4].lifetime
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[5].lifetime
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[0].angleOffset
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[1].angleOffset
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      propertyPath: actionEffects.Array.data[2].angleOffset
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 4259207922424038269, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_SizeDelta.x
@@ -1292,6 +1404,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 853357108902157338, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7259875264312912808}
+    - targetCorrespondingSourceObject: {fileID: 853357108902157338, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 210576037803678420}
     - targetCorrespondingSourceObject: {fileID: 6208640627529311077, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3081767326317908384}
@@ -1402,6 +1517,20 @@ MonoBehaviour:
   burstCharges: 4
   dualRevolverProjectilePrefab: {fileID: 7811597853570981533, guid: 39368bfdd1e62a94494c5c915ac212db, type: 3}
   dualRevolverProjectileSpeed: 45
+  dualRevolverChargeTime: 1
+  dualRevolverChargeVfx: {fileID: 162722, guid: 1fc71432c1bd537489e1be6246b56973, type: 3}
+  dualRevolverChargeVfxScale: 0.6
+  dualRevolverChargeTint: {r: 1, g: 0.25, b: 0.25, a: 1}
+  dualRevolverLaserColor: {r: 2.2, g: 0.12, b: 0.15, a: 1}
+  dualRevolverLaserLength: 26
+  dualRevolverChargeClip: {fileID: 8300000, guid: 8b6826491f5797041a572e2272be3ab4, type: 3}
+  dualRevolverChargeVolume: 0.9
+  dualRevolverFireClip: {fileID: 8300000, guid: ee426a8102a1c504eacf739ad08e6144, type: 3}
+  dualRevolverFireVolume: 1
+  dualRevolverJumpScale: 0.75
+  dualRevolverFloatGravity: 0.06
+  dualRevolverFloatMaxFallSpeed: 0.7
+  dualRevolverChargeMoveSpeed: 0.15
   techJumpAngle: 60
   techJumpPower: 30
   techJumpDuration: 0.08
@@ -1410,26 +1539,40 @@ MonoBehaviour:
   techJumpFlashBangRange: 2
   techJumpFlashBangSlowDuration: 0.5
   techJumpFlashBangSlowRatio: 0.4
+  techJumpFlashBangExplodeVfx: {fileID: 1890581295539120, guid: 0e1c7fb597c927a41893518fb7dc7472, type: 3}
+  techJumpFlashBangExplodeVfxScale: 1
+  techJumpFlashBangExplodeClip: {fileID: 8300000, guid: eeadad3c3b82b8b48ae4da97ea4eba3e, type: 3}
+  techJumpFlashBangExplodeVolume: 1
+  techJumpFlashBangBlindAlpha: 0.75
   deadEyeProjectilePrefab: {fileID: 7811597853570981533, guid: 5ffe8d35bf7c83f419e326d8dee79b16, type: 3}
   deadEyeProjectileFireCooltime: 0.75
   deadEyeProjectileCharges: 3
-  deadEyeSnipingTimeLimit: 7.5
+  deadEyeSnipingTimeLimit: 6
   deadEyeReuseCooltime: 0.25
+  deadEyeCooldownAfterUse: 12
+  deadEyeChargeTime: 1
+  deadEyeMinChargeDamageRatio: 0.35
+  deadEyeInvulnerableVfx: {fileID: 189378, guid: 6419d3d589b2c4249a00a738ba8a870f, type: 3}
+  deadEyeInvulnerableVfxScale: 0.5
+  deadEyeInvulnerableSparkleVfx: {fileID: 1165712415533886, guid: 03793549598267346b73c1a27e2f3e9a, type: 3}
+  deadEyeInvulnerableSparkleVfxScale: 0.45
+  deadEyeInvulnerableRingColor: {r: 0.95, g: 0.3, b: 1, a: 1}
+  deadEyeInvulnerableRingSize: 1.8
   deadEyeLockRadius: 0.3
-  deadEyeActivateClip: {fileID: 8300000, guid: 3df05119871a7c64082587db628edf16, type: 3}
+  deadEyeActivateClip: {fileID: 8300000, guid: b72d846d25022234f8e514a193939f44, type: 3}
   deadEyeActivateVolume: 1
-  deadEyeShotClip: {fileID: 8300000, guid: 085a733c0317f0f468e923d269d38114, type: 3}
+  deadEyeShotClip: {fileID: 8300000, guid: d8eba111a45a5db4780ead6f9f8ad10c, type: 3}
   deadEyeShotVolume: 1
   deadEyeShakeMagnitude: 0.6
   deadEyeShakeDuration: 0.35
   deadEyeZoomOffset: 1.2
   deadEyeZoomRatio: 0.15
   deadEyeZoomDuration: 0.6
-  deadEyeShotShakeMagnitude: 0.45
-  deadEyeShotShakeDuration: 0.25
-  deadEyeShotZoomOffset: 0.8
-  deadEyeShotZoomRatio: 0.1
-  deadEyeShotZoomDuration: 0.4
+  deadEyeShotShakeMagnitude: 0.95
+  deadEyeShotShakeDuration: 0.38
+  deadEyeShotZoomOffset: 1.1
+  deadEyeShotZoomRatio: 0.16
+  deadEyeShotZoomDuration: 0.45
   carnivalBackAttackCriterionAngle: 90
   carnivalBackAttackAdditionalDamageMultiplier: 2
 --- !u!114 &7259875264312912808
@@ -1454,6 +1597,47 @@ MonoBehaviour:
   lockColor: {r: 0.72, g: 0.35, b: 1, a: 1}
   lockPulse: 0.12
   lockClip: {fileID: 8300000, guid: b4a7470d48b329e4cbfc4e646ae78b9e, type: 3}
+--- !u!114 &210576037803678420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8619172043949265512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6710247993fe254185aef84b2c62ec8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.Examples.ChaserSnipeVisuals
+  segments: 24
+  radius: 62
+  segmentSize: {x: 7, y: 18}
+  allyColor: {r: 0.85, g: 0.45, b: 1, a: 1}
+  enemyColor: {r: 1, g: 0.25, b: 0.3, a: 1}
+  fullColor: {r: 1, g: 0.95, b: 1, a: 1}
+  percentFont: {fileID: 11400000, guid: 1629ecb618f41e84b97450f83feb9749, type: 2}
+  chargeClip: {fileID: 8300000, guid: 8b6826491f5797041a572e2272be3ab4, type: 3}
+  chargeVolume: 0.9
+  tickClip: {fileID: 0}
+  tickVolume: 0.45
+  fullClip: {fileID: 8300000, guid: 9848122c361bed249a1a2a2d3a9b0c97, type: 3}
+  fullVolume: 0.8
+  chargeVfx: {fileID: 162722, guid: 1fc71432c1bd537489e1be6246b56973, type: 3}
+  chargeVfxScale: 0.55
+  chargeTint: {r: 0.8, g: 0.4, b: 1, a: 1}
+  impactFx:
+  - prefab: {fileID: 136540, guid: 215ff560badfe1d4b8391e64e82c5f4e, type: 3}
+    scale: 1.3
+  - prefab: {fileID: 1042534902773516, guid: 2f435027d5381ea47931d49b9964c220, type: 3}
+    scale: 1.15
+  - prefab: {fileID: 1272483159307946, guid: cc0bdc9defd87ef4fba2c3954f1bb0d1, type: 3}
+    scale: 0.65
+  minImpactScale: 0.6
+  tracerColor: {r: 0.9, g: 0.45, b: 1, a: 1}
+  tracerDuration: 0.3
+  tracerWidth: 0.55
+  barOffset: {x: 0, y: 1.75}
+  barSize: {x: 1.3, y: 0.09}
 --- !u!4 &8892872073989034078 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 514286130412363308, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}

@@ -13,7 +13,7 @@ using UnityEngine.UI;
 ///     isLeftSide 를 좌/우에 맞게 설정한다.
 ///   - hpFillImage: Filled Image (Horizontal). 캐릭터가 아직 스폰되지 않았으면 0으로 표시된다.
 ///   - nameText: 임시로 "P1"(왼쪽)/"P2"(오른쪽)만 표시한다. 실제 닉네임 연동은 추후.
-///   - scoreSlots: MatchManager.WinsRequired(=2)만큼(3판 2선승, 2승 찍으면 매치 종료라 그 이상은
+///   - scoreSlots: MatchManager.WinsRequired(=3)만큼(5판 3선승, 3승 찍으면 매치 종료라 그 이상은
 ///     필요 없음 — 예전 "5판 3선승" 시절엔 3칸이 맞았으나 지금은 아님). 승수만큼 앞에서부터
 ///     scoreFilledColor, 나머지는 scoreEmptyColor.
 ///   - characterImage: 캐릭터 초상화 표시용 빈 슬롯. 캐릭터 선택/포트레이트 시스템이 아직 없어
@@ -25,7 +25,7 @@ public class PlayerCornerHUD : MonoBehaviour
 
     [Header("HP")]
     [SerializeField] private Image hpFillImage;
-    [Tooltip("HP가 깎이면 잠깐 머물렀다가 천천히 따라 줄어드는 흰 잔상 바(hpFillImage 뒤, Filled Horizontal). 선택 사항.")]
+    [Tooltip("HP가 깎이면 잠깐 머물렀다가 천천히 따라 줄어드는 주황 잔상 바(hpFillImage 뒤, Filled Horizontal). 선택 사항.")]
     [SerializeField] private Image hpTrailImage;
     [Min(0f)] [SerializeField] private float trailDelay = 0.35f;
     [Min(0.1f)] [SerializeField] private float trailSpeed = 0.9f;
@@ -37,7 +37,7 @@ public class PlayerCornerHUD : MonoBehaviour
     [Header("이름 (임시)")]
     [SerializeField] private TMP_Text nameText;
 
-    [Header("스코어 (3판 2선승 = WinsRequired 2, 2칸)")]
+    [Header("스코어 (5판 3선승 = WinsRequired 3, 3칸)")]
     [SerializeField] private Image[] scoreSlots;
     [SerializeField] private Color scoreFilledColor = Color.white;
     [SerializeField] private Color scoreEmptyColor = new Color(1f, 1f, 1f, 0.25f);

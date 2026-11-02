@@ -114,8 +114,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
-      value: SPARK_Projectile
+      value: SparkElectricGunProjectile
       objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 52df9624c16ca9b4bbe01398ddfc55aa, type: 2}
     - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Parameters.colorGradient.ctime1
       value: 65535

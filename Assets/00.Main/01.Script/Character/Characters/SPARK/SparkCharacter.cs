@@ -80,6 +80,7 @@ namespace ProjectMS.CharacterSystem.Examples
         
         private int TeslaCurrentExplosionCount { get; set; }
         private bool isTeslaFieldActive = false;
+        protected override bool IsUltimateInProgress => isTeslaFieldActive;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
         {

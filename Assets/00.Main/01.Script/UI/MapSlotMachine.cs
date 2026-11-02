@@ -47,6 +47,14 @@ public class MapSlotMachine : MonoBehaviour
     [Range(0f, 1f)] [SerializeField] private float tickVolume = 0.5f;
     [SerializeField] private AudioClip stopClip;
 
+    [Header("맵 이름 (선택)")]
+    [Tooltip("도는 동안 지금 창 가운데를 지나는 맵 이름이 따라 바뀌고, 멈추면 결과 이름이 '띵' 하고 박힌다.")]
+    [SerializeField] private TMPro.TMP_Text nameLabel;
+    [Tooltip("맵 매니저를 안 쓸 때의 이름들(배열 순서 = 결과 인덱스).")]
+    [SerializeField] private string[] mapNames;
+    [SerializeField] private Color nameRollingColor = new Color(0.75f, 0.8f, 0.95f, 1f);
+    [SerializeField] private Color nameDecidedColor = new Color(1f, 0.86f, 0.4f, 1f);
+
     [SerializeField] private bool spinOnEnable = true;
     [Tooltip("켜면 맵 매니저의 맵 대표 이미지를 쓰고, 실제로 시작하는 맵에서 멈춘다.")]
     [SerializeField] private bool useMapManager = true;
@@ -79,10 +87,13 @@ public class MapSlotMachine : MonoBehaviour
     {
         MapManager maps = useMapManager ? MapManager.Instance : null;
         Sprite[] thumbnails = maps != null ? maps.GetMapThumbnails() : null;
-        if (thumbnails != null && maps.ActiveMapIndex >= 0)
+        if (thumbnails != null)
         {
+            // 이미지와 이름을 같은 순서(맵 매니저)에서 가져와야 굴러가는 이름이 그림과 맞는다.
+            // 연습장처럼 실제 맵이 안 정해졌으면 아무 맵에서나 멈춘다.
             mapSprites = thumbnails;
-            Spin(maps.ActiveMapIndex);
+            mapNames = maps.GetMapNames();
+            Spin(maps.ActiveMapIndex >= 0 ? maps.ActiveMapIndex : Random.Range(0, mapSprites.Length));
             return;
         }
 
@@ -139,6 +150,8 @@ public class MapSlotMachine : MonoBehaviour
                 if (tickClip != null)
                     SoundManager.Instance?.PlaySfx(tickClip, tickVolume);
             }
+            // 지금 창 가운데를 지나는 칸의 맵 이름.
+            SetName(NearestCell(-(startY + travelled)) % mapSprites.Length, false);
 
             yield return null;
         }
@@ -148,6 +161,9 @@ public class MapSlotMachine : MonoBehaviour
         Result = resultIndex;
         if (stopClip != null)
             SoundManager.Instance?.PlaySfx(stopClip);
+        SetName(resultIndex, true);
+        if (nameLabel != null)
+            StartCoroutine(NamePunch());
 
         yield return Flash();
 
@@ -285,6 +301,48 @@ public class MapSlotMachine : MonoBehaviour
         }
 
         return true;
+    }
+
+    private int NearestCell(float centerY)
+    {
+        int best = 0;
+        float bestDist = float.MaxValue;
+        for (int i = 0; i < cellCenters.Count; i++)
+        {
+            float d = Mathf.Abs(cellCenters[i] - centerY);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    private void SetName(int index, bool decided)
+    {
+        if (nameLabel == null)
+            return;
+        string text = mapNames != null && index >= 0 && index < mapNames.Length ? mapNames[index] : string.Empty;
+        if (nameLabel.text != text)
+            nameLabel.text = text;
+        nameLabel.color = decided ? nameDecidedColor : nameRollingColor;
+    }
+
+    /// <summary>결정된 이름이 크게 튀었다가 자리 잡으며 하얗게 번쩍인다.</summary>
+    private IEnumerator NamePunch()
+    {
+        RectTransform rt = nameLabel.rectTransform;
+        Vector3 baseScale = Vector3.one;
+        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / 0.35f)
+        {
+            float k = 1f + Mathf.Sin(t * Mathf.PI) * (1f - t * 0.5f) * 0.45f;
+            rt.localScale = baseScale * k;
+            nameLabel.color = Color.Lerp(Color.white, nameDecidedColor, t);
+            yield return null;
+        }
+        rt.localScale = baseScale;
+        nameLabel.color = nameDecidedColor;
     }
 
     /// <summary>창 너비에 맞췄을 때의 이미지 원래 높이.</summary>

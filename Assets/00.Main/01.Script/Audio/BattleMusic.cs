@@ -44,7 +44,8 @@ public class BattleMusic : MonoBehaviour
 
     private static Track Decide()
     {
-        if (CharacterBase.IntroLocked)
+        // VS 연출 + 이어지는 1라운드 ROUND/READY 동안은 VS 곡. 2라운드부터의 ROUND/READY는 전투곡을 그대로 둔다.
+        if (VsIntroUI.IsPlaying || (RoundIntroUI.IsPlaying && RoundIntroUI.FromVs))
             return Track.Silent;
 
         if (PracticeSession.IsActive)

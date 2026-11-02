@@ -5049,7 +5049,7 @@ MonoBehaviour:
   destroyWhenOwnerDies: 1
   effectAnchor: {fileID: 0}
   fuseStartMode: 0
-  fuseSeconds: 2
+  fuseSeconds: 0.55
   groundLayer:
     serializedVersion: 2
     m_Bits: 64

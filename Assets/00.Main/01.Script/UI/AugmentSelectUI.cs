@@ -78,9 +78,11 @@ public class AugmentSelectUI : MonoBehaviour
     private int picksAtStart;
     private Color timerBaseColor = Color.white;
     private Coroutine pickRoutine;
+    private AugmentSelectFx fx;
 
     private void Awake()
     {
+        fx = GetComponent<AugmentSelectFx>();
         if (panel != null)
             panelAnimator = panel.GetComponent<Animator>();
         if (timerFillImage != null)
@@ -146,10 +148,10 @@ public class AugmentSelectUI : MonoBehaviour
         foreach (AugmentChoiceSlot slot in slots)
             slot.ReleaseToAnimator();
 
-        // 애니메이터가 패널이 켜질 때 처음부터 재생되도록 다시 켜고, 슬로우모션 영향을 받지 않게 한다.
+        // 코드 연출(AugmentSelectFx)이 있으면 애니메이터는 쓰지 않는다.
         if (panelAnimator != null)
         {
-            panelAnimator.enabled = true;
+            panelAnimator.enabled = fx == null;
             panelAnimator.updateMode = AnimatorUpdateMode.UnscaledTime;
         }
 
@@ -158,8 +160,17 @@ public class AugmentSelectUI : MonoBehaviour
         RollNewChoices(picksRemaining);
         SetSlotsInteractable(false);
 
-        introEndsAt = Time.unscaledTime + ResolveIntroDuration();
-        PlaySound(introClip);
+        if (fx != null)
+        {
+            var cards = new List<AugmentChoiceSlot>(ActiveSlots());
+            fx.PlayIntro(cards);
+            introEndsAt = Time.unscaledTime + fx.IntroDuration(cards.Count);
+        }
+        else
+        {
+            introEndsAt = Time.unscaledTime + ResolveIntroDuration();
+            PlaySound(introClip);
+        }
     }
 
     private void FinishIntro()
@@ -196,6 +207,7 @@ public class AugmentSelectUI : MonoBehaviour
         }
 
         state = State.Hidden;
+        fx?.Hide();
         pool = null;
         rolledForPicksRemaining = -1;
         shownTypesThisPick.Clear();
@@ -216,7 +228,15 @@ public class AugmentSelectUI : MonoBehaviour
 
         // 지급은 즉시(제한시간 경계와 겹쳐도 확실히 반영되게), 연출은 그 뒤에 보여준다.
         local.GrantAugment(picked.CurrentType);
-        PlaySound(pickClip);
+        if (fx != null)
+        {
+            var others = new List<AugmentChoiceSlot>();
+            foreach (AugmentChoiceSlot s in ActiveSlots())
+                if (s != picked) others.Add(s);
+            fx.PlayPick(picked, others, picked.CurrentEntry.SourcePack != null ? picked.CurrentEntry.SourcePack.themeColor : Color.white);
+        }
+        else
+            PlaySound(pickClip);
         hoverMutedUntil = Time.unscaledTime + HoverMuteAfterAction;
         pickRoutine = StartCoroutine(PickSequence(picked));
     }
@@ -252,9 +272,11 @@ public class AugmentSelectUI : MonoBehaviour
         foreach (AugmentChoiceSlot slot in ActiveSlots())
         {
             slot.PlayReveal(revealStagger * order);
+            fx?.PlayReveal(slot, revealStagger * order);
             order++;
         }
-        PlaySound(revealClip);
+        if (fx == null)
+            PlaySound(revealClip);
 
         yield return WaitUnscaled(revealStagger * order + 0.25f);
         SetSlotsInteractable(true);

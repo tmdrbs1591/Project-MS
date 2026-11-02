@@ -185,14 +185,14 @@ public class SceneTransition : MonoBehaviour
 
         SoundManager.Instance?.PlaySfx(enterSound, sfxVolume);
 
-        // 1) 화면이 어두워지며 로딩 화면이 드러나고, 내용이 양옆에서 살며시 들어온다
+        // 1) 완성된 로딩 화면 전체가 알파 페이드로 한 번에 드러난다
+        ApplyContent(1f);
         float elapsed = 0f;
-        float total = fadeInDuration + 0.5f;
-        while (elapsed < total)
+        while (elapsed < fadeInDuration)
         {
             elapsed += Time.unscaledDeltaTime;
-            rootGroup.alpha = EaseOutCubic(Mathf.Clamp01(elapsed / fadeInDuration));
-            ApplyContent(Mathf.Clamp01((elapsed - fadeInDuration * 0.5f) / 0.55f));
+            float t = Mathf.Clamp01(elapsed / fadeInDuration);
+            rootGroup.alpha = t * t * (3f - 2f * t);
             yield return null;
         }
         rootGroup.alpha = 1f;

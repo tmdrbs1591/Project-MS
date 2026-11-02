@@ -110,6 +110,8 @@ MonoBehaviour:
     m_Bits: 64
   collisionSkinWidth: 0.03
   projectileAngleOffset: 0
+  spriteRenderer: {fileID: 0}
+  empoweredSprite: {fileID: 0}
   hitVfxPrefab: {fileID: 7908749483598085019, guid: 9bef78cc6a871fc49a95e810ffba50bc, type: 3}
   hitVfxAngleOffset: -90
   hitVfxSurfaceOffset: 0.02
@@ -5126,7 +5128,7 @@ TrailRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8539b2a510a4582498fdf8a04c0b5604, type: 2}
+  - {fileID: 2100000, guid: 52df9624c16ca9b4bbe01398ddfc55aa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

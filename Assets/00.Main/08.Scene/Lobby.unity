@@ -18517,6 +18517,7 @@ MonoBehaviour:
   style: 1
   card: {fileID: 559226665}
   character: {fileID: 1021714915}
+  alwaysOn: 0
   blendSpeed: 8
   flashSprite: {fileID: 21300000, guid: be1e15155cac5ab4b92880919cace916, type: 3}
   flashColor: {r: 1, g: 0.85, b: 0.45, a: 1}
@@ -24723,6 +24724,7 @@ MonoBehaviour:
   style: 3
   card: {fileID: 767110199}
   character: {fileID: 1914522019}
+  alwaysOn: 0
   blendSpeed: 8
   flashSprite: {fileID: 21300000, guid: be1e15155cac5ab4b92880919cace916, type: 3}
   flashColor: {r: 1, g: 0.85, b: 0.45, a: 1}
@@ -25663,6 +25665,7 @@ MonoBehaviour:
   style: 4
   card: {fileID: 783585476}
   character: {fileID: 470754238}
+  alwaysOn: 0
   blendSpeed: 8
   flashSprite: {fileID: 21300000, guid: be1e15155cac5ab4b92880919cace916, type: 3}
   flashColor: {r: 1, g: 0.85, b: 0.45, a: 1}
@@ -28514,7 +28517,7 @@ MonoBehaviour:
     \uACB9\uCCD0\uC9D1\uB2C8\uB2E4."
   - "\uB85C\uBE44\uC758 \uCE90\uB9AD\uD130 \uAC74\uBB3C\uC5D0\uC11C \uC5B8\uC81C\uB4E0
     \uCE90\uB9AD\uD130\uB97C \uBC14\uAFC0 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
-  fadeInDuration: 0.45
+  fadeInDuration: 0.6
   fadeOutDuration: 0.55
   minHold: 0.7
   afterLoadDelay: 0.35
@@ -42036,6 +42039,7 @@ MonoBehaviour:
   style: 2
   card: {fileID: 1113719397}
   character: {fileID: 555327363}
+  alwaysOn: 0
   blendSpeed: 8
   flashSprite: {fileID: 21300000, guid: be1e15155cac5ab4b92880919cace916, type: 3}
   flashColor: {r: 1, g: 0.85, b: 0.45, a: 1}
@@ -78540,6 +78544,7 @@ MonoBehaviour:
   style: 0
   card: {fileID: 1825004213}
   character: {fileID: 898467565}
+  alwaysOn: 0
   blendSpeed: 8
   flashSprite: {fileID: 21300000, guid: be1e15155cac5ab4b92880919cace916, type: 3}
   flashColor: {r: 1, g: 0.85, b: 0.45, a: 1}
@@ -81844,6 +81849,13 @@ MonoBehaviour:
   closeSound: {fileID: 8300000, guid: fe598416e3ba7444dbf730b9075f29f6, type: 3}
   selectSound: {fileID: 8300000, guid: a066ae1ad4ae5294cbcb2657c1f14e37, type: 3}
   sfxVolume: 0.6
+  portalZoomSize: 3.2
+  suckDuration: 0.75
+  loadingCoverDelay: 0.65
+  vortexShader: {fileID: 4800000, guid: b8a3f96d32524e141b20aa573003bdfe, type: 3}
+  bodyCenterOffset: -0
+  suckSound: {fileID: 8300000, guid: 92d908ee0ecf23545afd0c16f9344841, type: 3}
+  enterPortalSound: {fileID: 8300000, guid: ca0f2bb573bdd394c8c2f3403ee973e1, type: 3}
   fadeOutOnPractice:
   - {fileID: 1779600755}
   practiceFadeDuration: 0.7

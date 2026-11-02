@@ -20,6 +20,8 @@ public class MapDefinition : MonoBehaviour
 {
     [Tooltip("시작 연출의 맵 슬롯머신(MapSlotMachine)에 보여줄 이 맵의 대표 이미지.")]
     [SerializeField] private Sprite thumbnail;
+    [Tooltip("맵 결정 연출(VS 화면)에 같이 굴러가다 결정되는 맵 이름.")]
+    [SerializeField] private string displayName;
     [Tooltip("PlayerId 오름차순(1, 2, ...)에 대응하는 스폰 지점.")]
     [SerializeField] private Transform[] spawnPoints;
 
@@ -30,6 +32,7 @@ public class MapDefinition : MonoBehaviour
     [SerializeField] private MapStructureSpawn[] structureSpawns = Array.Empty<MapStructureSpawn>();
 
     public Sprite Thumbnail => thumbnail;
+    public string DisplayName => displayName;
     public Transform[] SpawnPoints => spawnPoints;
     public Collider2D CameraBounds => cameraBounds;
     public MapStructureSpawn[] StructureSpawns => structureSpawns;

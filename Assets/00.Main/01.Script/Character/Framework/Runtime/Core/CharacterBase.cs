@@ -59,6 +59,8 @@ namespace ProjectMS.CharacterSystem
         [Networked] private CharacterDamageSource NetLastDamageSource { get; set; }
         [Networked] private PlayerRef NetLastDamageAttacker { get; set; }
         [Networked] private float NetUltimateGauge { get; set; }
+        // 궁극기를 쓴 직후 잠깐 게이지가 안 차게 막는 타이머(궁극기 자체 데미지로 다시 차오르는 것 방지).
+        [Networked] private TickTimer NetUltimateChargeLock { get; set; }
         // 결과 화면 통계(매치 누적). 라운드가 바뀌어도 유지되고 재대결 때만 지운다.
         // 1대1이라 "상대가 받은 피해/적중"이 곧 "내가 가한 피해/적중"이다.
         [Networked] private float NetMatchDamageTaken { get; set; }
@@ -144,6 +146,18 @@ namespace ProjectMS.CharacterSystem
         public float UltimateGaugeCurrent => NetUltimateGauge;
         public float UltimateGaugeMax => definition != null ? definition.UltimateGaugeMax : 0f;
 
+        /// <summary>궁극기를 쓴 뒤 최소 이 시간(초) 동안은 게이지가 차지 않는다.</summary>
+        private const float UltimateChargeLockSeconds = 2.5f;
+
+        /// <summary>궁극기 효과가 아직 이어지는 중인지(저격 모드, 테슬라 필드 등). 이 동안은 게이지가 차지 않는다.
+        /// 효과가 오래 가는 궁극기를 가진 캐릭터가 재정의한다.</summary>
+        protected virtual bool IsUltimateInProgress => false;
+
+        /// <summary>무적인지(모든 피해를 받지 않음). 네트워크 상태로 판단해야 모든 클라에서 같게 보인다.</summary>
+        protected virtual bool IsInvulnerable => false;
+
+        private bool CanChargeUltimate => !IsUltimateInProgress && (Runner == null || NetUltimateChargeLock.ExpiredOrNotRunning(Runner));
+
         /// <summary>이번 매치에서 상대에게 받은 피해 합계(낙사 등 환경 피해 제외).</summary>
         public float MatchDamageTaken => Object != null ? NetMatchDamageTaken : 0f;
         /// <summary>이번 매치에서 상대에게 맞은 횟수(지속 피해/환경 피해 제외).</summary>
@@ -160,6 +174,8 @@ namespace ProjectMS.CharacterSystem
         public Vector2 AimDirection => DirectionFromAngle(NetAimAngle);
         protected float AimAngle => NetAimAngle;
         protected Vector2 AimWorldPosition => lastInput.AimWorldPosition;
+        /// <summary>이번 틱의 입력(상태 권한에서만 의미 있음). 꾹 누르기 같은 판정용.</summary>
+        protected CharacterInputSnapshot LastInput => lastInput;
         protected Transform AttackOrigin => sockets.ResolveAttackOrigin(transform);
         protected Transform ProjectileOrigin => sockets.ResolveProjectileOrigin(transform);
         protected Transform EffectOrigin => sockets.ResolveEffectOrigin(transform);
@@ -324,7 +340,7 @@ namespace ProjectMS.CharacterSystem
 
             float distance = Mathf.Abs(transform.position.x - enemy.transform.position.x);
 
-            if (accruingAllowed && !float.IsNaN(lastApproachDistanceToEnemy))
+            if (accruingAllowed && CanChargeUltimate && !float.IsNaN(lastApproachDistanceToEnemy))
             {
                 float closedDistance = lastApproachDistanceToEnemy - distance;
                 if (closedDistance > 0f)
@@ -380,6 +396,9 @@ namespace ProjectMS.CharacterSystem
         public bool CanReceiveDamage(DamageRequest request)
         {
             if (Object == null || NetDead || !IsFinitePositive(request.Amount))
+                return false;
+
+            if (IsInvulnerable)
                 return false;
 
             if (request.SourceObjectId.IsValid && request.SourceObjectId == Object.Id)
@@ -464,6 +483,9 @@ namespace ProjectMS.CharacterSystem
         /// 별개의 매커니즘 — 스킬에 맞아서 밀리는 게 아니라 환경 요소에 튕겨오르는 것임을
         /// 호출부에서 바로 구분할 수 있게 이름을 나눠뒀다. velocity 동안 duration초만큼
         /// 중력 없이 그 속도를 유지하다가(체공시간으로 높이를 번다) 정상 중력으로 돌아온다.</summary>
+        /// <summary>낙사존 등에 튕겨 오르는 중인지.</summary>
+        public bool IsMapBouncing => movement != null && movement.IsMapBouncing;
+
         public void ApplyMapBounce(float velocity, float duration)
         {
             if (Object == null || !Object.HasStateAuthority)
@@ -485,8 +507,8 @@ namespace ProjectMS.CharacterSystem
             if (!Mathf.Approximately(previousHealth, health.Current))
                 OnHealthChanged(previousHealth, health.Current);
             NetDead = false;
-            // 궁극기 게이지는 라운드가 바뀌어도 이월되어야 하므로 라운드 리셋 시엔 초기화하지 않는다.
-            ResetCommonState(resetUltimateGauge: false);
+            // 궁극기 게이지는 라운드마다 0부터 다시 모은다(다음 라운드로 이월하지 않음).
+            ResetCommonState(resetUltimateGauge: true);
             // 이전 라운드에 설치/투척한 오브젝트(노드, 포탈, 투척물 등)가 다음 라운드까지 남지 않게 정리한다.
             // 사망 시에는 죽은 쪽 것만 정리되므로, 살아남은 쪽 것이 남아 있던 문제를 막는다.
             DestroyOwnedEntitiesForRoundReset();
@@ -577,10 +599,14 @@ namespace ProjectMS.CharacterSystem
                 Rpc_PlayUltimateFlashEffect();
         }
 
+        /// <summary>누군가 궁극기를 썼을 때(모든 클라에서) — 궁극기 컷인 연출(UltimateCutIn)이 받는다.</summary>
+        public static event Action<CharacterBase> UltimateCast;
+
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void Rpc_PlayUltimateFlashEffect()
         {
             ultimateFlashEffect?.Play();
+            UltimateCast?.Invoke(this);
         }
 
         protected void DealDamage(CharacterBase target, float amount, CharacterDamageSource source = CharacterDamageSource.Direct)
@@ -804,7 +830,7 @@ namespace ProjectMS.CharacterSystem
         /// 게이지를 채운다. 게이지 모드가 아니면 아무 일도 안 한다.</summary>
         private void AddUltimateGaugeFromDamageDealt(float damage)
         {
-            if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f)
+            if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f || !CanChargeUltimate)
                 return;
 
             float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageDealt * UltimateGaugeRateMultiplier;
@@ -815,7 +841,7 @@ namespace ProjectMS.CharacterSystem
         /// 게이지를 채운다. 게이지 모드가 아니면 아무 일도 안 한다.</summary>
         private void AddUltimateGaugeFromDamageTaken(float damage)
         {
-            if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f)
+            if (!HasStateAuthority || !IsUltimateGaugeMode || damage <= 0f || !CanChargeUltimate)
                 return;
 
             float next = NetUltimateGauge + damage * definition.UltimateGaugePerDamageTaken * UltimateGaugeRateMultiplier;
@@ -1560,7 +1586,10 @@ namespace ProjectMS.CharacterSystem
 
             actionState.ConsumeCharge(action);
             if (action == CharacterActionType.Ultimate && IsUltimateGaugeMode)
+            {
                 NetUltimateGauge = 0f;
+                NetUltimateChargeLock = TickTimer.CreateFromSeconds(Runner, UltimateChargeLockSeconds);
+            }
             else if (action == CharacterActionType.Dash && actionState.ShouldStartCooldownAutomatically(action))
                 // 추진력 강화 증강(DashCooldownMultiplier)만 적용받는 유일한 액션이라 여기서 따로 계산한다.
                 actionState.StartCooldown(action, actionState.GetCooldownDuration(action) * DashCooldownMultiplier);
@@ -1790,6 +1819,7 @@ namespace ProjectMS.CharacterSystem
             NetGameplayLocked = false;
             if (resetUltimateGauge)
                 NetUltimateGauge = 0f;
+            NetUltimateChargeLock = default;
             NetSlowRatio = 0f;
             NetSlowTimer = default;
             NetHitstunTimer = default;
@@ -1959,12 +1989,39 @@ namespace ProjectMS.CharacterSystem
             NetAutoHopSequence++;
         }
 
+        /// <summary>내 캐릭터가 쏘거나 스킬을 쓸 때 화면을 살짝 흔들어 손맛을 준다(내 화면에서만).</summary>
+        private void ShakeOnAction(CharacterActionType action)
+        {
+            TwoPlayerCamera cam = TwoPlayerCamera.Instance;
+            if (cam == null)
+                return;
+            // 쏘는 반대쪽으로 화면이 툭 밀리는 반동 + 흔들림
+            Vector2 recoil = -AimDirection;
+            switch (action)
+            {
+                case CharacterActionType.BasicAttack:
+                    cam.Shake(0.22f, 0.12f);
+                    cam.PunchZoom(recoil, 0.28f, 0.025f, 0.13f);
+                    break;
+                case CharacterActionType.SkillQ:
+                case CharacterActionType.SkillE:
+                    cam.Shake(0.38f, 0.22f);
+                    cam.PunchZoom(recoil, 0.45f, 0.045f, 0.22f);
+                    break;
+                case CharacterActionType.Ultimate:
+                    cam.Shake(0.4f, 0.4f);
+                    break;
+            }
+        }
+
         private void DetectVisualEvents()
         {
             if (lastRenderedActionSequence != NetActionSequence)
             {
                 lastRenderedActionSequence = NetActionSequence;
                 visual.PlayAction(NetAction, ShouldPlayDefaultActionSound(NetAction));
+                if (IsLocalPlayer)
+                    ShakeOnAction(NetAction);
             }
 
             if (lastRenderedJumpSequence != NetJumpSequence)

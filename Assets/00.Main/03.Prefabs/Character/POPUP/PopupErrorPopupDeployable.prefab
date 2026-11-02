@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 7138446660221459580}
   - component: {fileID: 5461833736379275686}
   - component: {fileID: 7863458582313883654}
+  - component: {fileID: 7416028750072831368}
   m_Layer: 0
   m_Name: PopupErrorPopupDeployable
   m_TagString: Untagged
@@ -197,6 +198,7 @@ MonoBehaviour:
   allowSelfDamage: 0
   allowFriendlyDamage: 0
   destroyWhenOwnerDies: 1
+  effectAnchor: {fileID: 0}
   activateOnSpawn: 1
   popupOffset: {x: 0.5, y: 0.5}
   popupTabLeashRadius: 0.25
@@ -218,6 +220,21 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
+--- !u!114 &7416028750072831368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5464947684531186840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9740de4115ca0c647bf328cf81903ac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlaySoundOnSpawn
+  clip: {fileID: 8300000, guid: 55c3c32ec890ef64199b78526cffbcbc, type: 3}
+  volume: 0.9
+  pitchVariance: 0.06
 --- !u!1 &7052830351734712122
 GameObject:
   m_ObjectHideFlags: 0

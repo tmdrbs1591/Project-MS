@@ -206,6 +206,8 @@ public class VsIntroUI : MonoBehaviour
             flashObject.SetActive(false);
 
         controlsUnlocked = false;
+        handedOff = false;
+        IsPlaying = true;
         CharacterBase.IntroLocked = true;
         SetAllCharactersLocked(true);
 
@@ -216,16 +218,24 @@ public class VsIntroUI : MonoBehaviour
 
     private void OnDisable()
     {
+        IsPlaying = false;
         if (introRoutine != null)
         {
             StopCoroutine(introRoutine);
             introRoutine = null;
         }
 
+        // 라운드 연출에 잠금을 넘겼으면 그대로 둔다(그쪽이 FIGHT 때 푼다).
+        if (handedOff)
+            return;
         // 연출 도중에 오브젝트가 꺼져도 조작 불능 상태로 남지 않도록 방어적으로 풀어준다.
         CharacterBase.IntroLocked = false;
         SetAllCharactersLocked(false);
     }
+
+    /// <summary>VS 연출이 화면에 나오고 있는지(배경음 판단용).</summary>
+    public static bool IsPlaying { get; private set; }
+    private bool handedOff;
 
     private void Update()
     {
@@ -834,7 +844,9 @@ public class VsIntroUI : MonoBehaviour
         yield return WaitUntilTime(now, outroAt);
 
         // 하얀 플래시 → VS 화면이 확 커지며 사라진다.
-        if (flashObject != null)
+        // 플래시로 연결된 게 FIGHT 연출이면, 라운드 연출이 READY 뒤에 직접 켜므로 여기선 켜지 않는다.
+        bool flashIsFight = RoundIntroUI.Instance != null && flashObject == RoundIntroUI.Instance.FightVfx;
+        if (flashObject != null && !flashIsFight)
             flashObject.SetActive(true);
         if (loopingParticle != null)
         {
@@ -844,7 +856,18 @@ public class VsIntroUI : MonoBehaviour
         TwoPlayerCamera.Instance?.Shake(0.25f, 0.3f);
         yield return BlowOut();
 
-        // FIGHT!
+        // ROUND 1 → READY → FIGHT!는 라운드 연출(RoundIntroUI)이 이어서 한다(조작 잠금도 그쪽이 넘겨받아 푼다).
+        if (RoundIntroUI.Instance != null)
+        {
+            handedOff = true;
+            RoundIntroUI.Instance.Play(true);
+            introRoutine = null;
+            IsPlaying = false;
+            gameObject.SetActive(false);
+            yield break;
+        }
+
+        // (라운드 연출이 없는 씬이면 예전처럼 여기서 FIGHT!)
         yield return WaitUntilTime(now, outroAt + controlUnlockDelay);
         controlsUnlocked = true;
         CharacterBase.IntroLocked = false;
@@ -852,6 +875,7 @@ public class VsIntroUI : MonoBehaviour
         yield return FightSlam();
 
         introRoutine = null;
+        IsPlaying = false;
         gameObject.SetActive(false);
     }
 

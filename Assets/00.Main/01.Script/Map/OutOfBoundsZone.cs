@@ -57,4 +57,21 @@ public class OutOfBoundsZone : MonoBehaviour
         if (bounceVelocity > 0f && bounceDuration > 0f)
             character.ApplyMapBounce(bounceVelocity, bounceDuration);
     }
+
+    // 안전장치: 존 안에 남아서 아래로 떨어지는 중이면(튕김이 어떤 이유로 끊겼을 때) 데미지 없이 다시 튕겨 올린다.
+    // 이게 없으면 튕김이 끊긴 캐릭터가 맵 아래로 끝없이 떨어질 수 있다.
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (bounceVelocity <= 0f || bounceDuration <= 0f || !other.CompareTag("Player"))
+            return;
+
+        CharacterBase character = other.GetComponentInParent<CharacterBase>();
+        if (character == null || character.Object == null || !character.Object.HasStateAuthority ||
+            character.IsDead || character.IsMapBouncing)
+            return;
+
+        Rigidbody2D body = character.GetComponent<Rigidbody2D>();
+        if (body != null && body.linearVelocity.y <= 0f)
+            character.ApplyMapBounce(bounceVelocity, bounceDuration);
+    }
 }

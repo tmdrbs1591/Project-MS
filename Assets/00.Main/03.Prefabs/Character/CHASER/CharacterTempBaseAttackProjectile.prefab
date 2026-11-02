@@ -64,6 +64,14 @@ PrefabInstance:
       propertyPath: lifetime
       value: 0.4
       objectReference: {fileID: 0}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: expireVfxScale
+      value: 0.28
+      objectReference: {fileID: 0}
+    - target: {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: expireVfxPrefab
+      value: 
+      objectReference: {fileID: 173316, guid: e5649dd49569c0a449b698021da6dd53, type: 3}
     - target: {fileID: 4285397309599736829, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: SortKey
       value: 597648960
@@ -135,6 +143,42 @@ PrefabInstance:
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
       value: CharacterTempBaseAttackProjectile
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Time
+      value: 0.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 206c7c56d264f5044ac413c980768e8e, type: 2}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.widthMultiplier
+      value: 1.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.colorGradient.key0.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.colorGradient.key0.g
+      value: 0.5019608
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.colorGradient.key0.r
+      value: 0.8509804
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.colorGradient.key1.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.colorGradient.key1.g
+      value: 0.14901961
+      objectReference: {fileID: 0}
+    - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Parameters.colorGradient.key1.r
+      value: 0.54901963
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -27,7 +27,10 @@ namespace ProjectMS.CharacterSystem
             }
 
             if (Contains(sealedControls, CharacterControlType.BasicAttack))
+            {
                 input.BasicAttackPressed = false;
+                input.BasicAttackHeld = false;
+            }
             if (Contains(sealedControls, CharacterControlType.SkillQ))
                 input.SkillQPressed = false;
             if (Contains(sealedControls, CharacterControlType.SkillE))

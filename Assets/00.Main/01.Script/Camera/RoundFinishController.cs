@@ -72,6 +72,7 @@ public class RoundFinishController : MonoBehaviour
     [SerializeField] private GameObject flashObject;
 
     private TwoPlayerCamera twoPlayerCamera;
+    private KoFinishEffect koEffect;
     private MatchPhase lastObservedPhase = MatchPhase.Fighting;
     private bool playedThisRoundEnd;
     private Coroutine finishRoutine;
@@ -80,6 +81,7 @@ public class RoundFinishController : MonoBehaviour
     {
         Instance = this;
         twoPlayerCamera = GetComponent<TwoPlayerCamera>();
+        koEffect = GetComponent<KoFinishEffect>();
     }
 
     private void OnDestroy()
@@ -105,7 +107,9 @@ public class RoundFinishController : MonoBehaviour
             else if (phase == MatchPhase.Fighting && lastObservedPhase == MatchPhase.AugmentSelect)
             {
                 // 다음 라운드 시작: 플래시를 켠다.
-                if (flashObject != null)
+                // 단, 플래시가 FIGHT 연출이면 라운드 연출(ROUND → READY → FIGHT)이 FIGHT 순간에 직접 켜므로 여기선 켜지 않는다.
+                bool flashIsFight = RoundIntroUI.Instance != null && flashObject == RoundIntroUI.Instance.FightVfx;
+                if (flashObject != null && !flashIsFight)
                     flashObject.SetActive(true);
             }
         }
@@ -116,6 +120,10 @@ public class RoundFinishController : MonoBehaviour
             // 경우 등) 다음 라운드/페이즈로 밀려 들어가지 않게 즉시 정리한다.
             if (finishRoutine != null)
                 StopFinishRoutine();
+
+            // 라운드 끝 화면을 벗어나면 날아간 가짜를 치우고 진짜 캐릭터 그림을 되돌린다.
+            if (playedThisRoundEnd)
+                koEffect?.Cleanup();
 
             playedThisRoundEnd = false;
             lastObservedPhase = phase;
@@ -128,7 +136,7 @@ public class RoundFinishController : MonoBehaviour
             if (loser != null)
             {
                 playedThisRoundEnd = true;
-                finishRoutine = StartCoroutine(FinishRoutine(loser.transform));
+                finishRoutine = StartCoroutine(FinishRoutine(loser));
             }
         }
 
@@ -152,21 +160,23 @@ public class RoundFinishController : MonoBehaviour
         return null;
     }
 
-    private IEnumerator FinishRoutine(Transform loserTransform)
+    private IEnumerator FinishRoutine(CharacterBase loser)
     {
-        if (deathVolume != null)
-            deathVolume.SetActive(true);
+        // (화면을 회색으로 만드는 데스 볼륨은 쓰지 않는다 — 대신 KoFinishEffect가 화려하게 터뜨린다.)
 
         // 다음 라운드 시작 때 다시 켤 수 있도록 리셋해둔다(SetActive(true)는 이미 켜져 있으면
         // 파티클/애니메이션을 재시작시키지 않는다 — 꺼야 다음 번에 다시 재생된다).
         if (flashObject != null)
             flashObject.SetActive(false);
 
-        twoPlayerCamera.SetFocusOverride(loserTransform, focusZoomSize);
+        // 1) 맞는 순간: 진 캐릭터 쪽으로 카메라가 확 당겨 붙고, 화면이 멈췄다가 슬로우로 흐른다.
+        Transform ghost = koEffect != null ? koEffect.Play(loser) : null;
+        Transform focus = ghost != null ? ghost : loser.transform;
+        twoPlayerCamera.Snappy(0.35f, 0.15f);
+        twoPlayerCamera.SetFocusOverride(focus, focusZoomSize);
         SoundManager.Instance?.PlaySfx(koClip);
-
         if (koShakeMagnitude > 0f)
-            twoPlayerCamera.Shake(koShakeMagnitude, koShakeDuration);
+            twoPlayerCamera.Shake(koShakeMagnitude * 0.6f, koShakeDuration);
 
         Time.timeScale = 0f;
         yield return new WaitForSecondsRealtime(hitStopDuration);
@@ -174,16 +184,29 @@ public class RoundFinishController : MonoBehaviour
         Time.timeScale = slowMotionScale;
         yield return new WaitForSecondsRealtime(slowMotionDuration);
 
-        float elapsed = 0f;
-        while (elapsed < recoverDuration)
+        if (koEffect != null && ghost != null)
         {
-            elapsed += Time.unscaledDeltaTime;
-            Time.timeScale = Mathf.Lerp(slowMotionScale, 1f, elapsed / recoverDuration);
-            yield return null;
+            // 2) 갑자기 카메라가 원래대로 확 빠지며 "파악!" 날아간다.
+            Time.timeScale = 1f;
+            twoPlayerCamera.ClearFocusOverride();
+            twoPlayerCamera.Snappy(0.3f, 0.12f);
+            twoPlayerCamera.Shake(koShakeMagnitude * 1.6f, koShakeDuration * 1.4f);
+            koEffect.Launch();
+            yield return new WaitForSecondsRealtime(koEffect.FlyDuration * 0.75f);
+        }
+        else
+        {
+            float elapsed = 0f;
+            while (elapsed < recoverDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                Time.timeScale = Mathf.Lerp(slowMotionScale, 1f, elapsed / recoverDuration);
+                yield return null;
+            }
+            twoPlayerCamera.ClearFocusOverride();
         }
 
         Time.timeScale = 1f;
-        twoPlayerCamera.ClearFocusOverride();
         finishRoutine = null;
     }
 
