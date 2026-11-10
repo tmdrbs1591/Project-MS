@@ -9,6 +9,9 @@ public class PracticeDummyInput : MonoBehaviour, ICharacterInputSource
 {
     [SerializeField] private float walkRange = 3f;
     [SerializeField] private float jumpInterval = 1.1f;
+    [Tooltip("팝업 궁 에러창에 갇혔을 때 연타 간격(초).")]
+    [SerializeField] private float breakPressInterval = 0.3f;
+    private float nextBreakPressAt;
 
     private CharacterBase self;
     private Vector2 home;
@@ -45,6 +48,17 @@ public class PracticeDummyInput : MonoBehaviour, ICharacterInputSource
 
         if (character.IsDead)
             return input;
+
+        // 팝업 궁(에러창)은 연타로만 풀린다 — 연습 봇도 천천히 눌러서 빠져나온다(약 3초).
+        if (ProjectMS.CharacterSystem.Examples.PopupErrorPopupDeployable.IsTrapped(character))
+        {
+            if (clock >= nextBreakPressAt)
+            {
+                input.JumpPressed = true;
+                nextBreakPressAt = clock + breakPressInterval;
+            }
+            return input;
+        }
 
         switch (PracticeSession.DummyMode)
         {

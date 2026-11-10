@@ -58,7 +58,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: a4b7704f7cb9abc42b32a3e96b660f29, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -79,7 +79,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -433775037
   m_SortingLayer: 1
-  m_SortingOrder: 0
+  m_SortingOrder: 40
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: eabd95781bd1f394594d8858e24a81c3, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -203,6 +203,53 @@ MonoBehaviour:
   popupOffset: {x: 0.5, y: 0.5}
   popupTabLeashRadius: 0.25
   breakProgressText: {fileID: 661441779211319748}
+  windowRenderer: {fileID: 57995703683586708}
+  extraWindowCount: 4
+  extraWindowSpread: {x: 0.9, y: 0.6}
+  extraWindowScaleRange: {x: 0.5, y: 0.8}
+  windowPopInterval: 0.07
+  windowPopClip: {fileID: 8300000, guid: 7c6d448e81068c34db9fc0a06ecca6bd, type: 3}
+  windowPopVolume: 0.25
+  breakPressFx:
+  - prefab: {fileID: 1345836968235680, guid: c7498e97bd688f044a23749dce1cc7e4, type: 3}
+    scale: 0.35
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 1.5
+  breakFx:
+  - prefab: {fileID: 1345836968235680, guid: c7498e97bd688f044a23749dce1cc7e4, type: 3}
+    scale: 0.6
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 2
+  - prefab: {fileID: 1641374423578230, guid: 43ee247cd05448148b23b129e68abb51, type: 3}
+    scale: 0.5
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 2
+  screenOverlay:
+    windowSprite: {fileID: 21300000, guid: eabd95781bd1f394594d8858e24a81c3, type: 3}
+    windowGlitchMaterial: {fileID: 2100000, guid: 01537c55bc478a948b66f93326110ffa, type: 2}
+    windowSizeRange: {x: 620, y: 800}
+    windowBackingColor: {r: 0.22, g: 0.16, b: 0.38, a: 1}
+    popInterval: 0.06
+    promptFont: {fileID: 11400000, guid: bb933b0fff0f7d04bb9958d876c7d0c5, type: 2}
+    promptMaterial: {fileID: 2100000, guid: b08871d27ae4e924a8284d157a514e72, type: 2}
+    counterFont: {fileID: 11400000, guid: 6fdfdff11397ecd448686ccb79877a49, type: 2}
+    counterMaterial: {fileID: 2100000, guid: 4236fa0573723d0498f3c5a0a3cc9696, type: 2}
+    accentColor: {r: 0.35, g: 0.95, b: 1, a: 1}
+    popClip: {fileID: 8300000, guid: c961c8d7a086c0d4da17958fdafebb50, type: 3}
+    popVolume: 0.35
+    closeClip: {fileID: 8300000, guid: ac2289f51dfbd8040822afe890e6f49c, type: 3}
+    closeVolume: 0.7
+    clearClip: {fileID: 8300000, guid: 3eef524a8a6ef664bbad08f3d6d9550a, type: 3}
+    clearVolume: 0.8
 --- !u!114 &7863458582313883654
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -269,7 +316,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 1.017}
+  m_AnchoredPosition: {x: 0, y: 1.25}
   m_SizeDelta: {x: 2, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &378768555334226971
@@ -302,8 +349,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 0 / 10
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: ba38ce8746866f1419e4dfbc501d7100, type: 2}
-  m_sharedMaterial: {fileID: -1398760431886462106, guid: ba38ce8746866f1419e4dfbc501d7100, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6fdfdff11397ecd448686ccb79877a49, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 4236fa0573723d0498f3c5a0a3cc9696, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -327,8 +374,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 0.31
-  m_fontSizeBase: 0.31
+  m_fontSize: 0.55
+  m_fontSizeBase: 0.55
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -344,7 +391,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -432,7 +479,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: -433775037
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_TargetDisplay: 0
 --- !u!114 &7005765191801280520
 MonoBehaviour:

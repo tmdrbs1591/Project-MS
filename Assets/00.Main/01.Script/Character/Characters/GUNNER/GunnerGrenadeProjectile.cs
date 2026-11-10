@@ -44,6 +44,30 @@ namespace ProjectMS.CharacterSystem.Examples
         [Tooltip("터질 때 재생할 이펙트. GunnerCharacter의 SkillE 액션 이펙트(던지는 연출)와는\n별개 슬롯이라 서로 안 겹친다. 비워두면 이펙트 없이 조용히 넘어간다.")]
         [SerializeField] private GameObject explosionVfxPrefab;
         [Min(0f)] [SerializeField] private float explosionVfxLifetime = 1f;
+        [Min(0.1f)] [SerializeField] private float explosionVfxScale = 1.2f;
+        [Tooltip("위 폭발 이펙트에 겹쳐 띄울 이펙트(섬광/연기 등).")]
+        [SerializeField] private SkillFxSlot[] explosionExtraFx;
+
+        [Header("Explosion Camera")]
+        [Tooltip("터질 때 화면 흔들림 세기(월드 단위). 양쪽 화면 모두 흔들린다.")]
+        [Min(0f)] [SerializeField] private float explosionShake = 0.8f;
+        [Min(0f)] [SerializeField] private float explosionShakeDuration = 0.4f;
+        [Tooltip("터진 쪽으로 화면이 순간 당겨지는 거리/줌(0이면 안 함).")]
+        [Min(0f)] [SerializeField] private float explosionPunchDistance = 0.35f;
+        [Range(0f, 0.3f)] [SerializeField] private float explosionPunchZoom = 0.04f;
+
+        [Header("Flight Feel")]
+        [Tooltip("던질 때 주는 회전 속도(도/초). 던진 방향으로 앞구르기하듯 돈다.")]
+        [SerializeField] private float throwSpin = 720f;
+        [Tooltip("날아가는 동안 수류탄에 붙어 같이 도는 이펙트(도화선 불꽃 등). offset은 수류탄 기준 위치.")]
+        [SerializeField] private SkillFxSlot fuseFx;
+        [Tooltip("터지기 이 시간(초) 전부터 warningFx를 띄운다.")]
+        [Min(0f)] [SerializeField] private float fuseWarningTime = 0.8f;
+        [Tooltip("터지기 직전 수류탄 위에 띄울 경고 이펙트(회전하지 않고 위치만 따라감).")]
+        [SerializeField] private SkillFxSlot warningFx;
+
+        private GameObject fuseInstance;
+        private GameObject warningInstance;
 
         [Networked] private Vector2 NetInitialVelocity { get; set; }
         [Networked] private float NetDamage { get; set; }
@@ -63,6 +87,37 @@ namespace ProjectMS.CharacterSystem.Examples
             rb = GetComponent<Rigidbody2D>();
         }
 
+        public override void Render()
+        {
+            if (exploded || Runner == null || warningFx == null || warningFx.prefab == null)
+                return;
+
+            if (warningInstance == null)
+            {
+                float remaining = FuseTimer.RemainingTime(Runner) ?? fuseSeconds;
+                if (remaining <= fuseWarningTime)
+                    warningInstance = warningFx.Spawn(transform.position, 0f);
+            }
+            if (warningInstance != null)
+                warningInstance.transform.position = transform.position + (Vector3)warningFx.offset;
+        }
+
+        public override void Despawned(NetworkRunner runner, bool hasState)
+        {
+            if (fuseInstance != null)
+            {
+                // 남은 불꽃은 자연스럽게 사라지게 떼어낸다.
+                fuseInstance.transform.SetParent(null, true);
+                EffectAutoDestroy.Schedule(fuseInstance, 0f);
+                fuseInstance = null;
+            }
+            if (warningInstance != null)
+            {
+                Destroy(warningInstance);
+                warningInstance = null;
+            }
+        }
+
         /// <summary>스폰 직전에 던진 사람이 호출한다.</summary>
         public void Initialize(Vector2 throwVelocity, float damage, PlayerRef owner, NetworkId sourceObjectId)
         {
@@ -75,6 +130,8 @@ namespace ProjectMS.CharacterSystem.Examples
         public override void Spawned()
         {
             exploded = false;
+            if (fuseFx != null && fuseFx.prefab != null && fuseInstance == null)
+                fuseInstance = fuseFx.Spawn(transform.position, 0f, transform);
 
             if (!Object.HasStateAuthority)
                 return;
@@ -82,6 +139,8 @@ namespace ProjectMS.CharacterSystem.Examples
             FuseTimer = TickTimer.CreateFromSeconds(Runner, fuseSeconds);
             // 던진 순간의 초기 속도만 부여한다. 이후 움직임(포물선/바운스/구름)은 물리 시뮬레이션이 맡는다.
             rb.linearVelocity = NetInitialVelocity;
+            // 던진 방향으로 앞구르기하듯 회전(오른쪽으로 던지면 시계 방향). 착지 후 구르기는 물리가 이어받는다.
+            rb.angularVelocity = (NetInitialVelocity.x < 0f ? 1f : -1f) * throwSpin;
         }
 
         public override void FixedUpdateNetwork()
@@ -133,12 +192,34 @@ namespace ProjectMS.CharacterSystem.Examples
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void Rpc_PlayExplosionVfx(Vector2 position)
         {
-            if (explosionVfxPrefab == null)
-                return;
+            if (explosionVfxPrefab != null)
+            {
+                // FxSpawner를 안 쓰는 이유: 이 프리팹에 붙은 폭발음(AudioSource)을 FxSpawner는 꺼버린다.
+                GameObject vfx = Instantiate(explosionVfxPrefab, position, Quaternion.identity);
+                if (!Mathf.Approximately(explosionVfxScale, 1f))
+                {
+                    vfx.transform.localScale *= explosionVfxScale;
+                    foreach (ParticleSystem ps in vfx.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        ParticleSystem.MainModule main = ps.main;
+                        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                    }
+                }
+                if (explosionVfxLifetime > 0f)
+                    EffectAutoDestroy.Schedule(vfx, explosionVfxLifetime);
+            }
 
-            GameObject vfx = Instantiate(explosionVfxPrefab, position, Quaternion.identity);
-            if (explosionVfxLifetime > 0f)
-                EffectAutoDestroy.Schedule(vfx, explosionVfxLifetime);
+            SkillFxSlot.SpawnAll(explosionExtraFx, position, 0f);
+
+            // 양쪽 화면 모두 크게 흔들리고, 터진 쪽으로 순간 당겨지며 살짝 번쩍인다.
+            TwoPlayerCamera cam = TwoPlayerCamera.Instance;
+            if (cam != null)
+            {
+                cam.Shake(explosionShake, explosionShakeDuration);
+                if (explosionPunchDistance > 0f)
+                    cam.PunchZoom(position - (Vector2)cam.transform.position, explosionPunchDistance, explosionPunchZoom, explosionShakeDuration);
+            }
+            ScreenFlash.Play(new Color(1f, 0.75f, 0.5f), 0.07f, 0.02f, 0.16f);
         }
     }
 }

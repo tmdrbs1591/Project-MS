@@ -158,6 +158,40 @@ MonoBehaviour:
   fuseSeconds: 2
   explosionVfxPrefab: {fileID: 9113406388105250179, guid: 310133d3044931449b3c2bf10e0796d6, type: 3}
   explosionVfxLifetime: 1
+  explosionVfxScale: 1.2
+  explosionExtraFx:
+  - prefab: {fileID: 180702, guid: a7c694f0877ea874fa57e033221095c3, type: 3}
+    scale: 0.55
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 2.5
+  - prefab: {fileID: 125726, guid: 28237332098b6a54a92d770e23648a92, type: 3}
+    scale: 0.6
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 3
+  throwSpin: 720
+  fuseFx:
+    prefab: {fileID: 119840, guid: 460fc6c4a00afd347a5cca537a1d6fa4, type: 3}
+    scale: 0.5
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0.12, y: 0.42}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 0
+  fuseWarningTime: 0.8
+  warningFx:
+    prefab: {fileID: 1771762027246740, guid: d11fa6bb603743146921039b702aef9f, type: 3}
+    scale: 0.5
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0.95}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 0
 --- !u!1001 &5833882752034874209
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -233,6 +267,10 @@ PrefabInstance:
     - target: {fileID: 6055526349004853791, guid: bee40874e7be6ea459d70edd5ec742e8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7172810252906601518, guid: bee40874e7be6ea459d70edd5ec742e8, type: 3}
+      propertyPath: EmissionModule.rateOverDistance.scalar
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 8617064115354333096, guid: bee40874e7be6ea459d70edd5ec742e8, type: 3}
       propertyPath: m_LocalScale.x

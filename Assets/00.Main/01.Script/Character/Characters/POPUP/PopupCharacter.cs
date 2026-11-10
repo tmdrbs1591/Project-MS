@@ -55,9 +55,21 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private CharacterProjectile popupAppearGlitchProjectile;
         [Min(0f)][SerializeField] private float popupAppearGlitchSpeed = 6f;
         [SerializeField] private PopupErrorPopupDeployable popupAppearErrorPopupDeployable;
+        [Tooltip("갇힌 동안 도트 데미지가 이 시간에 나눠 들어간다. 시간 제한이 아니다 — 연타로만 풀린다.")]
         [Min(0f)][SerializeField] private float popupAppearErrorPopupDuration = 3f;
         [Min(0)][SerializeField] private int popupAppearErrorPopupDamageTimes = 3;
         [Min(0)][SerializeField] private int popupAppearErrorPopupBreakAttemptsRequire = 10;
+
+        [Header("Skill R - 연출")]
+        [Tooltip("궁을 쏘는 순간 손(총구)에서 터지는 이펙트.")]
+        [SerializeField] private SkillFxSlot[] ultimateCastFx;
+        [Tooltip("궁이 상대에게 꽂혀 에러창에 가두는 순간 상대 위치에서 터지는 이펙트.")]
+        [SerializeField] private SkillFxSlot[] ultimateTrapFx;
+        [Tooltip("상대를 가둬 해킹하는 동안 팝업 머리 위에 띄울 이펙트(타이핑 말풍선 등). offset은 캐릭터 기준.")]
+        [SerializeField] private SkillFxSlot hackingFx;
+
+        [Fusion.Networked] private Fusion.NetworkBool NetHacking { get; set; }
+        private GameObject hackingInstance;
 
         [Header("Passive - Glitch Occured")]
         [Min(0f)][SerializeField] private float glitchDuration = 3f;
@@ -80,6 +92,11 @@ namespace ProjectMS.CharacterSystem.Examples
         private CharacterBase currentGlitchTarget;
         private bool isGlitchOccuring = false;
         private bool isGlitchDamage = false;
+
+        // 연타로 풀 때까지 봉인을 이 간격으로 다시 건다(한 번에 길게 걸지 않는 이유는 OnPassiveTick 참고).
+        private const float ErrorPopupSealRefreshInterval = 0.25f;
+        private const float ErrorPopupSealDuration = 0.6f;
+        private float errorPopupSealRefreshTimer;
 
         private bool isErrorPopupEnabled = false;
         private int errorPopupBreakAttempts = 0;
@@ -241,7 +258,55 @@ namespace ProjectMS.CharacterSystem.Examples
                 context.Damage,
                 targetLayer);
 
+            if (HasStateAuthority && !Runner.IsResimulation)
+                Rpc_PlayUltimateCast(ProjectileOrigin.position, context.AimAngle);
             return true;
+        }
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_PlayUltimateCast(Vector2 origin, float angle)
+        {
+            SkillFxSlot.SpawnAll(ultimateCastFx, origin, angle);
+            if (!IsLocalPlayer || TwoPlayerCamera.Instance == null)
+                return;
+            float rad = angle * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
+            TwoPlayerCamera.Instance.Shake(0.35f, 0.22f);
+            TwoPlayerCamera.Instance.PunchZoom(-dir, 0.45f, 0.04f, 0.25f);
+        }
+
+        // 궁이 꽂혀 상대를 가두는 순간 — 양쪽 화면 모두 크게 흔들리고 상대 자리에서 이펙트가 터진다.
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_PlayHackTrap(Vector2 position)
+        {
+            SkillFxSlot.SpawnAll(ultimateTrapFx, position, 0f);
+            TwoPlayerCamera.Instance?.Shake(0.55f, 0.35f);
+        }
+
+        public override void Render()
+        {
+            base.Render();
+
+            bool hacking = Object != null && Object.IsValid && NetHacking && !IsDead;
+            if (hacking && hackingInstance == null && hackingFx != null && hackingFx.prefab != null)
+                hackingInstance = hackingFx.Spawn(transform.position, 0f);
+            if (hackingInstance != null)
+            {
+                if (hacking)
+                    hackingInstance.transform.position = transform.position + (Vector3)hackingFx.offset;
+                else
+                {
+                    Destroy(hackingInstance);
+                    hackingInstance = null;
+                }
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (hackingInstance != null)
+                Destroy(hackingInstance);
+            hackingInstance = null;
         }
 
         protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
@@ -259,6 +324,8 @@ namespace ProjectMS.CharacterSystem.Examples
             {
                 errorPopupTarget = hitTarget;
                 ChangeErrorPopupStatus(true);
+                if (HasStateAuthority && !Runner.IsResimulation)
+                    Rpc_PlayHackTrap(hitTarget.transform.position);
 
                 errorPopupDeployable = SpawnOwnedEntity(
                     popupAppearErrorPopupDeployable,
@@ -270,8 +337,7 @@ namespace ProjectMS.CharacterSystem.Examples
                         popupAppearErrorPopupDuration,
                         Definition.GetDamage(CharacterActionType.Ultimate),
                         popupAppearErrorPopupDamageTimes,
-                        popupAppearErrorPopupBreakAttemptsRequire,
-                        () => ChangeErrorPopupStatus(false)));
+                        popupAppearErrorPopupBreakAttemptsRequire));
 
                 return;
             }
@@ -283,8 +349,21 @@ namespace ProjectMS.CharacterSystem.Examples
             if (!isErrorPopupEnabled)
                 return;
 
-            if (errorPopupTarget == null)
+            // 시간 제한 없이 연타로만 풀린다. 다만 대상이 사라지거나 죽거나 팝업창이 없어지면(라운드 정리 등) 바로 푼다.
+            if (errorPopupTarget == null || errorPopupTarget.Object == null || !errorPopupTarget.Object.IsValid ||
+                errorPopupTarget.IsDead || errorPopupDeployable == null)
+            {
+                BreakErrorPopup();
                 return;
+            }
+
+            // 봉인은 짧게 걸고 계속 갱신한다 — 팝업(시전자)이 게임을 나가 버려도 상대가 영영 갇히지 않게.
+            errorPopupSealRefreshTimer -= deltaTime;
+            if (errorPopupSealRefreshTimer <= 0f)
+            {
+                errorPopupSealRefreshTimer = ErrorPopupSealRefreshInterval;
+                ApplyControlSeal(errorPopupTarget, CharacterControlType.All, ErrorPopupSealDuration);
+            }
 
             // 점프(스페이스)와 기본공격(좌클릭)만 "팝업 깨기 시도"로 센다. 한 틱에 여러 번 눌려도
             // 누락 없이 더하도록 WasInputPressed(bool) 대신 새로 눌린 횟수를 받아온다.
@@ -312,8 +391,15 @@ namespace ProjectMS.CharacterSystem.Examples
             isFirstThrowError = true;
         }
 
-        // 상대가 연타로 팝업을 깨거나 리셋으로 강제 종료될 때 쓴다. 시간이 다 돼서 끝나는 경우는
-        // 봉인이 스스로 만료되므로 여기를 거치지 않는다.
+        // 팝업(시전자)이 죽으면 갇힌 상대도 풀어준다.
+        protected override void OnDied(Fusion.PlayerRef attacker)
+        {
+            base.OnDied(attacker);
+            if (isErrorPopupEnabled)
+                BreakErrorPopup();
+        }
+
+        // 상대가 연타로 팝업을 깨거나, 대상/시전자가 사라지거나, 라운드 리셋될 때 쓴다(시간 제한은 없다).
         private void BreakErrorPopup()
         {
             // ChangeErrorPopupStatus(false)가 target/deployable 참조를 null로 지우므로, 그 전에
@@ -385,27 +471,24 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             errorPopupBreakAttempts = 0;
             isErrorPopupEnabled = isEnable;
+            NetHacking = isEnable;
             if (!isEnable)
             {
                 errorPopupDeployable = null;
                 errorPopupTarget = null;
             }
 
-            Collider2D collider = GetComponent<Collider2D>();
-            collider.enabled = !isEnable;
-
-            Rigidbody.bodyType = isEnable ? RigidbodyType2D.Static : RigidbodyType2D.Dynamic;
-
+            // 팝업(시전자)은 묶이지 않는다 — 갇힌 상대를 마음껏 때릴 수 있다.
             if (isEnable)
             {
                 // 이전에 눌렀던 입력이 "깨기 시도"로 세어지지 않게 관찰 기준을 지금으로 맞춘다.
                 ResetInputObservation(errorPopupTarget, CharacterInputType.BasicAttack);
                 ResetInputObservation(errorPopupTarget, CharacterInputType.Jump);
 
-                ApplyControlSeal(errorPopupTarget, CharacterControlType.All, popupAppearErrorPopupDuration);
+                errorPopupSealRefreshTimer = ErrorPopupSealRefreshInterval;
+                ApplyControlSeal(errorPopupTarget, CharacterControlType.All, ErrorPopupSealDuration);
             }
-            // 봉인 해제: 연타로 깬 경우는 BreakErrorPopup()이 ReleaseControlSeal로 처리하고,
-            // 시간이 다 된 경우는 봉인 타이머가 스스로 만료된다.
+            // 봉인 해제는 BreakErrorPopup()이 ReleaseControlSeal로 한다(연타 성공/대상·시전자 이탈/리셋).
         }
 
         private void DealGlitchDamage()

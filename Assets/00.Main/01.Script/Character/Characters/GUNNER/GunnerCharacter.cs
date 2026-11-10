@@ -52,6 +52,16 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private GameObject rocketImpactVfxPrefab;
         [Tooltip("이펙트를 몇 초 뒤에 지울지. 0 이하면 지우지 않는다(이펙트가 스스로 사라지는 경우).")]
         [SerializeField] private float rocketImpactVfxLifetime = 2f;
+        [Tooltip("궁을 누른 뒤 실제로 로켓이 나가기까지 기를 모으는 시간(초). 그동안 이동/다른 스킬은 막히고 조준은 계속 된다.\n0이면 예전처럼 바로 발사.")]
+        [Min(0f)] [SerializeField] private float ultimateWindupDuration = 0.6f;
+
+        [Networked] private TickTimer NetUltimateWindup { get; set; }
+        private CharacterTimerHandle ultimateWindupTimer;
+
+        private static readonly CharacterActionType[] WindupLockedActions =
+        {
+            CharacterActionType.BasicAttack, CharacterActionType.SkillQ, CharacterActionType.SkillE, CharacterActionType.Dash
+        };
 
         /// <summary>로켓 투사체 구분용 skillId(기본공격 총알은 0).</summary>
         private const int RocketSkillId = 3;
@@ -81,6 +91,28 @@ namespace ProjectMS.CharacterSystem.Examples
         public float PiercingLightForwardOffset => piercingLightForwardOffset;
         public bool IsEmpowered => NetEmpowered;
         public Vector2 ProjectileOriginPosition => ProjectileOrigin.position;
+        public Transform Muzzle => ProjectileOrigin;
+        public float UltimateWindupDuration => ultimateWindupDuration;
+
+        /// <summary>궁 기 모으는 중인지(모든 클라에서 읽는 연출용 상태).</summary>
+        public bool IsChargingUltimate => UltimateWindupRemaining > 0f;
+
+        /// <summary>궁 기 모으기 진행도 0~1.</summary>
+        public float UltimateChargeRatio =>
+            ultimateWindupDuration > 0f && IsChargingUltimate
+                ? 1f - Mathf.Clamp01(UltimateWindupRemaining / ultimateWindupDuration)
+                : 0f;
+
+        private float UltimateWindupRemaining
+        {
+            get
+            {
+                if (Object == null || !Object.IsValid || Runner == null)
+                    return 0f;
+                float? remaining = NetUltimateWindup.RemainingTime(Runner);
+                return remaining ?? 0f;
+            }
+        }
         public Vector2 AttackOriginPosition => AttackOrigin.position;
         public float GrenadeGravityScale
         {
@@ -211,8 +243,22 @@ namespace ProjectMS.CharacterSystem.Examples
             }
 
             PlayActionEffect(CharacterActionType.SkillQ, boxCenter, context.AimAngle);
+            if (HasStateAuthority && !Runner.IsResimulation)
+            {
+                // 광선은 총구에서 판정 사각형의 앞쪽 끝까지 그린다.
+                Vector2 muzzle = ProjectileOrigin.position;
+                Vector2 farEnd = boxCenter + aimDirection * (piercingLightBoxSize.x * 0.5f);
+                float length = Mathf.Max(0.5f, Vector2.Dot(farEnd - muzzle, aimDirection));
+                Rpc_PlayPiercingLight(muzzle, context.AimAngle, length);
+            }
             ActivatePassive();
             return true;
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayPiercingLight(Vector2 origin, float angle, float length)
+        {
+            GetComponent<GunnerSkillVisuals>()?.PlayPiercingLight(origin, angle, length);
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
@@ -243,27 +289,79 @@ namespace ProjectMS.CharacterSystem.Examples
                 activeGrenade = spawnedGrenade;
 
             PlayActionEffect(CharacterActionType.SkillE, EffectOrigin.position, context.AimAngle);
+            if (HasStateAuthority && !Runner.IsResimulation)
+                Rpc_PlayGrenadeThrow(ProjectileOrigin.position, context.AimAngle);
             ActivatePassive();
             return true;
         }
 
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayGrenadeThrow(Vector2 origin, float angle)
+        {
+            GetComponent<GunnerSkillVisuals>()?.PlayGrenadeThrow(origin, angle);
+        }
+
+        /// <summary>누르면 ultimateWindupDuration 동안 기를 모으고(이동/다른 스킬 잠금, 조준은 계속),
+        /// 다 모이면 그 순간의 조준 방향으로 로켓을 쏜다. 기 모으는 연출은 GunnerSkillVisuals가 NetUltimateWindup을 읽어 그린다.</summary>
         protected override bool OnUltimate(CharacterActionContext context)
         {
             if (rocketProjectilePrefab == null)
                 return false;
 
+            float damage = context.Damage;
+            PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
+
+            if (ultimateWindupDuration <= 0f)
+            {
+                FireRocket(damage);
+                return true;
+            }
+
+            NetUltimateWindup = TickTimer.CreateFromSeconds(Runner, ultimateWindupDuration);
+            SetUltimateWindupLock(true);
+            ultimateWindupTimer = ScheduleTimer(ultimateWindupDuration, () =>
+            {
+                EndUltimateWindup();
+                if (!IsDead)
+                    FireRocket(damage);
+            });
+            return true;
+        }
+
+        private void FireRocket(float damage)
+        {
+            Vector2 origin = ProjectileOrigin.position;
             SpawnProjectile(
                 rocketProjectilePrefab,
-                ProjectileOrigin.position,
-                context.AimDirection,
+                origin,
+                AimDirection,
                 rocketSpeed,
-                context.Damage,
+                damage,
                 targetLayer,
                 skillId: RocketSkillId);
 
-            PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, context.AimAngle);
             ActivatePassive();
-            return true;
+            if (HasStateAuthority)
+                Rpc_PlayRocketLaunch(origin, AimAngle);
+        }
+
+        private void EndUltimateWindup()
+        {
+            NetUltimateWindup = TickTimer.None;
+            SetUltimateWindupLock(false);
+        }
+
+        private void SetUltimateWindupLock(bool locked)
+        {
+            SetMovementEnabled(!locked);
+            foreach (CharacterActionType action in WindupLockedActions)
+                SetActionEnabled(action, !locked);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_PlayRocketLaunch(Vector2 origin, float angle)
+        {
+            GetComponent<GunnerSkillVisuals>()?.PlayRocketLaunch(origin, angle);
         }
 
         // 로켓이 맞거나(캐릭터/소환물) 땅·벽에 닿아 사라지면 그 자리에 이펙트. 수명 만료로 허공에서 사라질 땐 안 낸다.
@@ -318,6 +416,11 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             NetEmpowered = false;
             isFirstBasicAttack = true;
+
+            // 라운드 리셋 시 기 모으던 궁은 취소(로켓이 다음 라운드에 튀어나오지 않게).
+            CancelTimer(ultimateWindupTimer);
+            if (NetUltimateWindup.IsRunning)
+                EndUltimateWindup();
         }
 
         public override void Render()

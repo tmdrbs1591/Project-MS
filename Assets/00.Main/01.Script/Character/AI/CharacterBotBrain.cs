@@ -86,6 +86,10 @@ namespace ProjectMS.CharacterSystem.AI
         private float jumpHoldUntil;
         private bool jumpQueued;
 
+        /// <summary>에러창 연타 간격(초) 범위. 어려울수록 빨리 빠져나온다.</summary>
+        protected Vector2 BreakMashIntervalRange { get; private set; } = new Vector2(0.16f, 0.26f);
+        private float nextBreakMashAt;
+
         private float stuckTimer;
         private float lastX;
 
@@ -123,6 +127,7 @@ namespace ProjectMS.CharacterSystem.AI
                     BurstSizeRange = new Vector2Int(1, 2);
                     BurstPauseRange = new Vector2(1f, 1.8f);
                     SkillHesitation = 0.6f;
+                    BreakMashIntervalRange = new Vector2(0.22f, 0.36f);
                     break;
                 case BotDifficulty.Hard:
                     ReactionTime = 0.12f;
@@ -132,6 +137,7 @@ namespace ProjectMS.CharacterSystem.AI
                     BurstSizeRange = new Vector2Int(3, 4);
                     BurstPauseRange = new Vector2(0.4f, 0.8f);
                     SkillHesitation = 0.1f;
+                    BreakMashIntervalRange = new Vector2(0.11f, 0.18f);
                     break;
                 default:
                     ReactionTime = 0.22f;
@@ -170,6 +176,17 @@ namespace ProjectMS.CharacterSystem.AI
             }
             if (Clock < wakeUpAt)
                 return input;
+
+            // 팝업 궁(에러창)에 갇히면 연타로만 풀린다 — 사람처럼 점프를 마구 눌러 빠져나온다.
+            if (PopupErrorPopupDeployable.IsTrapped(Self))
+            {
+                if (Clock >= nextBreakMashAt)
+                {
+                    input.JumpPressed = true;
+                    nextBreakMashAt = Clock + Random.Range(BreakMashIntervalRange.x, BreakMashIntervalRange.y);
+                }
+                return input;
+            }
 
             RecordTargetSample();
             ScanHazards();

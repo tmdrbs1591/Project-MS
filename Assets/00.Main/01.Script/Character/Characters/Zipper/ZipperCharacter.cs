@@ -110,6 +110,8 @@ namespace ProjectMS.CharacterSystem.Examples
                 ? context.AimDirection.normalized
                 : new Vector2(FacingDirection, 0f);
             FireSlash(aimDirection, context.Damage);
+            if (HasStateAuthority && !Runner.IsResimulation)
+                Rpc_FxSlash(AttackOrigin.position, Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg);
 
             // 갈래 마법
             int forkCount = ForkedProjectileCount;
@@ -198,6 +200,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 4. 이펙트 재생
             PlayActionEffect(context.Action, transform.position, context.AimAngle);
+            if (HasStateAuthority && !Runner.IsResimulation)
+                Rpc_FxDiveStart(transform.position, context.AimAngle, qDashDuration);
 
             // 5. 잔탄 1개 차감
             AddActionCharges(CharacterActionType.SkillQ, -1);
@@ -246,11 +250,16 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 2. 이동할 위치 표시 이펙트 (즉시 재생)
             PlayActionEffect(context.Action, targetPosition, context.AimAngle);
+            if (HasStateAuthority && !Runner.IsResimulation)
+                Rpc_FxPhaseMarker(targetPosition, ultimateTeleportDelay);
 
             // 3. 0.5초 후 해당 장소로 이동하며 주위에 피해
             ultimateTimer = ScheduleTimer(ultimateTeleportDelay, () =>
             {
+                Vector2 departFrom = transform.position;
                 transform.position = targetPosition;
+                if (HasStateAuthority)
+                    Rpc_FxPhaseArrive(departFrom, targetPosition);
 
                 var targets = FindDamageablesInCircle(
                     targetPosition,
@@ -398,6 +407,9 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 이미 표식이 있어도 없어도 동일하게 남은 시간을 4초로 (재)설정한다 (표식 갱신)
             dimensionalMarks[target] = markDuration;
+
+            if (HasStateAuthority && target is CharacterBase character && character.Object != null)
+                Rpc_FxMarkApplied(character.Object.Id, markDuration);
         }
 
         private void TryConsumeDimensionalMark(IDamageable target)
@@ -407,6 +419,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 표식 소모
             dimensionalMarks.Remove(target);
+            if (HasStateAuthority && target is CharacterBase character && character.Object != null)
+                Rpc_FxMarkConsumed(character.Object.Id);
 
             // 다이브(Q) 남은 재충전 시간 60% 감소
             ReduceDiveRemainingRecharge(diveRechargeReductionRatio);
@@ -431,5 +445,27 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             dimensionalMarks.Clear();
         }
+
+        // ───────── 연출 신호(모든 클라에서 ZipperSkillVisuals가 그린다) ─────────
+
+        private ZipperSkillVisuals Visuals => GetComponent<ZipperSkillVisuals>();
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_FxSlash(Vector2 origin, float angle) => Visuals?.PlaySlash(origin, angle);
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_FxDiveStart(Vector2 origin, float angle, float duration) => Visuals?.PlayDiveStart(origin, angle, duration);
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_FxPhaseMarker(Vector2 target, float delay) => Visuals?.PlayPhaseMarker(target, delay);
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_FxPhaseArrive(Vector2 from, Vector2 to) => Visuals?.PlayPhaseArrive(from, to);
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_FxMarkApplied(Fusion.NetworkId target, float duration) => Visuals?.PlayMarkApplied(target, duration);
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_FxMarkConsumed(Fusion.NetworkId target) => Visuals?.PlayMarkConsumed(target);
     }
 }

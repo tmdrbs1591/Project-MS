@@ -6541,7 +6541,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: actionEffects.Array.size
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6758089469812255374, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       propertyPath: actionSounds.Array.data[0].clip
@@ -6641,6 +6641,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1260987833417945182, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 903987974143615213}
+    - targetCorrespondingSourceObject: {fileID: 1260987833417945182, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 152787374348568370}
   m_SourcePrefab: {fileID: 100100000, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}
 --- !u!4 &1526379489227783012 stripped
 Transform:
@@ -6682,7 +6685,7 @@ MonoBehaviour:
   slashSpeed: 20
   forkAngleStep: 12
   magazineSize: 4
-  reloadDuration: -1
+  reloadDuration: 3
   shotInterval: 0.1
   qDashPower: 12
   qDashDuration: 0.2
@@ -6694,6 +6697,107 @@ MonoBehaviour:
   ultimateBlastRadius: 3
   markDuration: 4
   diveRechargeReductionRatio: 0.6
+--- !u!114 &152787374348568370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1973257100290894166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 351fc09619e061c4ab1dad1a53f05a20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.Examples.ZipperSkillVisuals
+  slashCastFx:
+  - prefab: {fileID: 183892, guid: 77aff4f1c9d07704bafd856e02a46ac9, type: 3}
+    scale: 0.3
+    facing: 2
+    angleOffset: 180
+    offset: {x: 0, y: 0}
+    tint: {r: 0.78, g: 0.62, b: 1, a: 1}
+    lifetime: 1
+  diveStartFx:
+  - prefab: {fileID: 133642, guid: 721ed883392764d42a3957861e7752c0, type: 3}
+    scale: 0.45
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 1.5
+  diveTrailFx:
+  - prefab: {fileID: 121954, guid: c849c99816049e5458f41c3e3ccf118c, type: 3}
+    scale: 0.5
+    facing: 2
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 0
+  diveEndFx:
+  - prefab: {fileID: 1114928333372964, guid: 82d5a3913643335469996946b8da3030, type: 3}
+    scale: 0.4
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 1.5
+  diveClip: {fileID: 8300000, guid: 1915d2aaeb03bb0479d217a989f3e06f, type: 3}
+  diveVolume: 0.9
+  phaseMarkerFx:
+  - prefab: {fileID: 1308696705675058, guid: 92f1a4b7c0101cb4f84455289ac65548, type: 3}
+    scale: 0.55
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 0.78, g: 0.62, b: 1, a: 1}
+    lifetime: 0.5
+  - prefab: {fileID: 124482, guid: 60345cb2def99524fbd850329f942ff2, type: 3}
+    scale: 0.4
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 0.5
+  phaseDepartFx:
+  - prefab: {fileID: 133642, guid: 721ed883392764d42a3957861e7752c0, type: 3}
+    scale: 0.55
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 2
+  phaseArriveFx:
+  - prefab: {fileID: 1631042304284920, guid: 94c74d51bcada5249a6520831c0f6e9b, type: 3}
+    scale: 0.7
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 2
+  - prefab: {fileID: 1282100793984216, guid: 41aeb961c68cf3d49be047342faf77b8, type: 3}
+    scale: 0.5
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 2
+  phaseArriveShake: 0.55
+  markFx:
+    prefab: {fileID: 1308696705675058, guid: 92f1a4b7c0101cb4f84455289ac65548, type: 3}
+    scale: 0.22
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0.95}
+    tint: {r: 0.78, g: 0.62, b: 1, a: 1}
+    lifetime: 0
+  markConsumeFx:
+  - prefab: {fileID: 1114928333372964, guid: 82d5a3913643335469996946b8da3030, type: 3}
+    scale: 0.45
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 1.5
 --- !u!4 &3962606880966655421 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4387498717836821685, guid: a8dcf6fa030ff21419cd8b7febb27fd0, type: 3}

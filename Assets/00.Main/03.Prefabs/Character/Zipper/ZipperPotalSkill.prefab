@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: -9017608516671763158}
   - component: {fileID: 6263067419294797943}
   - component: {fileID: -1791036838992105453}
+  - component: {fileID: 7310713332250244620}
   m_Layer: 0
   m_Name: ZipperPotalSkill
   m_TagString: Untagged
@@ -46,7 +47,7 @@ SpriteRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4991925030998771056}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -153,6 +154,7 @@ MonoBehaviour:
   allowSelfDamage: 0
   allowFriendlyDamage: 0
   destroyWhenOwnerDies: 1
+  effectAnchor: {fileID: 0}
   activateOnSpawn: 1
 --- !u!61 &-9017608516671763158
 BoxCollider2D:
@@ -218,7 +220,16 @@ MonoBehaviour:
   allowSelfDamage: 0
   allowFriendlyDamage: 0
   destroyWhenOwnerDies: 1
+  effectAnchor: {fileID: 0}
   activateOnSpawn: 1
+  absorbFx:
+  - prefab: {fileID: 1114928333372964, guid: 82d5a3913643335469996946b8da3030, type: 3}
+    scale: 0.3
+    facing: 0
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 1.5
 --- !u!50 &-1791036838992105453
 Rigidbody2D:
   serializedVersion: 5
@@ -246,3 +257,24 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &7310713332250244620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4991925030998771056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c789a36e7cb6f49a1b77de27f533da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectMS.CharacterSystem.AttachedFx
+  slots:
+  - prefab: {fileID: 1548116987402204, guid: ab1eea2a9264fbc4e86918e643a92f70, type: 3}
+    scale: 0.55
+    facing: 1
+    angleOffset: 0
+    offset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    lifetime: 0
+  inheritScale: 1
