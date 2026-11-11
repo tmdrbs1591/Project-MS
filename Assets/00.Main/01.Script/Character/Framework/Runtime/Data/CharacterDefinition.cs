@@ -58,7 +58,7 @@ namespace ProjectMS.CharacterSystem
         [Tooltip("게이지 최대치(=100%에 해당하는 값).")]
         [Min(1f)] [SerializeField] private float ultimateGaugeMax = 100f;
         [Tooltip("적에게 데미지 1을 입힐 때마다 차는 게이지 양.")]
-        [Min(0f)] [SerializeField] private float ultimateGaugePerDamageDealt = 1f;
+        [Min(0f)] [SerializeField] private float ultimateGaugePerDamageDealt = 0.25f;
         [Tooltip("적에게 데미지 1을 맞을 때마다 차는 게이지 양. 0이면 미적용.")]
         [Min(0f)] [SerializeField] private float ultimateGaugePerDamageTaken = 0f;
         [Tooltip("적 방향(좌우, X축 기준)으로 거리 1을 좁힐 때마다 차는 게이지 양. 멀어질 땐 충전되지 않는다. 0이면 미적용.")]

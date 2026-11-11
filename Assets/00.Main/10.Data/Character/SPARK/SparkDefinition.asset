@@ -17,7 +17,7 @@ MonoBehaviour:
   maxHealth: 900
   basicAttackDamage: 40
   skillQDamage: 20
-  skillEDamage: 120
+  skillEDamage: 60
   ultimateDamage: 20
   basicAttackCooldown: 0.3
   skillQCooldown: 10
@@ -47,7 +47,7 @@ MonoBehaviour:
   defaultDashDuration: 0.16
   ultimateUsesGauge: 1
   ultimateGaugeMax: 100
-  ultimateGaugePerDamageDealt: 0.6667
+  ultimateGaugePerDamageDealt: 0.25
   ultimateGaugePerDamageTaken: 0
   ultimateGaugePerApproachDistance: 0
   autoHop: 1

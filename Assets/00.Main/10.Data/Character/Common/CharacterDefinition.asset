@@ -43,7 +43,7 @@ MonoBehaviour:
   defaultDashDuration: 0.16
   ultimateUsesGauge: 0
   ultimateGaugeMax: 100
-  ultimateGaugePerDamageDealt: 1
+  ultimateGaugePerDamageDealt: 0.25
   ultimateGaugePerDamageTaken: 0
   ultimateGaugePerApproachDistance: 0
   autoHop: 1
