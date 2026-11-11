@@ -1004,11 +1004,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2898472591512948500, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.275
+      value: 0.395
       objectReference: {fileID: 0}
     - target: {fileID: 2898472591512948500, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.302
+      value: -0.177
       objectReference: {fileID: 0}
     - target: {fileID: 3245708131917970775, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
       propertyPath: jumpClip
@@ -1510,7 +1510,7 @@ MonoBehaviour:
   burstBulletProjectilePrefab: {fileID: 7811597853570981533, guid: 047f2747991adbe44bbd7ecd1006e9ca, type: 3}
   burstBulletProjectileSpeed: 17.5
   burstBulletProjectileFireCount: 4
-  burstArcAngle: 45
+  burstArcAngle: 18
   forkAngleStep: 12
   useBurstArcForForkedProjectiles: 1
   burstReloadingDuration: 2.5
