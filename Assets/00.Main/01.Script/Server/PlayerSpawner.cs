@@ -38,7 +38,7 @@ public class PlayerSpawner : MonoBehaviour
     // 처음 SpawnLocalPlayer 때 받은 러너를 기억해뒀다가 MapManager 호출에 재사용한다.
     private NetworkRunner currentRunner;
 
-    public void SpawnLocalPlayer(NetworkRunner runner)
+    public void SpawnLocalPlayer(NetworkRunner runner, bool isPractice = false)
     {
         currentRunner = runner;
         PlayerCharacterChange();
@@ -56,9 +56,12 @@ public class PlayerSpawner : MonoBehaviour
         Vector3 spawnPos = GetSpawnPosition(runner.LocalPlayer.PlayerId);
 
         // Shared 모드: 스폰한 클라가 StateAuthority + InputAuthority 를 가진다.
-        runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, runner.LocalPlayer);
-
+        NetworkObject player = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, runner.LocalPlayer);
+        
         Debug.Log($"[PlayerSpawner] 캐릭터 스폰 @ {spawnPos} (Player {runner.LocalPlayer.PlayerId})");
+
+        if (!PracticeSession.IsActive)
+            player?.GetComponent<CharacterBase>()?.SetGameplayLocked(true);
 
         SpawnMatchManagerIfNeeded(runner);
     }
