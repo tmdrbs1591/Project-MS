@@ -59,6 +59,27 @@ namespace ProjectMS.CharacterSystem.Examples
             CheckGroundToDestroy(collision);
 
             // 위에서 Destroy 처리됐으면 데미지 체크 X
+            // if (!IsDestroying)
+            //     CheckTargetToDealDamage();
+        }
+        public override void FixedUpdateNetwork()
+        {
+            base.FixedUpdateNetwork();
+            
+            if (Object == null || !Object.HasStateAuthority || IsDestroying)
+                return;
+
+            foreach(IDamageable target in FindDamageablesInCircle(transform.position, AttackRadius, targetLayer))
+            {
+                //계속 foreach문으로 원안에 있는 target 요소들을 체크하고 owner캐릭터이면 다시 루프 
+                if(target == OwnerCharacter) continue;
+                //owner캐릭터 아니면 target에 데미지 입히기
+                DealDamage(target, damage);
+                RequestDestroy(OwnedEntityDestroyReason.Manual);
+                return;
+            }
+            
+            // 위에서 Destroy 처리됐으면 데미지 체크 X
             if (!IsDestroying)
                 CheckTargetToDealDamage();
         }
@@ -147,7 +168,7 @@ namespace ProjectMS.CharacterSystem.Examples
             IDamageable target = FindFirstDamageableInCircle(transform.position, AttackRadius, targetLayer);
             if (target == null) return;
             if (target == OwnerCharacter) return;
-
+            
             DealDamage(target, damage);
             RequestDestroy(OwnedEntityDestroyReason.Manual); // Manual?
         }

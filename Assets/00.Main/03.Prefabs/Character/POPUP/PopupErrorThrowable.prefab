@@ -156,13 +156,25 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: a4b7704f7cb9abc42b32a3e96b660f29, type: 2}
+    - target: {fileID: 6802343846570628972, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Name
       value: PopupErrorThrowable
       objectReference: {fileID: 0}
+    - target: {fileID: 7594091067240962408, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 7839212568542312450, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8756358893010025774, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Layer
+      value: 9
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 3913160785262376401, guid: e386f165bf7d93448902311796db2199, type: 3}
@@ -234,11 +246,12 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
-  attackRadius: 0.5
   targetLayer:
     serializedVersion: 2
     m_Bits: 128
   rb: {fileID: 4457365517068031250}
+  explodeRadius: 2
+  explodeVfxPrefab: {fileID: 0}
   destroyVfxPrefab: {fileID: 127910, guid: 44b436602194b6a4387c9f987500b13f, type: 3}
   destroyVfxLifetime: 1
   _groundLayer:
