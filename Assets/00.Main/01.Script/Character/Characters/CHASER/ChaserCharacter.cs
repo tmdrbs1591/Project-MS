@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
@@ -67,6 +67,8 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Skill R - Dead Eye")]
         [SerializeField] private CharacterProjectile deadEyeProjectilePrefab;
+        [Tooltip("저격 착탄 시 데미지를 입힐 원형 범위 반경(FindEnemiesInCircle에 사용).")]
+        [Min(0f)][SerializeField] private float deadEyeRadius = 1f;
         [Min(0f)][SerializeField] private float deadEyeProjectileFireCooltime = 0.75f;
         [Min(0)][SerializeField] private int deadEyeProjectileCharges = 3;
         [Min(0f)][SerializeField] private float deadEyeSnipingTimeLimit = 7.5f;
@@ -86,8 +88,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [Tooltip("무적 동안 몸을 감싸고 맥박치는 빛 고리 색(코드로 그린다, 블룸이 걸리게 밝게).")]
         [ColorUsage(true, true)][SerializeField] private Color deadEyeInvulnerableRingColor = new Color(1f, 0.25f, 1f, 1f);
         [Min(0.1f)][SerializeField] private float deadEyeInvulnerableRingSize = 1.8f;
-        [Tooltip("조준점이 적 위에 있다고 표시(락온)할 반경. 데드아이 투사체 판정 크기의 절반 정도로 맞춘다.")]
-        [Min(0f)][SerializeField] private float deadEyeLockRadius = 0.3f;
+        [Tooltip("조준점이 적 위에 있다고 표시(락온)할 반경. 0 이하면 deadEyeRadius를 따릅니다.")]
+        [Min(0f)][SerializeField] private float deadEyeLockRadius = 0f;
 
         [Header("Ultimate - Dead Eye Sounds")]
         [Tooltip("궁극기(저격 모드)를 켤 때 재생")]
@@ -167,7 +169,8 @@ namespace ProjectMS.CharacterSystem.Examples
         /// <summary>지금 aimWorld를 쏘면 적이 맞는지(조준점 락온 표시용, 내 화면에서만 쓴다).</summary>
         public bool IsAimOnEnemy(Vector2 aimWorld)
         {
-            return FindEnemiesInCircle(aimWorld, deadEyeLockRadius, targetLayer).Count > 0;
+            float radius = deadEyeLockRadius > 0f ? deadEyeLockRadius : deadEyeRadius;
+            return FindEnemiesInCircle(aimWorld, radius, targetLayer).Count > 0;
         }
         /// <summary>저격 모드에서 쏜 발 수(누적). 값이 바뀌면 한 발 쏜 것 — 조준경 반동 연출용.</summary>
         public int SnipeShotCount => Object != null ? NetSnipeShotSequence : 0;
@@ -189,6 +192,7 @@ namespace ProjectMS.CharacterSystem.Examples
         // ---- AI(ChaserBotBrain)가 판단에 쓰는 읽기 전용 수치 ----
         public float BurstBulletSpeed => burstBulletProjectileSpeed;
         public float DualRevolverSpeed => dualRevolverProjectileSpeed;
+        public float DeadEyeRadius => deadEyeRadius;
 
         public Vector2 ProjectileOriginPosition => ProjectileOrigin.position;
         public Vector2 AttackOriginPosition => AttackOrigin.position;
@@ -443,7 +447,12 @@ namespace ProjectMS.CharacterSystem.Examples
 
             Vector2 aim = NetSnipeAim;
             float damage = Definition.GetDamage(CharacterActionType.Ultimate) * Mathf.Lerp(deadEyeMinChargeDamageRatio, 1f, ratio);
-            SpawnProjectile(deadEyeProjectilePrefab, aim, AimDirection, 0f, damage, targetLayer);
+
+            List<CharacterBase> hitEnemies = FindEnemiesInCircle(aim, deadEyeRadius, targetLayer);
+            foreach (CharacterBase enemy in hitEnemies)
+            {
+                DealDamage(enemy, damage);
+            }
 
             PlayActionEffect(CharacterActionType.Ultimate, EffectOrigin.position, AimAngle);
             NetSnipeShotPos = aim;

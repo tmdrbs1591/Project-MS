@@ -18,7 +18,7 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(1)][SerializeField] private int errorThrowableFireCount = 5;
         [Min(0f)][SerializeField] private float errorReloadingDuration = 1.2f;
         [Min(0f)][SerializeField] private float errorThrowableMaxVelocity = 3f;
-        [Min(0.1f)] [SerializeField] private int errorThrowableMaxCount = 5;
+        [Min(0.1f)][SerializeField] private int errorThrowableMaxCount = 5;
         [Tooltip("바운스 마법 증강 획득 시 반사 속력 배율 (1이면 던진 속도 그대로)")]
         [Min(0f)][SerializeField] private float errorThrowableBounceForce = 1f;
         [Min(0f)][SerializeField] private float errorThrowableForkAngleStep = 12.5f;
@@ -104,7 +104,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private PopupErrorPopupDeployable errorPopupDeployable;
 
         protected override bool OnBasicAttack(CharacterActionContext context)
-        { 
+        {
             if (isFirstThrowError)
             {
                 SetActionCharges(CharacterActionType.BasicAttack, EffectiveErrorThrowableFireCount);
@@ -113,7 +113,7 @@ namespace ProjectMS.CharacterSystem.Examples
             }
 
             Vector2 errorVelocity = default;
-            
+
             if (useAnotherErrorThrow)
             {
                 Vector2 throwDirection = Quaternion.Euler(0, 0, AimAngle) * Vector2.right;
@@ -213,7 +213,7 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool OnSkillE(CharacterActionContext context)
         {
             List<CharacterBase> enimies = FindEnemiesInArc(
-                ProjectileOrigin.position,
+                AttackOrigin.position,
                 context.AimDirection,
                 movingBugArcRadius,
                 movingBugArcAngle,
@@ -226,7 +226,7 @@ namespace ProjectMS.CharacterSystem.Examples
             }
 
             if (!Runner.IsResimulation)
-                Rpc_PlayMovingBugVfx(ProjectileOrigin.position, context.AimAngle);
+                Rpc_PlayMovingBugVfx(AttackOrigin.position, context.AimAngle);
 
             return true;
         }
@@ -417,7 +417,7 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             if (isGlitchDamage)
             {
-                isGlitchDamage = false;;
+                isGlitchDamage = false; ;
                 return;
             }
 
