@@ -33,8 +33,8 @@ namespace ProjectMS.CharacterSystem.Examples
         [SerializeField] private float aimingBugDuration = 1f;
 
         [Header("Skill E - Occur Moving Bug")]
-        [Min(0f)][SerializeField] private float movingBugArcAngle = 60f;
-        [Min(0f)][SerializeField] private float movingBugArcRadius = 6f;
+        [Min(0f)][SerializeField] private float movingBugArcAngle = 180;
+        [Min(0f)][SerializeField] private float movingBugArcRadius = 2.5f;
         [Min(0f)][SerializeField] private float movingBugSlowRatio = 0.3f;
         [Min(0f)][SerializeField] private float movingBugSlowDuration = 0.75f;
         [Tooltip("E 를 쓸 때 스킬이 나가는 방향(조준 방향)으로 회전해서 생성되는 이펙트")]

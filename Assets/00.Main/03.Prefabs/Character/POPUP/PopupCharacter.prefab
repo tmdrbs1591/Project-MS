@@ -1945,8 +1945,8 @@ MonoBehaviour:
   aimingBugHackingCDProjectile: {fileID: 1316549817603537388, guid: 249ff7b2ed603184b8fd53dea9178c5f, type: 3}
   aimingBugHackingCDSpeed: 8
   aimingBugDuration: 1
-  movingBugArcAngle: 60
-  movingBugArcRadius: 6
+  movingBugArcAngle: 180
+  movingBugArcRadius: 2.5
   movingBugSlowRatio: 0.3
   movingBugSlowDuration: 0.75
   movingBugVfxPrefab: {fileID: 4902049226656266875, guid: 884a1edf1a357cc40bcfe678bfc70c05, type: 3}
