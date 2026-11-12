@@ -1498,10 +1498,10 @@ MonoBehaviour:
   definition: {fileID: 11400000, guid: 9543f979a5bfb6f4da584aa0465f4b0b, type: 2}
   visual: {fileID: 5855201591818793765}
   sockets:
-    attackOrigin: {fileID: 0}
+    attackOrigin: {fileID: 6085412018715476326}
     projectileOrigin: {fileID: 6085412018715476326}
-    weaponRoot: {fileID: 8892872073989034078}
-    effectOrigin: {fileID: 0}
+    weaponRoot: {fileID: 6085412018715476326}
+    effectOrigin: {fileID: 6085412018715476326}
   inputCamera: {fileID: 0}
   ultimateFlashEffect: {fileID: 3518891499378882113}
   targetLayer:
@@ -1638,8 +1638,3 @@ MonoBehaviour:
   tracerWidth: 0.55
   barOffset: {x: 0, y: 1.75}
   barSize: {x: 1.3, y: 0.09}
---- !u!4 &8892872073989034078 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 514286130412363308, guid: 035f6a61383bf804f8e2878b7dda6b42, type: 3}
-  m_PrefabInstance: {fileID: 8956191304802897522}
-  m_PrefabAsset: {fileID: 0}
