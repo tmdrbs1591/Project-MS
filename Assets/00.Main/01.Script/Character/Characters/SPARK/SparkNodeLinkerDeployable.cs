@@ -19,6 +19,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private float nodeLinkerWidth;
         private float linkerDamage;
         private float linkerDamageInterval;
+        private bool canDealEnemies = false;
 
         public void Initialize(float _nodeLinkerWidth, float _linkerDamage, float _linkerDamageInterval)
         {
@@ -56,6 +57,9 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void OnTriggerEnter2D(Collider2D collision)
         {
+            if (!canDealEnemies)
+                return;
+
             bool canGetTarget = TryGetTarget(collision, out CharacterBase target);
             if (!canGetTarget)
                 return;
@@ -98,9 +102,13 @@ namespace ProjectMS.CharacterSystem.Examples
                 return;
 
             SetOwnedEntityActive(isActive);
+            canDealEnemies = isActive;
 
             if (!isActive)
+            {
                 timers?.CancelAll();
+                triggeringPlayers.Clear();
+            }
         }
 
         private void SetLinkerPosition(Vector2 posA, Vector2 posB)
