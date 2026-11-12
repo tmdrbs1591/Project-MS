@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "\uC2A4\uD30C\uD06C"
   characterMainSprite: {fileID: 21300000, guid: 40d7cb491adc3f445a71c4681cb6b558, type: 3}
   maxHealth: 900
-  basicAttackDamage: 40
+  basicAttackDamage: 55
   skillQDamage: 20
   skillEDamage: 60
   ultimateDamage: 20

@@ -16,6 +16,22 @@ PrefabInstance:
       propertyPath: 'Guid.RawGuidValue.Array.data[1]'
       value: 8928307778247475720
       objectReference: {fileID: 0}
+    - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Size.x
+      value: 0.40000013
+      objectReference: {fileID: 0}
+    - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Size.y
+      value: 0.19435468
+      objectReference: {fileID: 0}
+    - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Offset.x
+      value: -1.1216805e-10
+      objectReference: {fileID: 0}
+    - target: {fileID: 1484290519196701587, guid: e386f165bf7d93448902311796db2199, type: 3}
+      propertyPath: m_Offset.y
+      value: -0.00094093394
+      objectReference: {fileID: 0}
     - target: {fileID: 2999839737864199873, guid: e386f165bf7d93448902311796db2199, type: 3}
       propertyPath: m_LocalScale.x
       value: 4
