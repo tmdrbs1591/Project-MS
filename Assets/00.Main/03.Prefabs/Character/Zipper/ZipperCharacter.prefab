@@ -6694,7 +6694,7 @@ MonoBehaviour:
   qMaxCharges: 2
   E_SkillPrefab: {fileID: -7315203500075794664, guid: 8a9e463fd9f65be43a89ce107e2ce2e5, type: 3}
   ultimateTeleportDelay: 0.5
-  ultimateBlastRadius: 3
+  ultimateBlastRadius: 2
   markDuration: 4
   diveRechargeReductionRatio: 0.6
 --- !u!114 &152787374348568370
