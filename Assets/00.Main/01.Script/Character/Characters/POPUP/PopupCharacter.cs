@@ -209,7 +209,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             return true;
         }
-
+        
         protected override bool OnSkillE(CharacterActionContext context)
         {
             List<CharacterBase> enimies = FindEnemiesInArc(
@@ -521,6 +521,17 @@ namespace ProjectMS.CharacterSystem.Examples
             float cos = Mathf.Cos(rad);
             float sin = Mathf.Sin(rad);
             return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+        }
+        private void OnCollisionStay2D(Collision2D collision)
+        {
+            if (collision.gameObject.CompareTag("Player"))
+            {
+                
+                if(TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
+                {
+                    rb.AddForce(Vector2.up * 3f, ForceMode2D.Impulse);
+                } 
+            }
         }
     }
 }

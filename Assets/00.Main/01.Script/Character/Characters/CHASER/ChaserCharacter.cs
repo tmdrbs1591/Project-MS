@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
@@ -921,6 +921,18 @@ namespace ProjectMS.CharacterSystem.Examples
             float sin = Mathf.Sin(rad);
 
             return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+        }
+        
+        private void OnCollisionStay2D(Collision2D collision)
+        {
+            if (collision.gameObject.CompareTag("Player"))
+            {
+                
+                if(TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
+                {
+                    rb.AddForce(Vector2.up * 3f, ForceMode2D.Impulse);
+                } 
+            }
         }
     }
 }
