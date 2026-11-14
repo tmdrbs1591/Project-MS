@@ -59,10 +59,33 @@ public class MatchManager : NetworkBehaviour
     [Networked] public int MatchNumber { get; private set; }
     [Networked] public NetworkBool Player1WantsRematch { get; private set; }
     [Networked] public NetworkBool Player2WantsRematch { get; private set; }
+    /// <summary>세션/라운드와 선택 결과를 함께 동기화한다. 추첨은 StateAuthority만 수행한다.</summary>
+    [Networked] public RoundMapSelection MapSelection { get; private set; }
 
     public int TotalWins => Player1Wins + Player2Wins;
 
     private PlayerSpawner playerSpawner;
+
+    /// <summary>같은 키면 현재 결과를 반환한다. 비권한 클라이언트는 동기화될 때까지 false를 반환한다.</summary>
+    public bool TryGetMapIndexForRound(string sessionName, int roundNumber, int mapCount,
+        int previousMapIndex, out int mapIndex)
+    {
+        mapIndex = -1;
+        if (Object == null || !Object.IsValid || roundNumber <= 0 || mapCount <= 0)
+            return false;
+
+        RoundMapSelection selection = MapSelection;
+        if (selection.TryGetMapIndex(sessionName, roundNumber, out mapIndex))
+            return true;
+        if (!Object.HasStateAuthority)
+            return false;
+
+        selection = selection.GetOrSelect(sessionName, roundNumber, mapCount,
+            count => Random.Range(0, count), previousMapIndex);
+        MapSelection = selection;
+        mapIndex = selection.MapIndex;
+        return true;
+    }
 
     public override void Spawned()
     {
@@ -78,6 +101,10 @@ public class MatchManager : NetworkBehaviour
             Phase = MatchPhase.Fighting;
             PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
         }
+
+        // 초기 네트워크 상태에 맵 선택까지 포함하고, 시작 연출이 현재 맵을 읽기 전에 생성한다.
+        // 게스트도 받은 결과를 사용하므로 같은 Spawned 흐름으로 안전하게 준비할 수 있다.
+        MapManager.Instance?.EnsureMapForRound(Runner, RoundNumber);
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)

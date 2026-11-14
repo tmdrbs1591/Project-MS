@@ -11,15 +11,13 @@ using UnityEngine;
 ///     (PlayerSpawner.characterPrefabs)과 같은 방식으로 맵도 "프리팹 배열에서 골라 Instantiate"
 ///     한다.
 ///
-/// [맵 선택 — 새 네트워크 상태 없이 동기화]
-///   - 맵 인덱스는 Runner.SessionInfo.Name(세션 이름) + roundNumber를 해시해서 계산한다.
-///     이 두 값은 이미 양쪽 클라가 동일하게 알고 있으므로, 각자 독립적으로 계산해도 항상
-///     같은 결과가 나온다 — [Networked] 필드나 RPC가 필요 없다.
-///   - 매치 시작(라운드 1) 시점엔 MatchManager가 아직 없을 수도 있지만 Runner.SessionInfo.Name은
-///     연결 직후부터 항상 존재하므로, MatchManager 존재 여부와 무관하게 즉시 계산 가능하다
-///     (게스트가 리플리케이션을 기다려야 하는 레이스가 아예 없음).
+/// [맵 선택 — 권한자가 추첨하고 결과를 동기화]
+///   - MatchManager.MapSelection에 세션 이름/라운드/맵 인덱스를 함께 저장한다.
+///     같은 세션/라운드는 현재 결과를 반환하고, 변경 시 직전 맵을 제외하고 랜덤 선택한다.
+///   - PlayerSpawner가 MatchManager를 먼저 준비한다. 다른 클라이언트는 선택 결과를
+///     받을 때까지 맵/캐릭터 생성을 기다리므로 각자 다른 맵을 뽑지 않는다.
 ///   - rotateMapEachRound를 켜면 라운드가 바뀔 때마다(MatchManager.RoundNumber 폴링) 새로
-///     계산해서 맵을 바꾼다. 끄면(기본값) 매치 시작 때 고른 맵을 그대로 쓴다.
+///     선택해서 맵을 바꾼다. 끄면(기본값) 매치 시작 때 고른 맵을 그대로 쓴다.
 ///
 /// [동적 구조물]
 ///   - RopePlank처럼 실제 물리 시뮬레이션이 필요한(NetworkObject) 것만
@@ -39,7 +37,7 @@ public class MapManager : MonoBehaviour
     [Tooltip("루트에 MapDefinition이 붙은 맵 프리팹들.")]
     [SerializeField] private GameObject[] mapPrefabs;
 
-    [Tooltip("켜면 라운드가 바뀔 때마다 맵을 다시 고른다(세션이름+라운드번호 해시). " +
+    [Tooltip("켜면 라운드가 바뀔 때마다 직전 맵을 제외하고 랜덤 선택한다. " +
              "끄면 매치 시작 때 고른 맵을 매치 내내 그대로 쓴다.")]
     [SerializeField] private bool rotateMapEachRound = false;
     [Tooltip("연습장(PracticeSession)일 때 mapPrefabs 대신 쓰는 맵. 비워두면 평소 맵을 쓴다.")]
@@ -50,6 +48,9 @@ public class MapManager : MonoBehaviour
     private int activeRoundNumber = -1;
     private bool activeIsPracticeMap;
     private int activeMapIndex = -1;
+    private NetworkRunner activeRunner;
+    private string activeSessionName;
+    private int lastBattleMapIndex = -1;
 
     /// <summary>지금 깔려 있는 맵의 mapPrefabs 인덱스(연습 맵이거나 아직 없으면 -1).</summary>
     public int ActiveMapIndex => activeIsPracticeMap ? -1 : activeMapIndex;
@@ -102,15 +103,15 @@ public class MapManager : MonoBehaviour
 
     private void Update()
     {
-        if (!rotateMapEachRound)
-            return;
-
         MatchManager match = MatchManager.Instance;
-        if (match == null || match.Runner == null)
+        if (match == null || match.Object == null || !match.Object.IsValid ||
+            match.Runner == null || !match.Runner.IsRunning)
             return;
 
-        if (match.RoundNumber != activeRoundNumber)
-            EnsureMapForRound(match.Runner, match.RoundNumber);
+        // 동기화 대기 중인 첫 생성도 재시도한다. 회전 OFF면 이미 선택한 라운드를 유지한다.
+        int round = !rotateMapEachRound && match.MapSelection.HasValue
+            ? match.MapSelection.RoundNumber : match.RoundNumber;
+        EnsureMapForRound(match.Runner, round);
     }
 
     /// <summary>PlayerId(1, 2, ...)에 대응하는 스폰 위치. 활성 맵이 없거나 스폰 지점이
@@ -142,35 +143,50 @@ public class MapManager : MonoBehaviour
         EnsureMapForRound(runner, roundNumber);
     }
 
-    /// <summary>이번 라운드에 맞는 맵이 이미 떠있으면 아무 것도 안 한다(멱등) — 여러 곳에서
-    /// 방어적으로 호출해도 안전하다.</summary>
-    public void EnsureMapForRound(NetworkRunner runner, int roundNumber)
+    /// <summary>이번 라운드에 맞는 맵을 반환한다. 같은 세션/라운드는 기존 인스턴스를 재사용한다.
+    /// 선택 결과가 아직 동기화되지 않았거나 설정이 잘못됐으면 null을 반환한다.</summary>
+    public MapDefinition EnsureMapForRound(NetworkRunner runner, int roundNumber)
     {
+        if (runner == null || !runner.IsRunning || roundNumber <= 0)
+            return null;
+
+        string sessionName = runner.SessionInfo != null ? runner.SessionInfo.Name ?? string.Empty : string.Empty;
         // 연습장 → 대전 전환(매칭하면서 연습)처럼 같은 1라운드라도 연습 맵 여부가 바뀌면 다시 깐다.
         bool wantPractice = PracticeSession.IsActive && practiceMapPrefab != null;
-        if (activeMapInstance != null && roundNumber == activeRoundNumber && activeIsPracticeMap == wantPractice)
-            return;
-
-        if (mapPrefabs == null || mapPrefabs.Length == 0)
+        int index = -1;
+        GameObject prefab = practiceMapPrefab;
+        if (!wantPractice)
         {
-            Debug.LogError("[MapManager] mapPrefabs가 비어있습니다.", this);
-            return;
+            if (mapPrefabs == null || mapPrefabs.Length == 0)
+            {
+                Debug.LogError("[MapManager] mapPrefabs가 비어있습니다.", this);
+                return null;
+            }
+
+            MatchManager match = MatchManager.Instance;
+            if (match == null || match.Runner != runner ||
+                !match.TryGetMapIndexForRound(sessionName, roundNumber, mapPrefabs.Length, lastBattleMapIndex, out index))
+                return null;
+
+            if (index < 0 || index >= mapPrefabs.Length)
+            {
+                Debug.LogError("[MapManager] 동기화된 맵 인덱스가 범위를 벗어났습니다. 모든 클라이언트의 맵 목록을 확인하세요.", this);
+                return null;
+            }
+            prefab = mapPrefabs[index];
         }
 
-        int index = ResolveMapIndex(runner, roundNumber, mapPrefabs.Length);
-        GameObject prefab = wantPractice ? practiceMapPrefab : mapPrefabs[index];
+        if (activeMapInstance != null && activeRunner == runner && activeSessionName == sessionName &&
+            roundNumber == activeRoundNumber && activeIsPracticeMap == wantPractice && activeMapIndex == index)
+            return activeMapDefinition;
 
-        if (prefab == null)
+        if (prefab == null || prefab.GetComponent<MapDefinition>() == null)
         {
-            // 배열에 빈 칸이 있으면 여기서 막아서 최소한 캐릭터 스폰(GetSpawnPosition의 폴백)은
-            // 계속 진행되게 한다 — Instantiate(null)은 예외를 던져서 이 호출부인
-            // PlayerSpawner.GetSpawnPosition을 통째로 중단시키고, 그러면 그 뒤에 있는
-            // 캐릭터 스폰 코드까지 같이 멈춰버린다.
-            Debug.LogError($"[MapManager] mapPrefabs[{index}]가 비어있습니다 — 배열의 빈 칸을 채워주세요.", this);
-            return;
+            Debug.LogError($"[MapManager] 맵 프리팹({index})이 비어있거나 MapDefinition이 없습니다.", this);
+            return null;
         }
 
-        DespawnActiveStructures(runner);
+        DespawnActiveStructures(activeRunner);
         DestroyAllMapInstances();
 
         activeMapInstance = Instantiate(prefab, transform);
@@ -178,17 +194,17 @@ public class MapManager : MonoBehaviour
         activeRoundNumber = roundNumber;
         activeIsPracticeMap = wantPractice;
         activeMapIndex = index;
-
-        if (activeMapDefinition == null)
-        {
-            Debug.LogError($"[MapManager] 맵 프리팹 '{prefab.name}'에 MapDefinition이 없습니다.", activeMapInstance);
-            return;
-        }
+        activeRunner = runner;
+        activeSessionName = sessionName;
+        if (!wantPractice)
+            lastBattleMapIndex = index;
 
         TwoPlayerCamera.Instance?.SetBoundsCollider(activeMapDefinition.CameraBounds);
 
         if (NetworkLauncher.HasSessionAuthority(runner))
             SpawnStructures(runner, activeMapDefinition);
+
+        return activeMapDefinition;
     }
 
     // 기억하고 있는 맵(activeMapInstance) 하나만이 아니라 이 매니저 아래에 있는 MapDefinition 맵을
@@ -228,7 +244,7 @@ public class MapManager : MonoBehaviour
 
     private void DespawnActiveStructures(NetworkRunner runner)
     {
-        if (!NetworkLauncher.HasSessionAuthority(runner))
+        if (runner == null || !runner.IsRunning || !NetworkLauncher.HasSessionAuthority(runner))
         {
             spawnedStructures.Clear();
             return;
@@ -241,33 +257,5 @@ public class MapManager : MonoBehaviour
         }
 
         spawnedStructures.Clear();
-    }
-
-    private static int ResolveMapIndex(NetworkRunner runner, int roundNumber, int mapCount)
-    {
-        string sessionName = runner != null && runner.SessionInfo != null ? runner.SessionInfo.Name : string.Empty;
-        // 오프라인 AI 전(Single 모드)은 세션 이름이 비어 있어 맵 순서가 온라인과 달라진다 —
-        // 온라인 첫 슬롯과 같은 이름으로 계산해서 평소와 같은 맵 순서가 나오게 한다.
-        if (string.IsNullOrEmpty(sessionName))
-            sessionName = "quickmatch-0";
-        int hash = DeterministicHash(sessionName + "_" + roundNumber);
-        // Mathf.Abs(int.MinValue)는 오버플로로 음수가 그대로 나올 수 있어서(극히 드묾) Abs 대신
-        // 나머지를 한 번 더 보정하는 방식으로 항상 [0, mapCount) 범위를 보장한다.
-        return ((hash % mapCount) + mapCount) % mapCount;
-    }
-
-    /// <summary>string.GetHashCode()는 .NET/Mono에서 프로세스마다(보안상 이유로) 다른 값을
-    /// 낼 수 있다 — 호스트와 게스트가 완전히 같은 문자열을 넣어도 서로 다른 맵을 고를 수
-    /// 있다는 뜻이라, 맵 동기화 목적으로는 쓰면 안 된다. 대신 이 수동 해시(FNV 계열, 문자
-    /// 값에만 의존하는 단순 연산)는 플랫폼/프로세스와 무관하게 항상 같은 결과를 낸다.</summary>
-    private static int DeterministicHash(string value)
-    {
-        unchecked
-        {
-            int hash = 17;
-            foreach (char c in value)
-                hash = hash * 31 + c;
-            return hash;
-        }
     }
 }

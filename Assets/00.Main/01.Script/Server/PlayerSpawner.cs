@@ -38,7 +38,8 @@ public class PlayerSpawner : MonoBehaviour
     // 처음 SpawnLocalPlayer 때 받은 러너를 기억해뒀다가 MapManager 호출에 재사용한다.
     private NetworkRunner currentRunner;
 
-    public void SpawnLocalPlayer(NetworkRunner runner, bool isPractice = false)
+    /// <summary>맵 선택 동기화가 끝나지 않았으면 false를 반환한다. 호출자는 준비될 때까지 재시도한다.</summary>
+    public bool SpawnLocalPlayer(NetworkRunner runner, bool isPractice = false)
     {
         currentRunner = runner;
         PlayerCharacterChange();
@@ -46,8 +47,18 @@ public class PlayerSpawner : MonoBehaviour
         if (playerPrefab == null)
         {
             Debug.LogError("[PlayerSpawner] Player Prefab 이 연결되지 않았습니다.");
-            return;
+            return false;
         }
+
+        // 맵 선택 결과를 먼저 공유해야 양쪽 캐릭터가 같은 맵의 스폰 지점에서 시작한다.
+        SpawnMatchManagerIfNeeded(runner);
+        MatchManager match = MatchManager.Instance;
+        if (match == null || match.Runner != runner || match.Object == null || !match.Object.IsValid)
+            return false;
+        MapManager maps = MapManager.Instance;
+        int mapRound = match.MapSelection.HasValue ? match.MapSelection.RoundNumber : match.RoundNumber;
+        if (maps == null || maps.EnsureMapForRound(runner, mapRound) == null)
+            return false;
 
         // 로비 매칭 대기 중 걸었던 조작 잠금을 게임 씬 진입 시 해제한다.
         ProjectMS.CharacterSystem.CharacterBase.SetLobbyControlLocked(false);
@@ -57,13 +68,15 @@ public class PlayerSpawner : MonoBehaviour
 
         // Shared 모드: 스폰한 클라가 StateAuthority + InputAuthority 를 가진다.
         NetworkObject player = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, runner.LocalPlayer);
+        if (player == null)
+            return false;
         
         Debug.Log($"[PlayerSpawner] 캐릭터 스폰 @ {spawnPos} (Player {runner.LocalPlayer.PlayerId})");
 
         if (!PracticeSession.IsActive)
             player?.GetComponent<CharacterBase>()?.SetGameplayLocked(true);
 
-        SpawnMatchManagerIfNeeded(runner);
+        return true;
     }
 
     /// <summary>
@@ -139,7 +152,10 @@ public class PlayerSpawner : MonoBehaviour
 
     private void SpawnMatchManagerIfNeeded(NetworkRunner runner)
     {
-        if (matchManagerPrefab == null || MatchManager.Instance != null)
+        if (matchManagerPrefab == null)
+            return;
+        MatchManager existing = MatchManager.Instance;
+        if (existing != null && existing.Runner == runner && existing.Object != null && existing.Object.IsValid)
             return;
 
         // 마스터 클라만 스폰해서 딱 하나만 생기게 한다(그 클라가 StateAuthority가 됨).
@@ -150,8 +166,8 @@ public class PlayerSpawner : MonoBehaviour
     }
 
     /// <summary>PlayerId 에 대응하는 스폰 위치. MatchManager 가 라운드 리셋 시 재사용한다.
-    /// 실제 위치는 MapManager(활성 맵의 스폰 지점)에서 가져온다 — 맵이 아직 없으면 방어적으로
-    /// 1라운드용 맵을 먼저 띄운다(멱등이라 이미 떠있으면 그냥 통과).</summary>
+    /// 실제 위치는 MapManager(활성 맵의 스폰 지점)에서 가져온다 — 맵이 아직 없으면
+    /// 현재 라운드용 맵을 먼저 준비한다.</summary>
     public Vector3 GetSpawnPosition(int playerId)
     {
         if (MapManager.Instance == null)
@@ -161,11 +177,15 @@ public class PlayerSpawner : MonoBehaviour
             return new Vector3(x, 1f, 0f);
         }
 
-        // 맵이 아직 없을 때(매치 최초 스폰)만 1라운드 맵을 띄운다. 라운드 리셋 때도 이 함수가
+        // 맵이 아직 없을 때만 현재 라운드 맵을 띄운다. 라운드 리셋 때도 이 함수가
         // 불리는데, 그때 무조건 1라운드 맵으로 맞추면 맵 회전 중인 맵을 지우고 되돌려서 맵이
         // 엉킨다 — 이미 떠 있는 맵(MatchManager가 미리 준비한 다음 라운드 맵)을 그대로 쓴다.
         if (!MapManager.Instance.HasActiveMap)
-            MapManager.Instance.EnsureMapForRound(currentRunner, 1);
+        {
+            MatchManager match = MatchManager.Instance;
+            int round = match != null && match.Runner == currentRunner ? match.RoundNumber : 1;
+            MapManager.Instance.EnsureMapForRound(currentRunner, round);
+        }
         return MapManager.Instance.GetSpawnPosition(playerId);
     }
 }

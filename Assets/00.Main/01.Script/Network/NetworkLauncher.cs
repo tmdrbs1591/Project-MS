@@ -58,6 +58,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     private NetworkRunner runner;
     private bool isMatching;
     private bool playerSpawnedInGameScene; // 게임 씬에서 내 캐릭터를 이미 스폰했는지
+    private bool waitingForMapSelection;
     private bool isReturningToLobby; // 버튼 클릭과 OnPlayerLeft 가 동시에 겹쳐 중복 실행되는 것을 막는 가드
     private bool gameSceneRequested; // 게임 씬 로드를 이미 요청했는지(정원 충족/봇 채우기 중복 방지)
     private bool vsBot; // 이번 매치가 AI 상대인지 → 게임 씬에서 내 캐릭터 다음에 봇도 스폰
@@ -485,6 +486,10 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     {
         TryOpenPracticeInSession();
 
+        // 게스트는 MatchManager와 맵 선택 결과를 받은 뒤에만 캐릭터를 생성한다.
+        if (waitingForMapSelection && !playerSpawnedInGameScene && runner != null && runner.IsRunning)
+            TrySpawnLocalPlayer(runner);
+
         if (pendingOfflinePractice && (runner == null || runner.IsShutdown))
         {
             pendingOfflinePractice = false;
@@ -658,9 +663,15 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
             MapManager.Instance?.EnsureMapForRound(runner, 1);
         }
 
+        if (!spawner.SpawnLocalPlayer(runner))
+        {
+            waitingForMapSelection = true;
+            return;
+        }
+
+        waitingForMapSelection = false;
         playerSpawnedInGameScene = true;
         IsSwitchingSession = false;
-        spawner.SpawnLocalPlayer(runner);
 
         if (vsBot || PracticeSession.IsActive)
             spawner.SpawnBot(runner);
@@ -699,6 +710,7 @@ public class NetworkLauncher : MonoBehaviour, INetworkRunnerCallbacks
     }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
+        waitingForMapSelection = false;
         // 오프라인 AI 전으로 갈아타면서 대기 세션을 닫은 것 — 매칭은 계속 진행 중이다.
         if (switchingToOffline)
             return;
