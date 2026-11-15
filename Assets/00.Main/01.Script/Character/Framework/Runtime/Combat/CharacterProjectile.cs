@@ -49,6 +49,11 @@ namespace ProjectMS.CharacterSystem
         [Tooltip("이펙트를 표면 노말 방향으로 살짝 밀어 벽 안쪽에 묻히는 것을 방지한다.")]
         [Min(0f)] [SerializeField] private float hitVfxSurfaceOffset = 0.02f;
 
+        [Header("Remote Despawn Sync")]
+        [Tooltip("맞은 뒤 오브젝트를 이만큼(초) 더 남겨 둔다. 상대 화면의 투사체는 위치 동기화 때문에 조금 늦게 따라오므로, " +
+            "맞은 자리까지 날아온 뒤에 사라지고 이펙트가 터지도록 시간을 준다. 쏜 쪽 화면에서는 맞는 즉시 사라진다.")]
+        [Min(0f)] [SerializeField] private float remoteDespawnDelay = 0.3f;
+
         [Header("Augment - 바운스/폭발")]
         [Tooltip("바운스 마법/폭발 마법 증강 적용 시 쓰는 폭발 반경/이펙트. 두 증강 다 안 쓰면 무시된다.")]
         [Min(0f)] [SerializeField] private float explodeRadius = 2f;
@@ -68,6 +73,17 @@ namespace ProjectMS.CharacterSystem
         [Networked] private NetworkBool NetExplodeOnWall { get; set; }
         [Networked] private float NetExplodeDamageMultiplier { get; set; }
         [Networked] private NetworkBool NetEmpowered { get; set; }
+        // 소멸 정보: 상대 화면이 투사체가 이 지점에 도착했을 때 사라지고 이펙트를 띄우는 데 쓴다.
+        [Networked] private NetworkBool NetConsumed { get; set; }
+        [Networked] private Vector2 NetEndPoint { get; set; }
+        [Networked] private Vector2 NetEndNormal { get; set; }
+        [Networked] private byte NetEndVfx { get; set; }
+        // 캐릭터에 맞았으면 그 캐릭터. 상대 화면에서는 투사체가 그 캐릭터의 "지금 몸"까지 날아가 닿고 터진다.
+        [Networked] private NetworkId NetEndTargetId { get; set; }
+
+        private const byte EndVfxNone = 0;
+        private const byte EndVfxHit = 1;
+        private const byte EndVfxExpire = 2;
 
         /// <summary>이 투사체를 쏜 플레이어. 다른 투사체/오브젝트가 "내가 쏜 게 맞는지" 확인할 때 쓴다
         /// (예: 거너 수류탄의 "본인 총알에 맞으면 조기 폭발" 판정).</summary>
@@ -81,6 +97,19 @@ namespace ProjectMS.CharacterSystem
         private readonly RaycastHit2D[] castHits = new RaycastHit2D[MaxHitCount];
         private readonly HashSet<IDamageable> pierceHitTargets = new HashSet<IDamageable>();
         private bool consumed;
+        private bool endShown;          // 이 클라 화면에서 사라짐(숨김 + 이펙트)을 처리했는지
+        private bool followingEnd;      // 상대 화면: 소멸 지점까지 따라가는 중
+        private Vector2 visualPos;      // 상대 화면: 따라가는 동안 그리는 위치
+        private float catchSpeed;       // 상대 화면: 따라가는 속도(남은 거리를 EndCatchTime 안에 가도록)
+        private readonly List<Renderer> hiddenRenderers = new List<Renderer>();
+
+        /// <summary>상대 화면에서 늦게 따라오던 투사체가 소멸 지점까지 따라잡는 최대 시간(초). remoteDespawnDelay보다 짧아야
+        /// 지워지기 전에 반드시 도착한다.</summary>
+        private const float EndCatchTime = 0.12f;
+
+        /// <summary>아직 날아가는 중인지. 맞거나 수명이 다하면 false(오브젝트는 잠시 남아 있다 — remoteDespawnDelay).
+        /// 투사체를 찾아 쓰는 쪽(AI 회피, 외곽선 등)은 이 값이 false인 투사체를 무시한다.</summary>
+        public bool IsFlying => Object != null && Object.IsValid && !NetConsumed;
 
         private void Awake()
         {
@@ -149,7 +178,12 @@ namespace ProjectMS.CharacterSystem
         public override void Spawned()
         {
             consumed = false;
+            endShown = false;
+            followingEnd = false;
             pierceHitTargets.Clear();
+            SetVisualsVisible(true);
+            if (projectileCollider != null)
+                projectileCollider.enabled = true;
 
             if (Object.HasStateAuthority)
                 LifeTimer = TickTimer.CreateFromSeconds(Runner, lifetime);
@@ -206,7 +240,7 @@ namespace ProjectMS.CharacterSystem
                         hit.point,
                         hit.normal,
                         target as CharacterBase,
-                        true);
+                        EndVfxHit);
                     return;
                 }
 
@@ -233,15 +267,110 @@ namespace ProjectMS.CharacterSystem
             transform.position += (Vector3)delta;
             if (LifeTimer.Expired(Runner))
             {
-                if (expireVfxPrefab != null)
-                    Rpc_PlayExpireVfx(transform.position);
-                Complete(ProjectileDespawnReason.LifetimeExpired, transform.position, -NetDirection, null, false);
+                Complete(ProjectileDespawnReason.LifetimeExpired, transform.position, -NetDirection, null,
+                    expireVfxPrefab != null ? EndVfxExpire : EndVfxNone);
             }
         }
 
         public override void Render()
         {
             AlignToDirection();
+
+            // 쏜 쪽은 맞는 즉시 사라진다. 상대 쪽은 LateUpdate에서 소멸 지점까지 날아간 뒤 사라진다.
+            if (NetConsumed && !endShown && Object.HasStateAuthority)
+                ShowEnd(NetEndPoint, NetEndNormal);
+        }
+
+        // 상대 화면: 소멸 정보가 오면 늦게 따라오던 투사체를 소멸 지점(캐릭터에 맞았으면 그 캐릭터의 지금 몸)까지
+        // 날려 보낸 뒤 그 자리에서 터뜨린다. 공중에서 그냥 사라지는 일이 없게 한다.
+        // (위치 동기화가 Render에서 위치를 덮어쓰므로, 그 뒤인 LateUpdate에서 그린다.)
+        private void LateUpdate()
+        {
+            if (endShown || Object == null || !Object.IsValid || Object.HasStateAuthority || !NetConsumed)
+                return;
+
+            Vector2 goal = ResolveVisualEndPoint();
+            if (!followingEnd)
+            {
+                followingEnd = true;
+                visualPos = transform.position;
+                catchSpeed = Mathf.Max(NetSpeed, Vector2.Distance(visualPos, goal) / EndCatchTime);
+            }
+
+            Vector2 before = visualPos;
+            visualPos = Vector2.MoveTowards(visualPos, goal, Mathf.Max(catchSpeed, NetSpeed) * Time.deltaTime);
+            transform.position = visualPos;
+            Vector2 travel = visualPos - before;
+            if (travel.sqrMagnitude > 0.000001f)
+            {
+                float angle = Mathf.Atan2(travel.y, travel.x) * Mathf.Rad2Deg + projectileAngleOffset;
+                transform.rotation = Quaternion.Euler(0f, 0f, angle);
+            }
+
+            if ((goal - visualPos).sqrMagnitude < 0.0004f)
+            {
+                Vector2 normal = travel.sqrMagnitude > 0.000001f ? -travel.normalized : NetEndNormal;
+                ShowEnd(goal, NetEndTargetId.IsValid ? normal : NetEndNormal);
+            }
+        }
+
+        private Vector2 ResolveVisualEndPoint()
+        {
+            if (NetEndTargetId.IsValid && Runner != null &&
+                Runner.TryFindObject(NetEndTargetId, out NetworkObject targetObject) && targetObject != null)
+            {
+                Collider2D body = targetObject.GetComponent<Collider2D>();
+                if (body != null && body.enabled)
+                {
+                    Vector2 from = followingEnd ? visualPos : (Vector2)transform.position;
+                    Vector2 closest = body.ClosestPoint(from);
+                    return closest == from ? (Vector2)body.bounds.center : closest;
+                }
+                return targetObject.transform.position;
+            }
+            return NetEndPoint;
+        }
+
+        public override void Despawned(NetworkRunner runner, bool hasState)
+        {
+            // 따라가는 도중 지워졌으면(드묾) 지금 자리에서 터뜨린다.
+            if (!endShown && hasState && NetConsumed)
+                ShowEnd(followingEnd ? visualPos : NetEndPoint, NetEndNormal);
+        }
+
+        // 이 클라 화면에서 투사체를 숨기고 소멸 이펙트를 띄운다(클라마다 한 번).
+        private void ShowEnd(Vector2 point, Vector2 normal)
+        {
+            endShown = true;
+            SetVisualsVisible(false);
+            if (projectileCollider != null)
+                projectileCollider.enabled = false;
+
+            if (NetEndVfx == EndVfxHit)
+                PlayHitVfx(point, normal);
+            else if (NetEndVfx == EndVfxExpire && expireVfxPrefab != null)
+                FxSpawner.Spawn(expireVfxPrefab, point, Quaternion.identity, expireVfxScale);
+        }
+
+        // 숨길 때는 그 순간 붙어 있는 그림을 모두 끈다(외곽선처럼 나중에 붙은 것 포함). 보일 때는 끈 것만 되돌린다.
+        private void SetVisualsVisible(bool visible)
+        {
+            if (visible)
+            {
+                foreach (Renderer r in hiddenRenderers)
+                    if (r != null)
+                        r.enabled = true;
+                hiddenRenderers.Clear();
+                return;
+            }
+
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
+            {
+                if (!r.enabled)
+                    continue;
+                r.enabled = false;
+                hiddenRenderers.Add(r);
+            }
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -280,7 +409,7 @@ namespace ProjectMS.CharacterSystem
 
                     Vector2 hitPosition = other.ClosestPoint(transform.position);
                     Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
-                    Complete(ResolveHitReason(target), hitPosition, hitNormal, target as CharacterBase, true);
+                    Complete(ResolveHitReason(target), hitPosition, hitNormal, target as CharacterBase, EndVfxHit);
                     return;
                 }
             }
@@ -293,7 +422,7 @@ namespace ProjectMS.CharacterSystem
                 Vector2 hitNormal = ((Vector2)transform.position - hitPosition).normalized;
                 if (TryHandleWallHit(hitPosition, hitNormal))
                     return;
-                Complete(ProjectileDespawnReason.HitWall, hitPosition, hitNormal, null, true);
+                Complete(ProjectileDespawnReason.HitWall, hitPosition, hitNormal, null, EndVfxHit);
             }
         }
 
@@ -434,7 +563,7 @@ namespace ProjectMS.CharacterSystem
             if (Object == null || !Object.HasStateAuthority)
                 return;
 
-            Complete(ProjectileDespawnReason.Manual, transform.position, -NetDirection, null, false);
+            Complete(ProjectileDespawnReason.Manual, transform.position, -NetDirection, null, EndVfxNone);
         }
 
         private CharacterBase ResolveSource()
@@ -503,19 +632,29 @@ namespace ProjectMS.CharacterSystem
             Vector2 hitPoint,
             Vector2 surfaceNormal,
             CharacterBase hitTarget,
-            bool playVfx)
+            byte endVfx)
         {
             if (consumed)
                 return;
 
             consumed = true;
-            DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             if (surfaceNormal.sqrMagnitude < 0.001f)
                 surfaceNormal = -NetDirection;
             LastHitPoint = hitPoint;
 
-            if (playVfx)
-                Rpc_PlayHitVfx(hitPoint, surfaceNormal.normalized);
+            // 바로 지우지 않고 소멸 정보를 남긴다. 쏜 쪽은 Render에서 즉시 숨기고, 상대 쪽은 늦게 따라오던
+            // 투사체가 이 지점에 도착했을 때 숨기며 이펙트를 띄운다(ShowEnd). 오브젝트는 그 시간만큼 뒤에 지운다.
+            NetConsumed = true;
+            NetEndPoint = hitPoint;
+            NetEndNormal = surfaceNormal.normalized;
+            NetEndVfx = endVfx;
+            NetEndTargetId = hitTarget != null && hitTarget.Object != null ? hitTarget.Object.Id : default;
+            transform.position = hitPoint;
+            if (projectileCollider != null)
+                projectileCollider.enabled = false;
+            DespawnTimer = remoteDespawnDelay > 0f
+                ? TickTimer.CreateFromSeconds(Runner, remoteDespawnDelay)
+                : TickTimer.CreateFromTicks(Runner, 1);
 
             CharacterBase source = ResolveSource();
             if (source != null)
@@ -523,8 +662,7 @@ namespace ProjectMS.CharacterSystem
 
         }
 
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void Rpc_PlayHitVfx(Vector2 position, Vector2 surfaceNormal)
+        private void PlayHitVfx(Vector2 position, Vector2 surfaceNormal)
         {
             if (hitVfxPrefab == null)
                 return;
@@ -533,12 +671,6 @@ namespace ProjectMS.CharacterSystem
             Vector2 spawnPosition = position + normal * hitVfxSurfaceOffset;
             float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg + hitVfxAngleOffset;
             FxSpawner.Spawn(hitVfxPrefab, spawnPosition, Quaternion.Euler(0f, 0f, angle), hitVfxScale);
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void Rpc_PlayExpireVfx(Vector2 position)
-        {
-            FxSpawner.Spawn(expireVfxPrefab, position, Quaternion.identity, expireVfxScale);
         }
 
         private void AlignToDirection()

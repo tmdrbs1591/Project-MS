@@ -63,7 +63,7 @@ public class EnemyOutline : MonoBehaviour
                 Ensure(c.gameObject, characterWidth);
 
         foreach (CharacterProjectile p in FindObjectsByType<CharacterProjectile>(FindObjectsSortMode.None))
-            if (p.Object != null && p.Owner != me)
+            if (p.IsFlying && p.Owner != me)
                 Ensure(p.gameObject, projectileWidth);
 
         foreach (GunnerGrenadeProjectile p in FindObjectsByType<GunnerGrenadeProjectile>(FindObjectsSortMode.None))
