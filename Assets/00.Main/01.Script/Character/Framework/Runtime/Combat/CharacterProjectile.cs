@@ -10,7 +10,6 @@ namespace ProjectMS.CharacterSystem
     /// 이동, 충돌, 데미지는 투사체의 StateAuthority에서 한 번만 처리한다.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
-    [RequireComponent(typeof(Collider2D))]
     public sealed class CharacterProjectile : NetworkBehaviour
     {
         [Min(0.1f)] [SerializeField] private float lifetime = 5f;
@@ -20,6 +19,10 @@ namespace ProjectMS.CharacterSystem
         [SerializeField] private bool pierceCharacters;
 
         [Header("Collision")]
+        [Tooltip("데미지 판정에 사용할 콜라이더. 비워두면 기본 Collider2D를 사용한다.")]
+        [SerializeField] private Collider2D damageCollider;
+        [Tooltip("벽/지형 충돌 판정에 사용할 콜라이더. 비워두면 기본 Collider2D를 사용한다.")]
+        [SerializeField] private Collider2D wallCollider;
         [Tooltip("캐릭터 레이어와 별개로, 벽/지형 등 투사체가 부딪혀 소멸할 레이어.")]
         [SerializeField] private LayerMask wallLayer;
         [Tooltip("한 틱 이동 거리보다 살짝 더 검사해서 경계면 누락을 줄인다.")]
@@ -77,12 +80,17 @@ namespace ProjectMS.CharacterSystem
 
         private readonly RaycastHit2D[] castHits = new RaycastHit2D[MaxHitCount];
         private readonly HashSet<IDamageable> pierceHitTargets = new HashSet<IDamageable>();
-        private Collider2D projectileCollider;
         private bool consumed;
 
         private void Awake()
         {
-            projectileCollider = GetComponent<Collider2D>();
+            Collider2D defaultCollider = GetComponent<Collider2D>();
+            if (defaultCollider == null)
+                defaultCollider = GetComponentInChildren<Collider2D>();
+            if (damageCollider == null)
+                damageCollider = defaultCollider != null ? defaultCollider : wallCollider;
+            if (wallCollider == null)
+                wallCollider = defaultCollider != null ? defaultCollider : damageCollider;
             if (spriteRenderer == null)
                 spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
@@ -175,32 +183,26 @@ namespace ProjectMS.CharacterSystem
             }
 
             Vector2 delta = NetDirection * NetSpeed * Runner.DeltaTime;
-            int hitCount = CastAlongDelta(delta);
+            bool hasWallHit = TryCastWallAlongDelta(delta, out RaycastHit2D wallHit);
+            int hitCount = CastTargetsAlongDelta(delta);
             if (hitCount > 1)
                 Array.Sort(castHits, 0, hitCount, RaycastHitDistanceComparer.Instance);
             for (int i = 0; i < hitCount; i++)
             {
                 RaycastHit2D hit = castHits[i];
-                if (!TryResolveHit(hit, out IDamageable target, out bool hitTarget))
+                if (hasWallHit && wallHit.distance < hit.distance)
+                    break;
+                if (!TryResolveTargetHit(hit, out IDamageable target))
                     continue;
 
-                if (hitTarget && target != null)
-                {
-                    DealDamage(target);
-                    pierceHitTargets.Add(target);
-                }
+                DealDamage(target);
+                pierceHitTargets.Add(target);
 
-                bool piercesHit = hitTarget && pierceCharacters && target is CharacterBase;
+                bool piercesHit = pierceCharacters && target is CharacterBase;
                 if (!piercesHit)
                 {
-                    if (!hitTarget && TryHandleWallHit(hit.point, hit.normal))
-                    {
-                        // 바운스: 이번 틱은 여기서 이동을 멈추고, 다음 틱부터 반사된 방향으로 날아간다.
-                        return;
-                    }
-
                     Complete(
-                        hitTarget ? ResolveHitReason(target) : ProjectileDespawnReason.HitWall,
+                        ResolveHitReason(target),
                         hit.point,
                         hit.normal,
                         target as CharacterBase,
@@ -209,6 +211,23 @@ namespace ProjectMS.CharacterSystem
                 }
 
                 // 캐릭터 관통: 같은 틱의 다음 충돌도 거리순으로 계속 처리한다.
+            }
+
+            if (hasWallHit)
+            {
+                if (TryHandleWallHit(wallHit.point, wallHit.normal))
+                {
+                    // 바운스: 이번 틱은 여기서 이동을 멈추고, 다음 틱부터 반사된 방향으로 날아간다.
+                    return;
+                }
+
+                Complete(
+                    ProjectileDespawnReason.HitWall,
+                    wallHit.point,
+                    wallHit.normal,
+                    null,
+                    true);
+                return;
             }
 
             transform.position += (Vector3)delta;
@@ -227,12 +246,12 @@ namespace ProjectMS.CharacterSystem
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (consumed || Object == null || !Object.HasStateAuthority)
+            if (consumed || Object == null || !Object.HasStateAuthority || IsOwnCollider(other))
                 return;
 
             int otherLayerBit = 1 << other.gameObject.layer;
-            bool isTarget = (NetTargetLayerMask & otherLayerBit) != 0;
-            bool isWall = (wallLayer.value & otherLayerBit) != 0;
+            bool isTarget = (NetTargetLayerMask & otherLayerBit) != 0 && IsColliderTouching(damageCollider, other);
+            bool isWall = (wallLayer.value & otherLayerBit) != 0 && IsColliderTouching(wallCollider, other);
 
             if (!isTarget && !isWall)
                 return;
@@ -265,6 +284,9 @@ namespace ProjectMS.CharacterSystem
                     return;
                 }
             }
+
+            if (ResolveDamageable(other) != null)
+                return;
 
             {
                 Vector2 hitPosition = other.ClosestPoint(transform.position);
@@ -314,58 +336,87 @@ namespace ProjectMS.CharacterSystem
             EffectAutoDestroy.Schedule(Instantiate(explodeVfxPrefab, position, Quaternion.identity), 2f);
         }
 
-        private int CastAlongDelta(Vector2 delta)
+        private bool TryCastWallAlongDelta(Vector2 delta, out RaycastHit2D closestWallHit)
         {
-            if (projectileCollider == null || delta.sqrMagnitude < 0.000001f)
-                return 0;
+            closestWallHit = default;
+            if (wallCollider == null || wallLayer.value == 0 || delta.sqrMagnitude < 0.000001f)
+                return false;
 
-            int collisionMask = NetTargetLayerMask | wallLayer.value;
-            if (collisionMask == 0)
+            ContactFilter2D filter = new ContactFilter2D
+            {
+                useLayerMask = true,
+                layerMask = wallLayer,
+                useTriggers = true
+            };
+            int hitCount = wallCollider.Cast(
+                delta.normalized,
+                filter,
+                castHits,
+                delta.magnitude + collisionSkinWidth);
+
+            bool found = false;
+            for (int i = 0; i < hitCount; i++)
+            {
+                RaycastHit2D candidate = castHits[i];
+                Collider2D candidateCollider = candidate.collider;
+                if (IsOwnCollider(candidateCollider) || ResolveDamageable(candidateCollider) != null)
+                    continue;
+
+                if (!found || candidate.distance < closestWallHit.distance)
+                {
+                    closestWallHit = candidate;
+                    found = true;
+                }
+            }
+
+            return found;
+        }
+
+        private int CastTargetsAlongDelta(Vector2 delta)
+        {
+            if (damageCollider == null || NetTargetLayerMask == 0 || delta.sqrMagnitude < 0.000001f)
                 return 0;
 
             ContactFilter2D filter = new ContactFilter2D
             {
                 useLayerMask = true,
-                layerMask = collisionMask,
+                layerMask = NetTargetLayerMask,
                 useTriggers = true
             };
-            return projectileCollider.Cast(
+            return damageCollider.Cast(
                 delta.normalized,
                 filter,
                 castHits,
                 delta.magnitude + collisionSkinWidth);
         }
 
-        private bool TryResolveHit(
-            RaycastHit2D candidate,
-            out IDamageable target,
-            out bool hitTarget)
+        private bool TryResolveTargetHit(RaycastHit2D candidate, out IDamageable target)
         {
             target = null;
-            hitTarget = false;
             Collider2D candidateCollider = candidate.collider;
-            if (candidateCollider == null || candidateCollider == projectileCollider)
+            if (IsOwnCollider(candidateCollider))
                 return false;
 
-            int otherLayerBit = 1 << candidateCollider.gameObject.layer;
-            bool candidateIsTarget = (NetTargetLayerMask & otherLayerBit) != 0;
-            bool candidateIsWall = (wallLayer.value & otherLayerBit) != 0;
-            if (!candidateIsTarget && !candidateIsWall)
+            target = ResolveDamageable(candidateCollider);
+            if (target == null || IsSourceCharacter(target))
+                return false;
+            if (pierceCharacters && target is CharacterBase && pierceHitTargets.Contains(target))
                 return false;
 
-            if (candidateIsTarget)
-            {
-                target = ResolveDamageable(candidateCollider);
-                if (IsSourceCharacter(target))
-                    return false;
-                if (target == null && !candidateIsWall)
-                    return false;
-                if (pierceCharacters && target is CharacterBase && pierceHitTargets.Contains(target))
-                    return false;
-            }
-
-            hitTarget = target != null;
             return true;
+        }
+
+        private bool IsOwnCollider(Collider2D candidateCollider)
+        {
+            return candidateCollider == null ||
+                   candidateCollider == damageCollider ||
+                   candidateCollider == wallCollider;
+        }
+
+        private static bool IsColliderTouching(Collider2D selfCollider, Collider2D other)
+        {
+            return selfCollider != null && other != null &&
+                   (selfCollider.IsTouching(other) || selfCollider.Distance(other).isOverlapped);
         }
 
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit2D>
