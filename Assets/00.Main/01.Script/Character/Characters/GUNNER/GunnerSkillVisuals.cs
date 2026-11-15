@@ -139,6 +139,11 @@ namespace ProjectMS.CharacterSystem.Examples
             if (bolt != null)
             {
                 bolt.transform.position = to;
+                // 본체(캡슐 모양 총알 메시, 수명 1초)는 끝에 닿는 순간 지운다. 뿜기만 멈추면 이미 나온 캡슐이
+                // 끝 지점에 최대 1초 남아 잔상처럼 보였다. 뒤따르는 빛 꼬리(자식)는 그대로 자연스럽게 사라진다.
+                ParticleSystem head = bolt.GetComponent<ParticleSystem>();
+                if (head != null)
+                    head.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
                 EffectAutoDestroy.Schedule(bolt, 0f);
             }
             SkillFxSlot.SpawnAll(piercingEndFx, to, angle);
