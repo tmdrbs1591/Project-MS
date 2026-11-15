@@ -427,7 +427,7 @@ namespace ProjectMS.CharacterSystem.AI
 
             foreach (CharacterProjectile projectile in cachedProjectiles)
             {
-                if (projectile == null || projectile.Object == null || projectile.Owner == Self.DamageOwner)
+                if (projectile == null || !projectile.IsFlying || projectile.Owner == Self.DamageOwner)
                     continue;
 
                 Vector2 pos = projectile.transform.position;
