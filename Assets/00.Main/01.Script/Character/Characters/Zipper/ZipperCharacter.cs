@@ -37,7 +37,9 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Ultimate (위상 돌파) Settings")]
         [SerializeField] private float ultimateTeleportDelay = 0.5f;
+        [Min(1f)] [SerializeField] private float ultimateGroundCheckDistance = 1000f;
         [SerializeField] private float ultimateBlastRadius = 3f; // 시트에 값이 없어 임의 지정, 실제 값으로 조정 필요
+        [SerializeField] private LayerMask outOfBoundsZoneLayer;
 
         [Header("Passive (차원 표식) Settings")]
         [Tooltip("표식 유지 시간 (초)")]
@@ -48,8 +50,16 @@ namespace ProjectMS.CharacterSystem.Examples
         private bool isDashing = false;
         private float currentQDamage = 0f;
         private HashSet<IDamageable> dashedHitTargets = new HashSet<IDamageable>();
+
+        private const int UltimateMaxTargetSearchSteps = 64;
+        private const float UltimateTargetClearance = 0.02f;
+        
+        private readonly List<Collider2D> ultimateGroundOverlaps = new List<Collider2D>(8);
+        private readonly RaycastHit2D[] ultimateGroundBelowHits = new RaycastHit2D[1];
+        
         private CharacterTimerHandle ultimateTimer;
 
+        
         // 패시브: 차원 표식 - 대상별 남은 유지 시간 보관 (OnPassiveTick에서 매 프레임 감소)
         private Dictionary<IDamageable, float> dimensionalMarks = new Dictionary<IDamageable, float>();
         private List<IDamageable> expiredMarksBuffer = new List<IDamageable>();
@@ -242,7 +252,8 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override bool OnUltimate(CharacterActionContext context)
         {
             // 위상 돌파: 마우스 위치에 이동 위치 표시 -> 0.5초 후 해당 장소로 이동하며 주위에 피해
-            Vector3 targetPosition = context.AimWorldPosition;
+            if (!TryResolveUltimateTarget(context.AimWorldPosition, out Vector2 targetPosition))
+                return false;
             float ultimateDamage = context.Damage; // Definition에서 ATK 300%로 설정, 여기서 재계산하지 않음
 
             // 1. 사용 시 행동 불가 상태
@@ -256,8 +267,19 @@ namespace ProjectMS.CharacterSystem.Examples
             // 3. 0.5초 후 해당 장소로 이동하며 주위에 피해
             ultimateTimer = ScheduleTimer(ultimateTeleportDelay, () =>
             {
+                // 시전 대기 중 지형이 움직일 수 있으므로 표시한 목적지를 다시 검사한다.
+                if (!TryResolveUltimateTarget(targetPosition, out _, maxSearchSteps: 0))
+                {
+                    SetMovementEnabled(true);
+                    return;
+                }
+
                 Vector2 departFrom = transform.position;
-                transform.position = targetPosition;
+                Vector3 teleportPosition = new Vector3(targetPosition.x, targetPosition.y, transform.position.z);
+                if (TryGetComponent(out Fusion.Addons.Physics.NetworkRigidbody2D networkBody))
+                    networkBody.Teleport(teleportPosition);
+                else
+                    Rigidbody.position = targetPosition;
                 if (HasStateAuthority)
                     Rpc_FxPhaseArrive(departFrom, targetPosition);
 
@@ -280,6 +302,124 @@ namespace ProjectMS.CharacterSystem.Examples
 
             // 궁극기 게이지 미사용(n) -> Definition의 Ultimate Cooldown을 그대로 사용
             return true;
+        }
+
+        private bool TryResolveUltimateTarget(
+            Vector2 requestedPosition,
+            out Vector2 targetPosition,
+            int maxSearchSteps = UltimateMaxTargetSearchSteps)
+        {
+            targetPosition = requestedPosition;
+
+            Collider2D bodyCollider = GetComponent<Collider2D>();
+
+            if (bodyCollider == null || !bodyCollider.enabled ||
+                !float.IsFinite(requestedPosition.x) || !float.IsFinite(requestedPosition.y))
+                return false;
+
+            Bounds bounds = bodyCollider.bounds;
+            
+            Vector2 centerOffset = (Vector2)bounds.center - (Vector2)transform.position; // position과 콜라이더 중심과의 차이 체크
+            float bodyRadius = Mathf.Max(bounds.extents.x, bounds.extents.y); // 가로 반지름, 세로 반지름 중에 더 긴 거를 몸체의 반지름으로 사용
+            
+            if (bodyRadius <= 0f)
+                return false;
+
+            float checkRadius = bodyRadius + UltimateTargetClearance; // 이동 후보를 찾을 때 체크하는 범위 (반지름)
+            float searchStep = Mathf.Max(bodyRadius * 0.5f, UltimateTargetClearance); // 이동 후보를 찾을 때 체크하는 간격
+
+            Vector2 candidateCenter = requestedPosition + centerOffset;
+            Vector2 searchDirection = Vector2.zero;
+
+            ContactFilter2D groundFilter = new ContactFilter2D { layerMask = Definition.GroundLayer, useLayerMask = true, useTriggers = true };
+
+            for (int step = 0; step <= maxSearchSteps; step++)
+            {
+                int overlapCount = Physics2D.OverlapCircle(
+                    candidateCenter, checkRadius, groundFilter, ultimateGroundOverlaps);
+
+                if (overlapCount == 0) // 찾은 공간이 비어있을 때
+                {
+                    ContactFilter2D landingFilter = new ContactFilter2D { layerMask = Definition.GroundLayer | outOfBoundsZoneLayer, useLayerMask = true, useTriggers = true };
+
+                    // 매우 길게 아래로 바닥 혹은 OutOfBoundsZone이 있는지 체크해서 찾은 위치가 아래 방향으로 맵을 탈출했는지 체크
+                    if (Physics2D.Raycast(
+                            candidateCenter, 
+                            Vector2.down, 
+                            landingFilter,
+                            ultimateGroundBelowHits, 
+                            ultimateGroundCheckDistance) == 0)
+                        return false;
+
+                    targetPosition = candidateCenter - centerOffset;
+                    return true;
+                }
+
+                if (step == 0) // 바로 못찾았으면 방향을 바꿔서 후보를 찾기 위해 탐색 방향을 정함
+                {
+                    Vector2 totalSeparation = Vector2.zero;
+                    Vector2 largestSeparation = Vector2.zero;
+
+                    for (int i = 0; i < overlapCount; i++)
+                    {
+                        Vector2 separation = GetUltimateGroundSeparation(ultimateGroundOverlaps[i], candidateCenter, checkRadius);
+                        
+                        totalSeparation += separation;
+
+                        if (separation.sqrMagnitude > largestSeparation.sqrMagnitude)
+                            largestSeparation = separation;
+                    }
+
+                    searchDirection = totalSeparation.sqrMagnitude > 0.0001f
+                        ? totalSeparation.normalized
+                        : largestSeparation.normalized;
+
+                    if (searchDirection.sqrMagnitude < 0.0001f)
+                        return false;
+                }
+
+                candidateCenter += searchDirection * searchStep;
+            }
+
+            // 막힌 공간이나 지나치게 큰 장애물에서 너무 오랫동안 탐색하고 있으면 실패 처리
+            return false;
+        }
+
+        private static Vector2 GetUltimateGroundSeparation(Collider2D ground, Vector2 center, float radius)
+        {
+            Vector2 awayFromGround = center - ground.ClosestPoint(center);
+
+            float distance = awayFromGround.magnitude;
+            if (distance > 0.0001f)
+                return awayFromGround / distance * (radius - distance + UltimateTargetClearance); // 방향 * 거리
+
+            // else: distance가 너무 짧으면
+            // 검사 위치가 지형 내부에 있으면 ClosestPoint는 입력 위치를 그대로 반환함 > distance가 매우 짧아짐
+
+            // 지형의 경계 상자 바깥 네 방향에서 표면 위치를 구해 탈출 방향을 찾음
+            float probeDistance = ground.bounds.size.magnitude + radius;
+            Vector2 nearestExit = Vector2.zero;
+            float nearestExitDistance = float.PositiveInfinity;
+            for (int side = 0; side < 4; side++)
+            {
+                Vector2 direction = side switch
+                {
+                    0 => Vector2.up,
+                    1 => Vector2.down,
+                    2 => Vector2.left,
+                    _ => Vector2.right // 3
+                };
+                Vector2 exit = ground.ClosestPoint(center + direction * probeDistance) - center;
+                float exitDistance = exit.magnitude;
+
+                if (exitDistance < nearestExitDistance)
+                {
+                    nearestExitDistance = exitDistance;
+                    nearestExit = exitDistance > 0.0001f ? exit / exitDistance : direction;
+                }
+            }
+
+            return nearestExit * (nearestExitDistance + radius + UltimateTargetClearance);
         }
 
         protected override void OnPassiveTick(float deltaTime)

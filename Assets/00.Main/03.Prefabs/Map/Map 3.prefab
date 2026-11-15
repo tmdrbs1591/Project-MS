@@ -307,7 +307,7 @@ GameObject:
   - component: {fileID: 413403035738816624}
   - component: {fileID: 3793386510028363313}
   - component: {fileID: 2395263626914148228}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: BoundDamageZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
