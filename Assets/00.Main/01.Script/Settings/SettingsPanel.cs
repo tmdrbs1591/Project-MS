@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// 설정 창. 볼륨(마스터/효과음/음악), 화면 모드, 해상도, VSync, 프레임 제한, 화면 흔들림을 다룬다.
+/// 설정 창. 볼륨(마스터/효과음/음악), 화면 모드, 해상도, VSync, 프레임 제한, 화면 흔들림, 스킬 UI 배치를 다룬다.
 /// 값을 바꾸면 즉시 적용·저장된다(볼륨은 SoundManager, 나머지는 GameSettings).
 ///
 /// [열기/닫기]
@@ -45,6 +45,10 @@ public class SettingsPanel : MonoBehaviour
 
     [Header("화면 흔들림")]
     [SerializeField] private Slider screenShakeSlider;
+
+    [Header("스킬 UI")]
+    [Tooltip("A = 기존(위쪽 양 코너), B = 내 스킬만 화면 아래 가운데. 항목은 코드가 채운다.")]
+    [SerializeField] private TMP_Dropdown hudLayoutDropdown;
 
     [Header("나가기 (게임 씬 전용, 로비에선 비워둠)")]
     [SerializeField] private Button leaveButton;
@@ -99,6 +103,7 @@ public class SettingsPanel : MonoBehaviour
 
         SetupResolutionDropdown();
         SetupFrameLimitDropdown();
+        SetupHudLayoutDropdown();
 
         if (leaveButton != null)
             leaveButton.onClick.AddListener(ShowLeaveConfirm);
@@ -262,6 +267,9 @@ public class SettingsPanel : MonoBehaviour
             frameLimitDropdown.SetValueWithoutNotify(Mathf.Max(0, index));
             frameLimitDropdown.interactable = !GameSettings.VSync;
         }
+
+        if (hudLayoutDropdown != null)
+            hudLayoutDropdown.SetValueWithoutNotify(GameSettings.HudLayout);
     }
 
     private void OnVSyncChanged(bool enabled)
@@ -314,6 +322,16 @@ public class SettingsPanel : MonoBehaviour
             if (index >= 0 && index < GameSettings.FrameLimitOptions.Length)
                 GameSettings.SetFrameLimit(GameSettings.FrameLimitOptions[index]);
         });
+    }
+
+    private void SetupHudLayoutDropdown()
+    {
+        if (hudLayoutDropdown == null)
+            return;
+
+        hudLayoutDropdown.ClearOptions();
+        hudLayoutDropdown.AddOptions(new List<string> { "A  양쪽 위", "B  내 스킬 아래 가운데" });
+        hudLayoutDropdown.onValueChanged.AddListener(GameSettings.SetHudLayout);
     }
 
     private static void SetupSlider(Slider slider, UnityEngine.Events.UnityAction<float> onChanged)

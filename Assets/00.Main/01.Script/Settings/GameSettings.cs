@@ -13,6 +13,14 @@ public static class GameSettings
     private const string VSyncKey = "Settings.VSync";
     private const string FrameLimitKey = "Settings.FrameLimit";
     private const string ScreenShakeKey = "Settings.ScreenShake";
+    private const string HudLayoutKey = "Settings.HudLayout";
+
+    /// <summary>스킬 UI 배치. 0 = A(기존: 위쪽 양 코너에 두 캐릭터 모두), 1 = B(내 스킬만 화면 아래 가운데).
+    /// HudLayoutSwitcher가 읽어서 HUD를 바꿔 켠다.</summary>
+    public static int HudLayout => PlayerPrefs.GetInt(HudLayoutKey, 0);
+
+    /// <summary>스킬 UI 배치가 바뀌면 호출된다.</summary>
+    public static event System.Action HudLayoutChanged;
 
     /// <summary>프레임 제한 선택지. 0 = 제한 없음.</summary>
     public static readonly int[] FrameLimitOptions = { 30, 60, 120, 144, 240, 0 };
@@ -73,6 +81,16 @@ public static class GameSettings
         ScreenShakeScale = Mathf.Clamp01(scale);
         PlayerPrefs.SetFloat(ScreenShakeKey, ScreenShakeScale);
         PlayerPrefs.Save();
+    }
+
+    public static void SetHudLayout(int layout)
+    {
+        layout = Mathf.Clamp(layout, 0, 1);
+        if (layout == HudLayout)
+            return;
+        PlayerPrefs.SetInt(HudLayoutKey, layout);
+        PlayerPrefs.Save();
+        HudLayoutChanged?.Invoke();
     }
 
     // VSync가 켜져 있으면 프레임 제한은 모니터 주사율을 따르므로 무시된다(Unity 규칙).

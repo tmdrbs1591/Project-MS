@@ -31,6 +31,9 @@ public abstract class PlayerSideCooldownHUD : MonoBehaviour
     /// <summary>true면 P1(왼쪽) 캐릭터, false면 P2(오른쪽) 캐릭터를 보여준다.</summary>
     protected abstract bool IsPlayer1Side { get; }
 
+    /// <summary>보여줄 캐릭터를 고른다. 기본은 P1/P2 코너 기준. 내 캐릭터만 보여주는 HUD(LocalCooldownHUD)는 이걸 바꾼다.</summary>
+    protected virtual CharacterBase FindCharacter() => FindCharacterForSide();
+
     private void LateUpdate()
     {
         if (slots == null)
@@ -76,7 +79,7 @@ public abstract class PlayerSideCooldownHUD : MonoBehaviour
 
     private void UpdateCharacterRef()
     {
-        CharacterBase found = FindCharacterForSide();
+        CharacterBase found = FindCharacter();
         if (found == character)
             return;
 
