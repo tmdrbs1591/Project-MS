@@ -38888,6 +38888,12 @@ MonoBehaviour:
   - {fileID: 822468315}
   layoutB:
   - {fileID: 1870566113}
+  shiftInB:
+  - {fileID: 456616725}
+  - {fileID: 402001691}
+  shiftOffsetsB:
+  - {x: -133, y: 50}
+  - {x: 129, y: 50}
 --- !u!1 &1787643118
 GameObject:
   m_ObjectHideFlags: 0
