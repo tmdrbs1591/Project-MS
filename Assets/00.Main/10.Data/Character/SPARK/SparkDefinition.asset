@@ -18,7 +18,7 @@ MonoBehaviour:
   basicAttackDamage: 58
   skillQDamage: 20
   skillEDamage: 60
-  ultimateDamage: 20
+  ultimateDamage: 35
   basicAttackCooldown: 0.3
   skillQCooldown: 10
   skillECooldown: 8
