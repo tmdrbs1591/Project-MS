@@ -1510,7 +1510,7 @@ MonoBehaviour:
   burstBulletProjectilePrefab: {fileID: 7811597853570981533, guid: 047f2747991adbe44bbd7ecd1006e9ca, type: 3}
   burstBulletProjectileSpeed: 17.5
   burstBulletProjectileFireCount: 4
-  burstArcAngle: 18
+  burstArcAngle: 16.5
   forkAngleStep: 12
   useBurstArcForForkedProjectiles: 1
   burstReloadingDuration: 2.5
