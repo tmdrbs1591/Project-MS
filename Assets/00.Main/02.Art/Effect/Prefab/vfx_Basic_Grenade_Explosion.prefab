@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7593087857805469635}
   - component: {fileID: 5996164353228899373}
   - component: {fileID: 4076054923456891701}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Glow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4845,7 +4845,7 @@ GameObject:
   - component: {fileID: 7994630248381917138}
   - component: {fileID: 6976490745400016832}
   - component: {fileID: 5321464893758427646}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Nova
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9697,7 +9697,7 @@ GameObject:
   - component: {fileID: 6449761354849136541}
   - component: {fileID: 7440632031635374331}
   - component: {fileID: 6228936660322538103}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: explosion (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14603,7 +14603,7 @@ GameObject:
   - component: {fileID: 6561077540519819132}
   - component: {fileID: 4790691173926533826}
   - component: {fileID: 2651738914016906316}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: FireCurve
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19441,7 +19441,7 @@ GameObject:
   - component: {fileID: 924593119639491484}
   - component: {fileID: 2120174277049273099}
   - component: {fileID: 4578895996533197048}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ExplosionNovaBlue
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -24480,7 +24480,7 @@ GameObject:
   - component: {fileID: 9203882482155899568}
   - component: {fileID: 7205499158834240546}
   - component: {fileID: 6210879072174746528}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Smoke
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29377,7 +29377,7 @@ GameObject:
   - component: {fileID: 8098902790486233381}
   - component: {fileID: 3732042680718448012}
   - component: {fileID: 2793756821383255490}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Smoke (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -34280,7 +34280,7 @@ GameObject:
   - component: {fileID: 7678547380655988517}
   - component: {fileID: 6725966322869359073}
   - component: {fileID: 3618437365308329032}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Smoke (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -39183,7 +39183,7 @@ GameObject:
   - component: {fileID: 137026975123046802}
   - component: {fileID: 2455667322284778740}
   - component: {fileID: 615426282608736739}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Sparks
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -44060,7 +44060,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 478377291811255047}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -44104,7 +44104,7 @@ GameObject:
   - component: {fileID: 7027778590114992606}
   - component: {fileID: 914063519268841814}
   - component: {fileID: 2993931612307199764}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: vfx_Basic_Grenade_Explosion
   m_TagString: Untagged
   m_Icon: {fileID: 0}
