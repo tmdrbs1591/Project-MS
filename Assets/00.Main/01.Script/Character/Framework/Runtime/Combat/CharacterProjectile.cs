@@ -101,6 +101,9 @@ namespace ProjectMS.CharacterSystem
         private bool followingEnd;      // 상대 화면: 소멸 지점까지 따라가는 중
         private Vector2 visualPos;      // 상대 화면: 따라가는 동안 그리는 위치
         private float catchSpeed;       // 상대 화면: 따라가는 속도(남은 거리를 EndCatchTime 안에 가도록)
+        private Vector2 endDir;         // 상대 화면: 소멸 지점까지 날아가는 방향(쏜 방향 그대로)
+        private float endRemaining;     // 상대 화면: 소멸 지점까지 남은 거리
+        private static readonly RaycastHit2D[] endBodyHits = new RaycastHit2D[8];
         private readonly List<Renderer> hiddenRenderers = new List<Renderer>();
 
         /// <summary>상대 화면에서 늦게 따라오던 투사체가 소멸 지점까지 따라잡는 최대 시간(초). remoteDespawnDelay보다 짧아야
@@ -280,54 +283,75 @@ namespace ProjectMS.CharacterSystem
                 ShowEnd(NetEndPoint, NetEndNormal);
         }
 
-        // 상대 화면: 소멸 정보가 오면 늦게 따라오던 투사체를 소멸 지점(캐릭터에 맞았으면 그 캐릭터의 지금 몸)까지
-        // 날려 보낸 뒤 그 자리에서 터뜨린다. 공중에서 그냥 사라지는 일이 없게 한다.
-        // (위치 동기화가 Render에서 위치를 덮어쓰므로, 그 뒤인 LateUpdate에서 그린다.)
+        // 상대 화면: 소멸 정보가 오면 늦게 따라오던 투사체를 쏜 방향 그대로 직선으로 날려 보내고,
+        //   - 가는 길에 맞은 캐릭터의 지금 몸에 닿으면 거기서,
+        //   - 아니면 쏜 쪽에서 맞은 지점(NetEndPoint)까지 가서 터뜨린다.
+        // 캐릭터를 쫓아가지 않으므로 궤적이 휘지 않는다(유도탄처럼 보이던 문제). 공중에서 그냥 사라지지도 않는다.
+        // (위치 동기화가 Render에서 위치를 덮어쓰므로, 그 뒤인 LateUpdate에서 그린다. 회전은 Render의 AlignToDirection 그대로.)
         private void LateUpdate()
         {
             if (endShown || Object == null || !Object.IsValid || Object.HasStateAuthority || !NetConsumed)
                 return;
 
-            Vector2 goal = ResolveVisualEndPoint();
             if (!followingEnd)
             {
                 followingEnd = true;
                 visualPos = transform.position;
-                catchSpeed = Mathf.Max(NetSpeed, Vector2.Distance(visualPos, goal) / EndCatchTime);
+                endDir = NetDirection.sqrMagnitude > 0.0001f
+                    ? NetDirection.normalized
+                    : (NetEndPoint - visualPos).normalized;
+                endRemaining = Mathf.Max(0f, Vector2.Dot(NetEndPoint - visualPos, endDir));
+                catchSpeed = Mathf.Max(NetSpeed, endRemaining / EndCatchTime);
             }
 
             Vector2 before = visualPos;
-            visualPos = Vector2.MoveTowards(visualPos, goal, Mathf.Max(catchSpeed, NetSpeed) * Time.deltaTime);
+            float step = Mathf.Min(catchSpeed * Time.deltaTime, endRemaining);
+            visualPos = before + endDir * step;
+            endRemaining -= step;
             transform.position = visualPos;
-            Vector2 travel = visualPos - before;
-            if (travel.sqrMagnitude > 0.000001f)
+
+            if (TryHitEndTargetBody(before, step, out Vector2 bodyPoint, out Vector2 bodyNormal))
             {
-                float angle = Mathf.Atan2(travel.y, travel.x) * Mathf.Rad2Deg + projectileAngleOffset;
-                transform.rotation = Quaternion.Euler(0f, 0f, angle);
+                transform.position = bodyPoint;
+                ShowEnd(bodyPoint, bodyNormal);
+                return;
             }
 
-            if ((goal - visualPos).sqrMagnitude < 0.0004f)
-            {
-                Vector2 normal = travel.sqrMagnitude > 0.000001f ? -travel.normalized : NetEndNormal;
-                ShowEnd(goal, NetEndTargetId.IsValid ? normal : NetEndNormal);
-            }
+            if (endRemaining <= 0.0001f)
+                ShowEnd(visualPos, NetEndTargetId.IsValid ? -endDir : NetEndNormal);
         }
 
-        private Vector2 ResolveVisualEndPoint()
+        // 이번 프레임 이동 구간(before → before + endDir * step)이 맞은 캐릭터의 지금 몸에 닿았는지.
+        private bool TryHitEndTargetBody(Vector2 before, float step, out Vector2 point, out Vector2 normal)
         {
-            if (NetEndTargetId.IsValid && Runner != null &&
-                Runner.TryFindObject(NetEndTargetId, out NetworkObject targetObject) && targetObject != null)
+            point = default;
+            normal = -endDir;
+            if (!NetEndTargetId.IsValid || Runner == null ||
+                !Runner.TryFindObject(NetEndTargetId, out NetworkObject targetObject) || targetObject == null)
+                return false;
+
+            Collider2D body = targetObject.GetComponent<Collider2D>();
+            if (body == null || !body.enabled)
+                return false;
+
+            if (body.OverlapPoint(before))
             {
-                Collider2D body = targetObject.GetComponent<Collider2D>();
-                if (body != null && body.enabled)
-                {
-                    Vector2 from = followingEnd ? visualPos : (Vector2)transform.position;
-                    Vector2 closest = body.ClosestPoint(from);
-                    return closest == from ? (Vector2)body.bounds.center : closest;
-                }
-                return targetObject.transform.position;
+                point = before;
+                return true;
             }
-            return NetEndPoint;
+
+            ContactFilter2D filter = new ContactFilter2D { useLayerMask = true, layerMask = 1 << body.gameObject.layer, useTriggers = true };
+            int count = Physics2D.Raycast(before, endDir, filter, endBodyHits, step);
+            for (int i = 0; i < count; i++)
+            {
+                if (endBodyHits[i].collider != body)
+                    continue;
+                point = endBodyHits[i].point;
+                if (endBodyHits[i].normal.sqrMagnitude > 0.001f)
+                    normal = endBodyHits[i].normal;
+                return true;
+            }
+            return false;
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
