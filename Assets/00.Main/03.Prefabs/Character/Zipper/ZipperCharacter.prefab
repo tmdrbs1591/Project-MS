@@ -6705,12 +6705,16 @@ MonoBehaviour:
   shotInterval: 0.1
   qDashPower: 12
   qDashDuration: 0.2
-  qDashWidth: 3
+  qDashWidth: 1
   qRechargeTime: 10
   qMaxCharges: 2
   E_SkillPrefab: {fileID: -7315203500075794664, guid: 8a9e463fd9f65be43a89ce107e2ce2e5, type: 3}
   ultimateTeleportDelay: 0.5
+  ultimateGroundCheckDistance: 1000
   ultimateBlastRadius: 2
+  outOfBoundsZoneLayer:
+    serializedVersion: 2
+    m_Bits: 0
   markDuration: 4
   diveRechargeReductionRatio: 0.6
 --- !u!114 &152787374348568370
@@ -6784,14 +6788,14 @@ MonoBehaviour:
     lifetime: 2
   phaseArriveFx:
   - prefab: {fileID: 1631042304284920, guid: 94c74d51bcada5249a6520831c0f6e9b, type: 3}
-    scale: 0.7
+    scale: 1.2
     facing: 0
     angleOffset: 0
     offset: {x: 0, y: 0}
     tint: {r: 1, g: 1, b: 1, a: 1}
     lifetime: 2
   - prefab: {fileID: 1282100793984216, guid: 41aeb961c68cf3d49be047342faf77b8, type: 3}
-    scale: 0.5
+    scale: 5
     facing: 0
     angleOffset: 0
     offset: {x: 0, y: 0}
