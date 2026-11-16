@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -31,6 +31,9 @@ namespace ProjectMS.CharacterSystem.Examples
         [Min(0f)][SerializeField] private float nodeThrowSpeed = 10f;
         [SerializeField] private float nodeLinkerWidth = 0.8f;
         [SerializeField] private float nodeLinkerDamageInterval = 0.5f;
+        [Min(1)][SerializeField] private int qMaxCharges = 2;
+        [Tooltip("충전 1개당 재충전 시간(초). 0 이하이면 캐릭터 정의의 Q 쿨타임을 사용한다.")]
+        [SerializeField] private float qRechargeTime = -1f;
 
         [Header("Skill E - Overload")]
         [SerializeField] private float overloadRadius = 3.5f;
@@ -67,6 +70,10 @@ namespace ProjectMS.CharacterSystem.Examples
         private float EffectiveReloadDuration =>
             (reloadDuration > 0f ? reloadDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
             * ReloadSpeedMultiplier;
+        private float EffectiveQRechargeTime =>
+            qRechargeTime > 0f
+                ? qRechargeTime
+                : (Definition != null ? Definition.GetCooldown(CharacterActionType.SkillQ) : 10f);
 
         private readonly HashSet<CharacterProjectile> gunEmpoweredProjectiles = new HashSet<CharacterProjectile>();
 
@@ -172,9 +179,16 @@ namespace ProjectMS.CharacterSystem.Examples
             ApplyControlSeal(hitTarget, CharacterControlType.All, electrostaticStunDuration);
         }
 
+        public override void FixedUpdateNetwork()
+        {
+            TickQRecharge();
+            base.FixedUpdateNetwork();
+        }
+
         protected override bool OnSkillQ(CharacterActionContext context)
         {
-            if (nodePrefab == null)
+            int currentCharges = GetActionCharges(CharacterActionType.SkillQ);
+            if (currentCharges <= 0 || nodePrefab == null)
                 return false;
 
             SparkNodeDeployable node = SpawnOwnedEntity(
@@ -185,13 +199,17 @@ namespace ProjectMS.CharacterSystem.Examples
                 initialVelocity: context.AimDirection * nodeThrowSpeed,
                 initialize: (node) => node.Initialize(this));
 
-            if (node != null)
-                plantedElectricNodes.Add(node);
+            if (node == null)
+                return false;
 
-            if (plantedElectricNodes.Count >= 2)
-                return true;
+            plantedElectricNodes.Add(node);
 
-            return false;
+            // 재충전 중이 아니었다면(가득 차 있다가 처음 쓴 경우) 바로 타이머를 시작해서
+            // UI 오버레이가 다음 프레임 대기 없이 곧장 돌기 시작하게 한다.
+            if (!IsChargeRechargeActive(CharacterActionType.SkillQ))
+                StartChargeRecharge(CharacterActionType.SkillQ);
+
+            return true;
         }
 
         protected override bool OnSkillE(CharacterActionContext context)
@@ -265,6 +283,7 @@ namespace ProjectMS.CharacterSystem.Examples
 
             lastPosition = transform.position;
             SpawnNodeLinker();
+            InitQCharges();
         }
 
         // 휠 수동 재장전.
@@ -291,6 +310,52 @@ namespace ProjectMS.CharacterSystem.Examples
             // NodeLinker가 써진 적이 있다면 보이지 않게 만든다.
             nodeLinker.SetLinkerActive(false);
             nodeLinker.OnResetCharacter();
+
+            InitQCharges();
+        }
+
+        private void InitQCharges()
+        {
+            SetActionCharges(CharacterActionType.SkillQ, qMaxCharges);
+            SetAutoCooldown(CharacterActionType.SkillQ, false);
+            // 쿨타임 슬롯 UI가 잔탄 숫자와 "다음 충전까지" 오버레이를 그릴 수 있게 충전형으로 등록한다.
+            SetActionChargeCapacity(CharacterActionType.SkillQ, qMaxCharges, EffectiveQRechargeTime);
+            ClearChargeRecharge(CharacterActionType.SkillQ);
+        }
+
+        private void TickQRecharge()
+        {
+            if (Object == null || !Object.IsValid || !HasStateAuthority || Runner == null)
+                return;
+
+            int currentCharges = GetActionCharges(CharacterActionType.SkillQ);
+
+            // 음수 = 잔탄 시스템이 아직 초기화되지 않은 상태(사망 직후 등). 다음 InitQCharges까지 대기.
+            if (currentCharges < 0)
+                return;
+
+            if (currentCharges >= qMaxCharges)
+            {
+                if (IsChargeRechargeActive(CharacterActionType.SkillQ))
+                    ClearChargeRecharge(CharacterActionType.SkillQ);
+                return;
+            }
+
+            // 충전 타이머가 다 돌았으면 잔탄 1개를 회복하고, 아직 모자라면 다음 충전 타이머를 이어서 시작한다.
+            if (HasChargeRechargeElapsed(CharacterActionType.SkillQ))
+            {
+                AddActionCharges(CharacterActionType.SkillQ, 1);
+                currentCharges++;
+
+                if (currentCharges >= qMaxCharges)
+                    ClearChargeRecharge(CharacterActionType.SkillQ);
+                else
+                    StartChargeRecharge(CharacterActionType.SkillQ);
+                return;
+            }
+
+            if (!IsChargeRechargeActive(CharacterActionType.SkillQ))
+                StartChargeRecharge(CharacterActionType.SkillQ);
         }
 
         protected override void OnCharacterDespawned()
