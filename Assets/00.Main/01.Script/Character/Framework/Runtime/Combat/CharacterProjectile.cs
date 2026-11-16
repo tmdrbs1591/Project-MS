@@ -12,7 +12,7 @@ namespace ProjectMS.CharacterSystem
     [RequireComponent(typeof(NetworkObject))]
     public sealed class CharacterProjectile : NetworkBehaviour
     {
-        [Min(0.1f)] [SerializeField] private float lifetime = 5f;
+        [Min(0.1f)][SerializeField] private float lifetime = 5f;
 
         [Header("Pierce")]
         [Tooltip("켜면 캐릭터에 맞아도 소멸하지 않고 계속 날아간다(벽에는 그대로 막힘). 관통형 투사체(예: 루시안식 Q)에 사용. 같은 대상은 한 번만 맞는다.")]
@@ -26,7 +26,7 @@ namespace ProjectMS.CharacterSystem
         [Tooltip("캐릭터 레이어와 별개로, 벽/지형 등 투사체가 부딪혀 소멸할 레이어.")]
         [SerializeField] private LayerMask wallLayer;
         [Tooltip("한 틱 이동 거리보다 살짝 더 검사해서 경계면 누락을 줄인다.")]
-        [Min(0f)] [SerializeField] private float collisionSkinWidth = 0.03f;
+        [Min(0f)][SerializeField] private float collisionSkinWidth = 0.03f;
 
         [Header("Visual")]
         [Tooltip("투사체 프리팹의 0도 방향 보정각. 스프라이트가 +X를 바라보면 0, +Y를 바라보면 -90.")]
@@ -37,26 +37,26 @@ namespace ProjectMS.CharacterSystem
             "(예: SPARK 패시브로 충전된 기본공격 총알을 다른 색으로 보여줄 때 사용).")]
         [SerializeField] private Sprite empoweredSprite;
         [SerializeField] private GameObject hitVfxPrefab;
-        [Min(0.01f)] [SerializeField] private float hitVfxScale = 1f;
+        [Min(0.01f)][SerializeField] private float hitVfxScale = 1f;
         [Tooltip("생겨나는 순간 그 자리에 한 번 재생할 이펙트(예: 저격탄 탄착). 모든 클라에서 재생된다.")]
         [SerializeField] private GameObject spawnVfxPrefab;
-        [Min(0.01f)] [SerializeField] private float spawnVfxScale = 1f;
+        [Min(0.01f)][SerializeField] private float spawnVfxScale = 1f;
         [Tooltip("아무것도 못 맞히고 수명이 다해 사라질 때 그 자리에서 살짝 터지는 이펙트. 비우면 그냥 사라진다.")]
         [SerializeField] private GameObject expireVfxPrefab;
-        [Min(0.01f)] [SerializeField] private float expireVfxScale = 1f;
+        [Min(0.01f)][SerializeField] private float expireVfxScale = 1f;
         [Tooltip("이펙트 프리팹의 0도 방향 보정각. 프리팹이 +X를 향하면 0, +Y를 향하면 -90.")]
         [SerializeField] private float hitVfxAngleOffset = -90f;
         [Tooltip("이펙트를 표면 노말 방향으로 살짝 밀어 벽 안쪽에 묻히는 것을 방지한다.")]
-        [Min(0f)] [SerializeField] private float hitVfxSurfaceOffset = 0.02f;
+        [Min(0f)][SerializeField] private float hitVfxSurfaceOffset = 0.02f;
 
         [Header("Remote Despawn Sync")]
         [Tooltip("맞은 뒤 오브젝트를 이만큼(초) 더 남겨 둔다. 상대 화면의 투사체는 위치 동기화 때문에 조금 늦게 따라오므로, " +
             "맞은 자리까지 날아온 뒤에 사라지고 이펙트가 터지도록 시간을 준다. 쏜 쪽 화면에서는 맞는 즉시 사라진다.")]
-        [Min(0f)] [SerializeField] private float remoteDespawnDelay = 0.3f;
+        [Min(0f)][SerializeField] private float remoteDespawnDelay = 0.3f;
 
         [Header("Augment - 바운스/폭발")]
         [Tooltip("바운스 마법/폭발 마법 증강 적용 시 쓰는 폭발 반경/이펙트. 두 증강 다 안 쓰면 무시된다.")]
-        [Min(0f)] [SerializeField] private float explodeRadius = 2f;
+        [Min(0f)][SerializeField] private float explodeRadius = 2f;
         [SerializeField] private GameObject explodeVfxPrefab;
 
         [Networked] private Vector2 NetDirection { get; set; }
@@ -645,9 +645,11 @@ namespace ProjectMS.CharacterSystem
 
         private bool IsSourceCharacter(IDamageable target)
         {
-            CharacterBase character = target as CharacterBase;
-            return character != null && character.Object != null &&
-                   NetSourceObjectId.IsValid && character.Object.Id == NetSourceObjectId;
+            if (target is CharacterBase character)
+                return character != null && character.Object != null && NetSourceObjectId.IsValid && character.Object.Id == NetSourceObjectId;
+            if (target is CharacterOwnedEntity ownedEntity)
+                return NetSourceObjectId.IsValid && ownedEntity.OwnerCharacterId == NetSourceObjectId;
+            return false;
         }
 
         private static ProjectileDespawnReason ResolveHitReason(IDamageable target)
