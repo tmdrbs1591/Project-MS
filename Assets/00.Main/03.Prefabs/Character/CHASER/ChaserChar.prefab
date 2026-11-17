@@ -1575,7 +1575,7 @@ MonoBehaviour:
   deadEyeShotZoomRatio: 0.16
   deadEyeShotZoomDuration: 0.45
   carnivalBackAttackCriterionAngle: 90
-  carnivalBackAttackAdditionalDamageMultiplier: 2
+  carnivalBackAttackAdditionalDamageMultiplier: 1.5
 --- !u!114 &7259875264312912808
 MonoBehaviour:
   m_ObjectHideFlags: 0
