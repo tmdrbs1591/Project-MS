@@ -4,10 +4,10 @@ TextureImporter:
   internalIDToNameTable:
   - first:
       213: -6683951959054800213
-    second: scope_vignette_0
+    second: scope_vignette_Left
   - first:
       213: 6057069632565005292
-    second: scope_vignette_1
+    second: scope_vignette_Right
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -49,9 +49,9 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
@@ -129,15 +129,15 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: scope_vignette_0
+      name: scope_vignette_Left
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 587
+        width: 960
         height: 1080
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -151,15 +151,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: scope_vignette_1
+      name: scope_vignette_Right
       rect:
         serializedVersion: 2
-        x: 1334
+        x: 960
         y: 0
-        width: 586
+        width: 960
         height: 1080
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 1, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -186,8 +186,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      scope_vignette_0: -6683951959054800213
-      scope_vignette_1: 6057069632565005292
+      scope_vignette_Left: -6683951959054800213
+      scope_vignette_Right: 6057069632565005292
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

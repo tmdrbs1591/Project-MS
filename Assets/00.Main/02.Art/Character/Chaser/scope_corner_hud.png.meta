@@ -4,16 +4,10 @@ TextureImporter:
   internalIDToNameTable:
   - first:
       213: 5237591951351025821
-    second: scope_corner_hud_0
+    second: scope_corner_hud_Left
   - first:
       213: 2497818327663442708
-    second: scope_corner_hud_1
-  - first:
-      213: 1823144910930345519
-    second: scope_corner_hud_2
-  - first:
-      213: 7027633765025066151
-    second: scope_corner_hud_3
+    second: scope_corner_hud_Right
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -55,9 +49,9 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
@@ -135,15 +129,15 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: scope_corner_hud_0
+      name: scope_corner_hud_Left
       rect:
         serializedVersion: 2
-        x: 24
-        y: 700
-        width: 492
-        height: 356
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 0
+        width: 960
+        height: 1080
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -157,15 +151,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: scope_corner_hud_1
+      name: scope_corner_hud_Right
       rect:
         serializedVersion: 2
-        x: 1405
-        y: 701
-        width: 491
-        height: 355
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 960
+        y: 0
+        width: 960
+        height: 1080
+      alignment: 9
+      pivot: {x: 1, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -174,50 +168,6 @@ TextureImporter:
       bones: []
       spriteID: 41bf6d5f8880aa220800000000000000
       internalID: 2497818327663442708
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: scope_corner_hud_2
-      rect:
-        serializedVersion: 2
-        x: 24
-        y: 24
-        width: 492
-        height: 355
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f2e701613ac1d4910800000000000000
-      internalID: 1823144910930345519
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: scope_corner_hud_3
-      rect:
-        serializedVersion: 2
-        x: 1404
-        y: 24
-        width: 492
-        height: 355
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 7ac2cdfdcab278160800000000000000
-      internalID: 7027633765025066151
       vertices: []
       indices: 
       edges: []
@@ -236,10 +186,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      scope_corner_hud_0: 5237591951351025821
-      scope_corner_hud_1: 2497818327663442708
-      scope_corner_hud_2: 1823144910930345519
-      scope_corner_hud_3: 7027633765025066151
+      scope_corner_hud_Left: 5237591951351025821
+      scope_corner_hud_Right: 2497818327663442708
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
