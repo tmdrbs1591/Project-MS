@@ -1117,6 +1117,8 @@ MonoBehaviour:
   nodeThrowSpeed: 10
   nodeLinkerWidth: 0.8
   nodeLinkerDamageInterval: 0.5
+  qMaxCharges: 2
+  qRechargeTime: -1
   overloadRadius: 3.5
   overloadSlowDuration: 1
   overloadSlowRatio: 0.5
