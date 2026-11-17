@@ -123,6 +123,7 @@ MonoBehaviour:
   expireVfxScale: 1
   hitVfxAngleOffset: -90
   hitVfxSurfaceOffset: 0.02
+  remoteDespawnDelay: 0.3
   explodeRadius: 2
   explodeVfxPrefab: {fileID: 0}
 --- !u!50 &1860191461874211119
@@ -5048,11 +5049,11 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.99990517, y: -0.2896921}
+  m_Offset: {x: 0, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -5062,7 +5063,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.1864723, y: 0.26123148}
+  m_Size: {x: 0.1, y: 0.1}
   m_EdgeRadius: 0
 --- !u!1 &8756358893010025774
 GameObject:
