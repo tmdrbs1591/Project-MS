@@ -73,10 +73,11 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Header("Passive - Glitch Occured")]
         [Min(0f)][SerializeField] private float glitchDuration = 3f;
-        [Min(0f)][SerializeField] private float glitchDamageTimes = 3f;
+        [Min(0f)][SerializeField] private float glitchDamageTimes = 1f;
         [Min(0f)][SerializeField] private float glitchDamageRatio = 0.3f;
 
         private int EffectiveErrorThrowableFireCount => Mathf.Max(1, Mathf.RoundToInt(errorThrowableFireCount * MaxAmmoMultiplier));
+        
         private float EffectiveErrorReloadDuration =>
             (errorReloadingDuration > 0f ? errorReloadingDuration : (Definition != null ? Definition.GetCooldown(CharacterActionType.BasicAttack) : 1f))
             * ReloadSpeedMultiplier;
@@ -160,13 +161,14 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private bool ThrowError(Vector2 velocity, float zAngle, float damage)
         {
+            int maxAlive = Mathf.Max(errorThrowableMaxCount, errorThrowableFireCount * (1 + ForkedProjectileCount));
             Vector2 rotatedVelocity = Rotate(velocity, zAngle);
 
             OwnedEntitySpawnRequest request = new OwnedEntitySpawnRequest(
                 ProjectileOrigin.position,
                 Quaternion.identity,
                 new OwnedEntityGroupId((int)CharacterActionType.BasicAttack),
-                maxCount: errorThrowableMaxCount,
+                maxCount: maxAlive,
                 overflowPolicy: OwnedEntityOverflowPolicy.DestroyOldest,
                 initialVelocity: rotatedVelocity);
 
