@@ -165,14 +165,15 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void Explode(Vector2 position)
         {
-            if (exploded)
+            // static RPC에는 권한 필터가 없으므로 보내는 쪽에서 권한/재시뮬레이션을 확인한다.
+            if (exploded || !HasStateAuthority || Runner.IsResimulation)
                 return;
 
             exploded = true;
 
             GunnerCharacter owner = ResolveOwner();
             owner?.DetonateGrenade(position, NetDamage);
-            Rpc_PlayExplosionVfx(position);
+            Rpc_PlayExplosionVfx(Runner, Object.NetworkTypeId.AsPrefabId, position);
 
             if (Runner != null && Object != null)
                 Runner.Despawn(Object);
@@ -187,10 +188,19 @@ namespace ProjectMS.CharacterSystem.Examples
             return sourceObject.GetComponent<GunnerCharacter>();
         }
 
-        /// <summary>폭발 순간 모든 클라에서 재생되는 시각 이펙트. GunnerCharacter의
-        /// PlayActionEffect(SkillE)와 완전히 별개 경로라 던지기 연출과 안 겹친다.</summary>
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void Rpc_PlayExplosionVfx(Vector2 position)
+        /// <summary>수류탄이 먼저 Despawn되어도 모든 클라에서 폭발을 재생한다.
+        /// 인스턴스 RPC는 수신 전에 대상이 사라지면 버려지므로, static RPC로 프리팹 ID와
+        /// 폭발 위치만 전달하고 각 클라의 프리팹에서 이펙트 설정을 읽는다.</summary>
+        [Rpc(Channel = RpcChannel.Reliable)]
+        private static void Rpc_PlayExplosionVfx(NetworkRunner runner, NetworkPrefabId prefabId, Vector2 position)
+        {
+            NetworkObject prefab = runner.Prefabs.Load(prefabId, isSynchronous: true);
+            if (prefab != null && prefab.TryGetComponent(out GunnerGrenadeProjectile grenade))
+                grenade.PlayExplosionVfx(position);
+        }
+
+        // 프리팹에서도 호출되므로 런타임 수류탄의 Object/Runner/transform에 의존하지 않는다.
+        private void PlayExplosionVfx(Vector2 position)
         {
             if (explosionVfxPrefab != null)
             {
