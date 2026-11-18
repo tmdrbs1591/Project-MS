@@ -15,6 +15,8 @@ using UnityEngine;
 /// [씬 설정]
 ///   - 게임 씬 아무 오브젝트에 하나 붙이고 Silhouette 머티리얼을 넣는다.
 /// </summary>
+// 캐릭터 자세와 무기 스프라이트의 LateUpdate 변경을 마친 뒤 실루엣을 동기화한다.
+[DefaultExecutionOrder(100)]
 public class EnemyOutline : MonoBehaviour
 {
     [SerializeField] private Material silhouetteMaterial;

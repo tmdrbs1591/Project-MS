@@ -19,7 +19,7 @@ Shader "Custom/Sprite/Silhouette"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/Core2D.hlsl"
 
             struct Attributes { float4 positionOS : POSITION; float4 color : COLOR; float2 uv : TEXCOORD0; };
             struct Varyings { float4 positionCS : SV_POSITION; float4 color : COLOR; float2 uv : TEXCOORD0; };
@@ -33,6 +33,8 @@ Shader "Custom/Sprite/Silhouette"
             Varyings vert (Attributes v)
             {
                 Varyings o;
+                // 원본에서 복사한 Flip X/Y를 정점에도 적용해 실루엣 방향을 맞춘다.
+                v.positionOS.xyz = UnityFlipSprite(v.positionOS.xyz, unity_SpriteProps.xy);
                 o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
                 o.color = v.color * unity_SpriteColor; // 스프라이트 렌더러 색(빨강 등)은 unity_SpriteColor로 들어온다
                 o.uv = v.uv;
