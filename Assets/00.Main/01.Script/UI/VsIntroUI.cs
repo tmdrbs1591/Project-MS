@@ -399,8 +399,7 @@ public class VsIntroUI : MonoBehaviour
                 frameGlow = NewImage("Map Glow", canvasGroup.transform, frameGlowSprite, Color.clear);
                 frameGlow.type = Image.Type.Sliced;
                 frameGlow.rectTransform.anchoredPosition = basePos[frame];
-                // 액자 이미지에는 투명 여백이 있어서, 실제로 보이는 테두리 크기(가로 88%, 세로 74%)에 맞춘다.
-                frameGlow.rectTransform.sizeDelta = Vector2.Scale(Vector2.Scale(frame.sizeDelta, baseScale[frame]), frameVisibleRatio) + new Vector2(70f, 70f);
+                UpdateFrameGlowSize();
                 frameGlow.transform.SetSiblingIndex(frame.GetSiblingIndex());
                 stageParts.Add(frameGlow.rectTransform);
                 Remember(frameGlow.rectTransform);
@@ -581,11 +580,13 @@ public class VsIntroUI : MonoBehaviour
     /// <summary>맵 액자: 도는 동안엔 빛이 빠르게 맥동하고 액자가 미세하게 떨린다. 정해지면 금빛으로 바뀌고 뒤에서 빛줄기가 돈다.</summary>
     private void UpdateFrameFx()
     {
+        UpdateFrameGlowSize();
         float now = Time.unscaledTime;
         if (frameSpinning)
         {
+            Vector2 shake = Random.insideUnitCircle * 2.5f;
             foreach (RectTransform rt in mapFrameParts)
-                rt.anchoredPosition = basePos[rt] + Random.insideUnitCircle * 2.5f;
+                rt.anchoredPosition = basePos[rt] + shake;
             if (frameGlow != null)
             {
                 Color c = spinGlowColor; c.a = 0.55f + 0.35f * Mathf.Sin(now * 22f);
@@ -603,6 +604,16 @@ public class VsIntroUI : MonoBehaviour
                 frameGlow.color = c;
             }
         }
+    }
+
+    private void UpdateFrameGlowSize()
+    {
+        if (frameGlow == null || mapFrameParts.Length == 0)
+            return;
+
+        // 결과 맵 비율에 맞춰 줄어든 액자에 테두리 빛도 함께 맞춘다.
+        RectTransform frame = mapFrameParts[0];
+        frameGlow.rectTransform.sizeDelta = Vector2.Scale(Vector2.Scale(frame.rect.size, baseScale[frame]), frameVisibleRatio) + new Vector2(70f, 70f);
     }
 
     /// <summary>맵 액자 뒤에 후광 이펙트를 띄운다. 원래 위로 뻗는 빛줄기라, 화면을 향하게 돌리고 퍼짐 각을 넓혀 사방으로 뻗게 한다.</summary>
@@ -819,9 +830,12 @@ public class VsIntroUI : MonoBehaviour
         StartCoroutine(RevealNames(player2Names));
 
         yield return WaitUntilTime(now, mapTime);
+        // 등장 첫 프레임부터 최종 칸 크기를 사용하고, 회전할 때도 같은 결과 맵을 유지한다.
+        int mapResultIndex = slotMachine != null ? slotMachine.Prepare() : -1;
+        UpdateFrameGlowSize();
         yield return DropMapFrame();
-        if (slotMachine != null)
-            slotMachine.Spin();
+        if (slotMachine != null && mapResultIndex >= 0)
+            slotMachine.Spin(mapResultIndex);
         frameSpinning = true;
         Play(rollClip, 0.75f);
 
