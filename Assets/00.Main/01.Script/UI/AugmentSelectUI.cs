@@ -128,7 +128,7 @@ public class AugmentSelectUI : MonoBehaviour
             picksRemaining = local != null ? local.AugmentPicksRemaining : 0;
         }
 
-        if (state == State.Intro && Time.unscaledTime >= introEndsAt)
+        if (state == State.Intro && IntroFinished())
             FinishIntro();
 
         if (picksRemaining <= 0 && state != State.Hidden && state != State.PickAnimating && state != State.Waiting)
@@ -173,11 +173,25 @@ public class AugmentSelectUI : MonoBehaviour
         }
     }
 
+    // 코드 연출은 프레임 단위로 진행돼 끊김이 있으면 예상 시간보다 늦어진다. 그래서 고정 타이머가 아니라
+    // 연출이 실제로 끝났는지를 기준으로 하고, 연출이 멈춰 버린 경우에만 넉넉한 시간 뒤 강제로 끝낸다.
+    private const float IntroSafetyMargin = 1.5f;
+
+    private bool IntroFinished()
+    {
+        if (fx == null)
+            return Time.unscaledTime >= introEndsAt;
+        return !fx.IsIntroPlaying || Time.unscaledTime >= introEndsAt + IntroSafetyMargin;
+    }
+
     private void FinishIntro()
     {
         // 애니메이터가 끝난 모습 그대로 멈춰 두고(끄기), 이후 움직임은 카드 슬롯이 맡는다.
         if (panelAnimator != null)
             panelAnimator.enabled = false;
+
+        // 카드를 연출의 최종 모습(제자리·정상 크기)으로 맞춘 뒤에 슬롯이 기준값을 잡게 한다.
+        fx?.CompleteIntro();
 
         foreach (AugmentChoiceSlot slot in ActiveSlots())
             slot.TakeOver();

@@ -97,6 +97,13 @@ public class AugmentSelectFx : MonoBehaviour
     private static readonly int WidthId = Shader.PropertyToID("_Width");
     private const float OutlineInflate = 0.1f;
     private bool introPlaying;
+    // 첫 등장 연출에 속한 코루틴들(중간에 끊고 최종 모습으로 맞출 때 멈춘다).
+    private readonly List<Coroutine> introRoutines = new List<Coroutine>();
+    private Vector2 flapHome;
+    private Color flapColor = Color.white;
+
+    /// <summary>첫 등장 연출(팩 개봉 → 카드 날아오기 → 머리말)이 아직 진행 중인지.</summary>
+    public bool IsIntroPlaying => introPlaying;
 
     // 루트 캔버스 기준 그리는 순서: 어둡게(-10) → 후광 파티클(-5) → 일반 UI(0) → 카드 패널(10) → 앞쪽 이펙트(15)
     private const int DimOrder = -10, HaloOrder = -5, PanelOrder = 10, FrontOrder = 15;
@@ -109,6 +116,11 @@ public class AugmentSelectFx : MonoBehaviour
     {
         foreach (RectTransform rt in headerParts)
             if (rt != null) headerBase[rt] = rt.anchoredPosition;
+        if (packFlap != null)
+        {
+            flapHome = packFlap.rectTransform.anchoredPosition;
+            flapColor = packFlap.color;
+        }
     }
 
     // ───────────────────────── 첫 등장 ─────────────────────────
@@ -116,16 +128,61 @@ public class AugmentSelectFx : MonoBehaviour
     public void PlayIntro(IList<AugmentChoiceSlot> slots)
     {
         StopAllCoroutines();
+        introRoutines.Clear();
         Setup();
         cards = slots;
         ResetOutlines();
-        StartCoroutine(Intro(slots));
+        RunIntro(Intro(slots));
+    }
+
+    private void RunIntro(IEnumerator routine) => introRoutines.Add(StartCoroutine(routine));
+
+    /// <summary>
+    /// 첫 등장 연출을 즉시 끝난 모습으로 맞춘다. 프레임이 끊기거나 창이 비활성화돼 연출이 늦어져도
+    /// 카드가 날아오던 중간 모습(가로로 접힌 크기·호 위치)으로 굳지 않도록, 슬롯이 기준값을 잡기 직전에 부른다.
+    /// </summary>
+    public void CompleteIntro()
+    {
+        foreach (Coroutine c in introRoutines)
+            if (c != null) StopCoroutine(c);
+        introRoutines.Clear();
+        introPlaying = false;
+
+        if (cards != null)
+        {
+            foreach (AugmentChoiceSlot c in cards)
+            {
+                if (c == null) continue;
+                var rt = (RectTransform)c.transform;
+                if (cardHome.TryGetValue(rt, out Vector3 home)) rt.localPosition = home;
+                rt.localScale = Vector3.one * cardScale;
+                rt.localEulerAngles = Vector3.zero;
+                if (c.TryGetComponent(out CanvasGroup cg)) cg.alpha = 1f;
+            }
+        }
+
+        SetHeader(1f, 0f);
+        if (packFlap != null)
+        {
+            packFlap.enabled = false;
+            packFlap.rectTransform.anchoredPosition = flapHome;
+            packFlap.rectTransform.localEulerAngles = Vector3.zero;
+            packFlap.color = flapColor;
+        }
+        if (packRoot != null)
+        {
+            packRoot.gameObject.SetActive(false);
+            packRoot.anchoredPosition = new Vector2(packRoot.anchoredPosition.x, packRestY);
+            packRoot.localEulerAngles = Vector3.zero;
+            packRoot.localScale = Vector3.one;
+        }
     }
 
     /// <summary>증강 선택 화면이 닫힐 때.</summary>
     public void Hide()
     {
         StopAllCoroutines();
+        introRoutines.Clear();
         introPlaying = false;
         ResetOutlines();
         StopAmbient();
@@ -206,16 +263,16 @@ public class AugmentSelectFx : MonoBehaviour
         StartCoroutine(Sparkles(ToFront(packRoot.position), accent, 26, 620f, 0.7f));
         // 고르는 동안 화면에 은은한 반짝임이 떠다닌다
         StartAmbient();
-        StartCoroutine(Flap());
+        RunIntro(Flap());
         StartCoroutine(Squash(packRoot, -0.15f, 0.2f));
         yield return Wait(0.08f);
 
-        StartCoroutine(PackFall(restPos));
+        RunIntro(PackFall(restPos));
 
         // 카드: 팩에서 하나씩 빙글빙글 돌며 촤라락 제자리로
         for (int i = 0; i < rest.Count; i++)
         {
-            StartCoroutine(CardFly(rest[i].rt, rest[i].cg, packRoot, rest[i].pos));
+            RunIntro(CardFly(rest[i].rt, rest[i].cg, packRoot, rest[i].pos));
             Play(cardClip, 0.85f);
             yield return Wait(cardStagger);
         }
@@ -248,7 +305,7 @@ public class AugmentSelectFx : MonoBehaviour
         rt.localScale = scale;
         rt.localEulerAngles = Vector3.zero;
         StartCoroutine(Sparkles(ToFront(rt.position), Color.white, 8, 200f, 0.35f));
-        StartCoroutine(Squash(rt, 0.08f, 0.18f));
+        RunIntro(Squash(rt, 0.08f, 0.18f));
     }
 
     private IEnumerator Flap()
