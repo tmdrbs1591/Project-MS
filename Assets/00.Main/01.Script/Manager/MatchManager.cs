@@ -61,6 +61,10 @@ public class MatchManager : NetworkBehaviour
     [Networked] public NetworkBool Player2WantsRematch { get; private set; }
     /// <summary>세션/라운드와 선택 결과를 함께 동기화한다. 추첨은 StateAuthority만 수행한다.</summary>
     [Networked] public RoundMapSelection MapSelection { get; private set; }
+    /// <summary>양쪽 캐릭터가 모두 게임 씬에 들어왔는지. false인 동안은 모든 캐릭터 조작이 잠기고,
+    /// VS 연출도 시작하지 않으며, 로딩 화면이 "상대를 기다리는 중"으로 유지된다.
+    /// (먼저 로딩된 클라가 혼자 VS 연출을 끝내고 시작 위치를 마음대로 옮기던 문제 방지)</summary>
+    [Networked] public NetworkBool PlayersReady { get; private set; }
 
     public int TotalWins => Player1Wins + Player2Wins;
 
@@ -100,6 +104,8 @@ public class MatchManager : NetworkBehaviour
             MatchNumber = 1;
             Phase = MatchPhase.Fighting;
             PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
+            // 상대 캐릭터가 들어올 때까지 매치를 시작하지 않는다(TickWaitForPlayers).
+            PlayersReady = false;
         }
 
         // 초기 네트워크 상태에 맵 선택까지 포함하고, 시작 연출이 현재 맵을 읽기 전에 생성한다.
@@ -117,6 +123,12 @@ public class MatchManager : NetworkBehaviour
     {
         if (!Object.HasStateAuthority)
             return;
+
+        if (!PlayersReady)
+        {
+            TickWaitForPlayers();
+            return;
+        }
 
         switch (Phase)
         {
@@ -274,25 +286,6 @@ public class MatchManager : NetworkBehaviour
             return;
         }
 
-        if (waitingForPracticeOpponent)
-        {
-            // 사라지는 중인 연습 봇을 상대로 착각하지 않게 사람 캐릭터만 센다.
-            int humans = 0;
-            foreach (CharacterBase ch in CharacterBase.All)
-            {
-                if (ch != null && ch.Object != null && !ch.IsBot)
-                    humans++;
-            }
-            if (humans < 2)
-                return;
-
-            // 상대가 들어왔다: 새 매치로 시작(MatchNumber가 오르면 양쪽에서 시작 연출이 나온다).
-            waitingForPracticeOpponent = false;
-            MatchNumber++;
-            PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
-            return;
-        }
-
         // 라운드 리셋 직후 잠깐은 사망 판정을 쉰다(리셋 RPC가 아직 상대 클라에 도착 전일 수 있음).
         if (!PhaseTimer.ExpiredOrNotRunning(Runner))
             return;
@@ -320,8 +313,79 @@ public class MatchManager : NetworkBehaviour
     // 연습장: 라운드/매치가 끝나지 않는다. 쓰러진 캐릭터는 잠시 뒤 제자리(스폰 위치)에서 다시 일어난다.
     // 연습장은 오프라인(Single)이라 모든 캐릭터의 권한이 여기 있으므로 RPC 없이 바로 리셋한다.
     private readonly Dictionary<CharacterBase, float> practiceDeadSince = new Dictionary<CharacterBase, float>();
-    // 매칭하면서 연습하던 방장이 대전으로 바뀐 직후, 상대 캐릭터가 들어올 때까지 기다리는 중인지(권한자 전용).
-    private bool waitingForPracticeOpponent;
+    // 매칭하면서 연습하던 방장이 대전으로 바뀐 경우인지(권한자 전용). 상대가 들어오면 MatchNumber를 올려
+    // 방장 쪽에서도 시작 연출이 다시 나오게 한다(방장은 연습장에서 이미 "첫 매치"를 소비했으므로).
+    private bool startedFromPractice;
+
+    /// <summary>PlayersReady가 되기 전(권한자 전용): 양쪽 캐릭터가 모두 스폰되면 시작 위치로 되돌리고 매치를 연다.</summary>
+    private void TickWaitForPlayers()
+    {
+        // 연습장은 상대를 기다리지 않는다.
+        if (PracticeSession.IsActive)
+        {
+            PlayersReady = true;
+            return;
+        }
+
+        // 온라인 대전은 사람 둘이 다 들어와야 한다(사라지는 중인 연습 봇을 상대로 착각하지 않게 사람만 센다).
+        // 오프라인 AI 전(Single)은 내 캐릭터 + 봇이면 된다.
+        bool countBots = Runner.GameMode == GameMode.Single;
+        List<CharacterBase> players = new List<CharacterBase>();
+        foreach (CharacterBase ch in CharacterBase.All)
+        {
+            if (ch == null || ch.Object == null || !ch.Object.IsValid)
+                continue;
+            if (countBots || !ch.IsBot)
+                players.Add(ch);
+        }
+        if (players.Count < 2)
+            return;
+
+        players.Sort((a, b) => a.MatchPlayer.PlayerId.CompareTo(b.MatchPlayer.PlayerId));
+        CharacterBase p1 = players[0];
+        CharacterBase p2 = players[1];
+
+        // 기다리는 동안 밀려났을 수 있으니(맵 낙하, 연습장에서 넘어온 방장 등) 양쪽을 시작 위치로 되돌린다.
+        // 각 클라가 자기 캐릭터를 직접 리셋한다(권한이 각자에게 있음).
+        Rpc_BroadcastMatchReset(p1.MatchPlayer, GetSpawnPosition(p1), p2.MatchPlayer, GetSpawnPosition(p2));
+
+        if (startedFromPractice)
+        {
+            startedFromPractice = false;
+            MatchNumber++;
+        }
+        PhaseTimer = TickTimer.CreateFromSeconds(Runner, roundStartGraceDuration);
+        PlayersReady = true;
+    }
+
+    // ---------------- 상대 대기 로딩 화면 ----------------
+
+    private static readonly Color WaitingAccent = new Color(1f, 0.45f, 0.4f, 1f);
+    private bool waitingHoldRequested;
+
+    /// <summary>상대를 기다리는 동안 로딩 화면을 유지/표시한다(모든 클라). 각 클라가 자기 화면에서만 처리한다.</summary>
+    private void Update()
+    {
+        if (Object == null || !Object.IsValid)
+            return;
+
+        if (PlayersReady || PracticeSession.IsActive || Runner == null || Runner.GameMode == GameMode.Single)
+        {
+            waitingHoldRequested = false;
+            return;
+        }
+
+        if (waitingHoldRequested || SceneTransition.Instance == null)
+            return;
+
+        waitingHoldRequested = true;
+        SceneTransition.Instance.HoldWhile(IsWaitingForPlayers, "1대1 대전", "상대를 기다리는 중", WaitingAccent);
+    }
+
+    private bool IsWaitingForPlayers()
+    {
+        return this != null && Object != null && Object.IsValid && !PlayersReady && !PracticeSession.IsActive;
+    }
 
     /// <summary>연습장(매칭 세션 안)에서 기다리던 방장 쪽에서, 상대가 들어온 순간 호출(NetworkLauncher).
     /// 매치 상태와 내 캐릭터를 처음으로 되돌리고, 상대 캐릭터가 나타나면 새 매치를 시작한다.</summary>
@@ -338,7 +402,9 @@ public class MatchManager : NetworkBehaviour
         Player1WantsRematch = false;
         Player2WantsRematch = false;
         Phase = MatchPhase.Fighting;
-        waitingForPracticeOpponent = true;
+        // 상대 캐릭터가 들어올 때까지 조작을 잠그고 기다린다(TickWaitForPlayers가 위치 리셋 + 매치 시작).
+        startedFromPractice = true;
+        PlayersReady = false;
 
         foreach (CharacterBase ch in CharacterBase.All)
         {

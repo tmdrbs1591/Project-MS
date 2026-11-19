@@ -60,8 +60,13 @@ public class SceneTransition : MonoBehaviour
     [Tooltip("씬이 바뀐 뒤 캐릭터가 나타날 때까지 조금 더 기다린다.")]
     [Min(0f)] [SerializeField] private float afterLoadDelay = 0.4f;
     [Min(1f)] [SerializeField] private float maxWait = 20f;
+    [Tooltip("HoldWhile(상대 대기 등)로 붙잡아 둘 수 있는 최대 시간(초). 지나면 화면만 걷는다(조작 잠금은 그쪽 조건이 유지).")]
+    [Min(1f)] [SerializeField] private float maxHoldWait = 90f;
 
     public bool IsBusy { get; private set; }
+
+    private System.Func<bool> holdCondition;
+    private string holdSubtitle;
 
     private CanvasGroup rootGroup;
     private Image accentGlow;
@@ -127,9 +132,43 @@ public class SceneTransition : MonoBehaviour
     /// <summary>로딩 화면을 띄우고, 다음 씬이 열리면 자동으로 걷어낸다.</summary>
     public void Play(string title, string subtitle, Color accent)
     {
+        // 새 전환(예: 로비로 돌아가기)이 시작되면 이전 "기다리기" 조건은 버린다.
+        holdCondition = null;
+        StartRoutine(title, subtitle, accent, true);
+    }
+
+    /// <summary>
+    /// condition이 true인 동안 로딩 화면을 유지한다(예: 1대1에서 상대가 게임 씬에 들어올 때까지).
+    /// 이미 로딩 화면이 떠 있으면 걷어내지 않고 그대로 붙잡아 두고(문구만 바꾼다), 떠 있지 않으면 새로 띄운다.
+    /// </summary>
+    public void HoldWhile(System.Func<bool> condition, string title, string subtitle, Color accent)
+    {
+        if (condition == null || !condition())
+            return;
+
+        holdCondition = condition;
+        holdSubtitle = subtitle;
+        if (!IsBusy)
+            StartRoutine(title, subtitle, accent, false);
+    }
+
+    private void StartRoutine(string title, string subtitle, Color accent, bool waitForSceneChange)
+    {
         if (routine != null)
             StopCoroutine(routine);
-        routine = StartCoroutine(PlayRoutine(title, subtitle, accent));
+        routine = StartCoroutine(PlayRoutine(title, subtitle, accent, waitForSceneChange));
+    }
+
+    private bool IsHeld()
+    {
+        if (holdCondition == null)
+            return false;
+        bool held;
+        try { held = holdCondition(); }
+        catch (System.Exception) { held = false; } // 조건 대상이 파괴되는 등
+        if (!held)
+            holdCondition = null;
+        return held;
     }
 
     private void OnActiveSceneChanged(Scene from, Scene to)
@@ -162,7 +201,7 @@ public class SceneTransition : MonoBehaviour
             progressFill.fillAmount = progress;
     }
 
-    private IEnumerator PlayRoutine(string title, string subtitle, Color accent)
+    private IEnumerator PlayRoutine(string title, string subtitle, Color accent, bool waitForSceneChange)
     {
         IsBusy = true;
         sceneChanged = false;
@@ -200,34 +239,68 @@ public class SceneTransition : MonoBehaviour
 
         // 2) 씬이 바뀔 때까지(최소 minHold) 기다린다. 진행 바는 천천히 90%까지 찬다.
         float held = 0f;
-        while ((held < minHold || !sceneChanged) && held < maxWait)
+        while ((held < minHold || (waitForSceneChange && !sceneChanged)) && held < maxWait)
         {
             held += Time.unscaledDeltaTime;
             progress = Mathf.Lerp(progress, 0.9f, 1f - Mathf.Exp(-0.8f * Time.unscaledDeltaTime));
             yield return null;
         }
 
-        // 씬이 열렸으면 진행 바를 끝까지 채우고 잠깐 기다린다
-        float wait = 0f;
-        float startProgress = progress;
-        while (wait < afterLoadDelay)
+        // 2-1) 씬은 열렸지만 아직 기다릴 게 있으면(HoldWhile: 상대 접속 등) 로딩 화면을 그대로 붙잡아 둔다.
+        // 요청은 씬이 열린 뒤 조금 늦게 올 수 있으므로(네트워크 동기화), 마무리/페이드아웃 도중에 와도
+        // 다시 화면을 덮고 이 단계로 돌아온다.
+        float holdElapsed = 0f;
+        while (true)
         {
-            wait += Time.unscaledDeltaTime;
-            progress = Mathf.Lerp(startProgress, 1f, EaseOutCubic(Mathf.Clamp01(wait / afterLoadDelay)));
-            yield return null;
-        }
-        progress = 1f;
+            while (holdElapsed < maxHoldWait && IsHeld())
+            {
+                if (!string.IsNullOrEmpty(holdSubtitle) && subtitleBase != holdSubtitle)
+                    subtitleBase = holdSubtitle;
+                holdElapsed += Time.unscaledDeltaTime;
+                progress = Mathf.Lerp(progress, 0.95f, 1f - Mathf.Exp(-0.8f * Time.unscaledDeltaTime));
+                yield return null;
+            }
 
-        // 3) 로딩 화면이 사라지며 새 화면이 드러난다
-        SoundManager.Instance?.PlaySfx(exitSound, sfxVolume);
-        elapsed = 0f;
-        while (elapsed < fadeOutDuration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / fadeOutDuration);
-            rootGroup.alpha = 1f - t * t;
-            yield return null;
+            bool reheld = false;
+
+            // 씬이 열렸으면 진행 바를 끝까지 채우고 잠깐 기다린다
+            float wait = 0f;
+            float startProgress = progress;
+            while (wait < afterLoadDelay)
+            {
+                if (holdElapsed < maxHoldWait && IsHeld())
+                {
+                    reheld = true;
+                    break;
+                }
+                wait += Time.unscaledDeltaTime;
+                progress = Mathf.Lerp(startProgress, 1f, EaseOutCubic(Mathf.Clamp01(wait / afterLoadDelay)));
+                yield return null;
+            }
+            if (reheld)
+                continue;
+            progress = 1f;
+
+            // 3) 로딩 화면이 사라지며 새 화면이 드러난다
+            SoundManager.Instance?.PlaySfx(exitSound, sfxVolume);
+            elapsed = 0f;
+            while (elapsed < fadeOutDuration)
+            {
+                if (holdElapsed < maxHoldWait && IsHeld())
+                {
+                    rootGroup.alpha = 1f;
+                    reheld = true;
+                    break;
+                }
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / fadeOutDuration);
+                rootGroup.alpha = 1f - t * t;
+                yield return null;
+            }
+            if (!reheld)
+                break;
         }
+        holdCondition = null;
 
         SetHidden();
         routine = null;

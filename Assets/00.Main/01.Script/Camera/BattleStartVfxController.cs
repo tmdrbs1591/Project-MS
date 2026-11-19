@@ -35,6 +35,10 @@ public class BattleStartVfxController : MonoBehaviour
         if (match == null)
             return;
 
+        // 상대가 아직 안 들어왔으면 연출을 미룬다(lastPhase도 갱신하지 않아 들어오는 순간 시작 전환으로 잡힌다).
+        if (match.Object == null || !match.Object.IsValid || !match.PlayersReady)
+            return;
+
         if (hasPlayed)
         {
             // 재대결로 새 매치가 시작되면(MatchNumber 증가) 시작 연출을 처음부터 다시 튼다.

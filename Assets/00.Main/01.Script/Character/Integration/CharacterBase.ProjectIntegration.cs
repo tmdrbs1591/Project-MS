@@ -54,9 +54,11 @@ namespace ProjectMS.CharacterSystem
         // 처음부터 잠겨 있게 하려는 로컬 플래그다(네트워크 값 NetGameplayLocked는 Update 이후에야 걸린다).
         public static bool IntroLocked { get; set; }
 
+        // 상대가 아직 게임 씬에 안 들어왔으면(PlayersReady == false) 먼저 들어온 쪽도 움직이지 못하게 잠근다.
         private static bool IsProjectGameplayLocked =>
             IntroLocked ||
-            MatchManager.Instance != null && MatchManager.Instance.Phase != MatchPhase.Fighting;
+            MatchManager.Instance != null && MatchManager.Instance.Object != null && MatchManager.Instance.Object.IsValid &&
+            (!MatchManager.Instance.PlayersReady || MatchManager.Instance.Phase != MatchPhase.Fighting);
 
         /// <summary>다른 창(캐릭터 선택, 매칭 대기, 설정 등)이 조작을 잠가둔 상태인지.</summary>
         public static bool IsLobbyControlLocked => lobbyControlLocked;
