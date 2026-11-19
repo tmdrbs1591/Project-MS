@@ -84,16 +84,13 @@ namespace ProjectMS.CharacterSystem.Examples
                 CheckTargetToDealDamage();
         }
 
-        // 사라지는 순간 모든 클라에서 한 번 불린다. 라운드 리셋/주인 퇴장처럼 연출이 필요 없는 정리는 건너뛴다.
-        protected override void OnOwnedEntityDestroyedRendered(OwnedEntityDestroyReason reason)
+        // 소유 캐릭터의 RPC에서 호출하므로 투척물이 이미 제거되어도 이펙트를 재생할 수 있다.
+        internal void PlayDestroyVfx(Vector2 position)
         {
-            base.OnOwnedEntityDestroyedRendered(reason);
-
-            if (destroyVfxPrefab == null || reason == OwnedEntityDestroyReason.OwnerDespawned ||
-                reason == OwnedEntityDestroyReason.OwnerDisconnected)
+            if (destroyVfxPrefab == null)
                 return;
 
-            GameObject vfx = Instantiate(destroyVfxPrefab, transform.position, Quaternion.identity);
+            GameObject vfx = Instantiate(destroyVfxPrefab, position, Quaternion.identity);
             EffectAutoDestroy.Schedule(vfx, destroyVfxLifetime);
         }
 

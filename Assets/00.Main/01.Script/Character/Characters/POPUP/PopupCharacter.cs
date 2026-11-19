@@ -11,7 +11,6 @@ namespace ProjectMS.CharacterSystem.Examples
     {
         [Header("Common")]
         [SerializeField] private LayerMask targetLayer;
-        [SerializeField] private int baseAttackPower;
 
         [Header("Basic Attack - Throw Error")]
         [SerializeField] private PopupErrorThrowable errorThrowablePrefab;
@@ -92,7 +91,7 @@ namespace ProjectMS.CharacterSystem.Examples
         private int currentGlitchDealedCount;
         private CharacterBase currentGlitchTarget;
         private bool isGlitchOccuring = false;
-        private bool isGlitchDamage = false;
+        private CharacterTimerHandle glitchTimer;
 
         // 연타로 풀 때까지 봉인을 이 간격으로 다시 건다(한 번에 길게 걸지 않는 이유는 OnPassiveTick 참고).
         private const float ErrorPopupSealRefreshInterval = 0.25f;
@@ -311,6 +310,26 @@ namespace ProjectMS.CharacterSystem.Examples
             hackingInstance = null;
         }
 
+        protected override void OnOwnedEntityDestroyed(CharacterOwnedEntity entity, OwnedEntityDestroyReason reason)
+        {
+            base.OnOwnedEntityDestroyed(entity, reason);
+
+            if (!(entity is PopupErrorThrowable) || Runner.IsResimulation ||
+                reason == OwnedEntityDestroyReason.OwnerDespawned ||
+                reason == OwnedEntityDestroyReason.OwnerDisconnected)
+                return;
+
+            // 투척물은 다음 틱에 제거되어 Render가 생략될 수 있으므로, 캐릭터에서 소멸 위치를 전송한다.
+            Rpc_PlayErrorDestroyVfx(entity.transform.position);
+        }
+
+        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
+        private void Rpc_PlayErrorDestroyVfx(Vector2 position)
+        {
+            if (errorThrowablePrefab != null)
+                errorThrowablePrefab.PlayDestroyVfx(position);
+        }
+
         protected override void OnProjectileDespawned(CharacterProjectile projectile, ProjectileDespawnReason reason, CharacterBase hitTarget)
         {
             if (reason != ProjectileDespawnReason.HitCharacter)
@@ -387,6 +406,7 @@ namespace ProjectMS.CharacterSystem.Examples
         // 라운드 도중 리셋되면(상대 사망 등) 남아있는 팝업/봉인/도트딜 상태를 정리한다.
         protected override void OnResetCharacter()
         {
+            StopGlitch();
             if (isErrorPopupEnabled)
                 BreakErrorPopup();
 
@@ -397,6 +417,7 @@ namespace ProjectMS.CharacterSystem.Examples
         protected override void OnDied(Fusion.PlayerRef attacker)
         {
             base.OnDied(attacker);
+            StopGlitch();
             if (isErrorPopupEnabled)
                 BreakErrorPopup();
         }
@@ -415,15 +436,19 @@ namespace ProjectMS.CharacterSystem.Examples
             DestroyOwnedEntity(deployable, OwnedEntityDestroyReason.Manual);
         }
 
-        protected override void OnDamageDealt(CharacterBase target, float requestedDamage)
+        protected override void OnDamageableDealt(
+            IDamageable target,
+            float appliedDamage,
+            CharacterDamageSource source)
         {
-            if (isGlitchDamage)
-            {
-                isGlitchDamage = false; ;
-                return;
-            }
+            base.OnDamageableDealt(target, appliedDamage, source);
 
-            currentGlitchTarget = target;
+            // 피해 확정 통보가 늦게 도착해도 일반 공격을 건너뛰지 않도록 피해 종류로 구분한다.
+            if (source == CharacterDamageSource.Periodic || IsDead ||
+                !(target is CharacterBase characterTarget) || characterTarget.IsDead)
+                return;
+
+            currentGlitchTarget = characterTarget;
             currentGlitchDealedCount = 0;
 
             if (isGlitchOccuring) return;
@@ -495,23 +520,46 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void DealGlitchDamage()
         {
-            DealDamage(currentGlitchTarget, baseAttackPower * glitchDamageRatio / glitchDamageTimes, CharacterDamageSource.Periodic);
+            float basicAttackDamage = Definition.GetDamage(CharacterActionType.BasicAttack);
+            DealDamage(currentGlitchTarget, basicAttackDamage * glitchDamageRatio / glitchDamageTimes, CharacterDamageSource.Periodic);
             currentGlitchDealedCount++;
-            isGlitchDamage = true;
+        }
+
+        private void StopGlitch()
+        {
+            CancelTimer(glitchTimer);
+            glitchTimer = default;
+            currentGlitchTarget = null;
+            currentGlitchDealedCount = 0;
+            isGlitchOccuring = false;
+        }
+
+        private bool CanContinueGlitch()
+        {
+            return !IsDead && Definition != null && currentGlitchTarget != null &&
+                currentGlitchTarget.Object != null && currentGlitchTarget.Object.IsValid &&
+                !currentGlitchTarget.IsDead && currentGlitchDealedCount < glitchDamageTimes;
         }
 
         private void SetContinuousGlitch()
         {
-            if (currentGlitchDealedCount >= glitchDamageTimes)
+            if (!CanContinueGlitch())
             {
-                isGlitchOccuring = false;
+                StopGlitch();
                 return;
             }
 
             isGlitchOccuring = true;
 
-            ScheduleTimer(glitchDuration / glitchDamageTimes, () =>
+            glitchTimer = ScheduleTimer(glitchDuration / glitchDamageTimes, () =>
             {
+                // 예약 후 대상이 죽거나 사라진 경우에는 지속 피해를 종료한다.
+                if (!CanContinueGlitch())
+                {
+                    StopGlitch();
+                    return;
+                }
+
                 DealGlitchDamage();
                 SetContinuousGlitch();
             });
