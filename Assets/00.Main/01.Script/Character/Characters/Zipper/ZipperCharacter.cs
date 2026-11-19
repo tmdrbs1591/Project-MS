@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using ProjectMS.CharacterSystem;
 using UnityEngine;
 
@@ -60,9 +61,9 @@ namespace ProjectMS.CharacterSystem.Examples
         private CharacterTimerHandle ultimateTimer;
 
         
-        // 패시브: 차원 표식 - 대상별 남은 유지 시간 보관 (OnPassiveTick에서 매 프레임 감소)
-        private Dictionary<IDamageable, float> dimensionalMarks = new Dictionary<IDamageable, float>();
-        private List<IDamageable> expiredMarksBuffer = new List<IDamageable>();
+        // 판정과 양쪽 화면의 표식이 같은 네트워크 만료 틱을 사용한다.
+        [Networked, Capacity(8)] internal NetworkDictionary<NetworkId, TickTimer> DimensionalMarks => default;
+        private readonly List<NetworkId> expiredMarksBuffer = new List<NetworkId>();
 
         private Coroutine dashCoroutine;
         private Coroutine qRechargeCoroutine;
@@ -89,7 +90,7 @@ namespace ProjectMS.CharacterSystem.Examples
             SetMovementEnabled(true);
 
             // 패시브: 라운드 리셋 시 남아있는 표식 전부 제거
-            ClearAllDimensionalMarks();
+            DimensionalMarks.Clear();
         }
 
         protected override void OnCharacterDespawned()
@@ -422,31 +423,19 @@ namespace ProjectMS.CharacterSystem.Examples
             return nearestExit * (nearestExitDistance + radius + UltimateTargetClearance);
         }
 
-        protected override void OnPassiveTick(float deltaTime)
+        public override void FixedUpdateNetwork()
         {
-            // 패시브: 차원 표식 - 남은 유지 시간을 매 틱 감소시키고, 만료된 표식을 제거한다.
-            if (dimensionalMarks.Count == 0) return;
+            base.FixedUpdateNetwork();
+            if (!HasStateAuthority || DimensionalMarks.Count == 0) return;
 
             expiredMarksBuffer.Clear();
-
-            List<IDamageable> keys = new List<IDamageable>(dimensionalMarks.Keys);
-            foreach (IDamageable target in keys)
+            foreach (var mark in DimensionalMarks)
             {
-                float remaining = dimensionalMarks[target] - deltaTime;
-                if (remaining <= 0f)
-                {
-                    expiredMarksBuffer.Add(target);
-                }
-                else
-                {
-                    dimensionalMarks[target] = remaining;
-                }
+                if (mark.Value.ExpiredOrNotRunning(Runner))
+                    expiredMarksBuffer.Add(mark.Key);
             }
-
-            for (int i = 0; i < expiredMarksBuffer.Count; i++)
-            {
-                dimensionalMarks.Remove(expiredMarksBuffer[i]);
-            }
+            foreach (NetworkId targetId in expiredMarksBuffer)
+                DimensionalMarks.Remove(targetId);
         }
 
         private IEnumerator ProcessDashCollision(float duration)
@@ -543,24 +532,20 @@ namespace ProjectMS.CharacterSystem.Examples
 
         private void ApplyDimensionalMark(IDamageable target)
         {
-            if (target == null) return;
+            if (!HasStateAuthority || target is not CharacterBase character || character.Object == null) return;
 
-            // 이미 표식이 있어도 없어도 동일하게 남은 시간을 4초로 (재)설정한다 (표식 갱신)
-            dimensionalMarks[target] = markDuration;
-
-            if (HasStateAuthority && target is CharacterBase character && character.Object != null)
-                Rpc_FxMarkApplied(character.Object.Id, markDuration);
+            DimensionalMarks.Set(character.Object.Id, TickTimer.CreateFromSeconds(Runner, markDuration));
         }
 
-        private void TryConsumeDimensionalMark(IDamageable target)
+        private void TryConsumeDimensionalMark(CharacterBase target)
         {
-            if (target == null) return;
-            if (!dimensionalMarks.ContainsKey(target)) return;
+            NetworkId targetId = target.Object.Id;
+            if (!DimensionalMarks.TryGet(targetId, out TickTimer expiry) || expiry.ExpiredOrNotRunning(Runner))
+                return;
 
             // 표식 소모
-            dimensionalMarks.Remove(target);
-            if (HasStateAuthority && target is CharacterBase character && character.Object != null)
-                Rpc_FxMarkConsumed(character.Object.Id);
+            DimensionalMarks.Remove(targetId);
+            Rpc_FxMarkConsumed(targetId);
 
             // 다이브(Q) 남은 재충전 시간 60% 감소
             ReduceDiveRemainingRecharge(diveRechargeReductionRatio);
@@ -581,11 +566,6 @@ namespace ProjectMS.CharacterSystem.Examples
             StartChargeRecharge(CharacterActionType.SkillQ, remaining * (1f - ratio));
         }
 
-        private void ClearAllDimensionalMarks()
-        {
-            dimensionalMarks.Clear();
-        }
-
         // ───────── 연출 신호(모든 클라에서 ZipperSkillVisuals가 그린다) ─────────
 
         private ZipperSkillVisuals Visuals => GetComponent<ZipperSkillVisuals>();
@@ -601,9 +581,6 @@ namespace ProjectMS.CharacterSystem.Examples
 
         [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
         private void Rpc_FxPhaseArrive(Vector2 from, Vector2 to) => Visuals?.PlayPhaseArrive(from, to);
-
-        [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
-        private void Rpc_FxMarkApplied(Fusion.NetworkId target, float duration) => Visuals?.PlayMarkApplied(target, duration);
 
         [Fusion.Rpc(Fusion.RpcSources.StateAuthority, Fusion.RpcTargets.All)]
         private void Rpc_FxMarkConsumed(Fusion.NetworkId target) => Visuals?.PlayMarkConsumed(target);

@@ -49,7 +49,6 @@ namespace ProjectMS.CharacterSystem.Examples
         {
             public CharacterBase Target;
             public GameObject Instance;
-            public float ExpireAt;
         }
 
         private readonly List<Mark> marks = new List<Mark>();
@@ -60,11 +59,16 @@ namespace ProjectMS.CharacterSystem.Examples
         private void OnDisable()
         {
             StopDiveTrail(false);
+            ClearMarks();
+            ClearPhaseMarkers();
+        }
+
+        private void ClearMarks()
+        {
             foreach (Mark m in marks)
                 if (m.Instance != null)
                     Destroy(m.Instance);
             marks.Clear();
-            ClearPhaseMarkers();
         }
 
         private void LateUpdate()
@@ -81,19 +85,38 @@ namespace ProjectMS.CharacterSystem.Examples
                     StopDiveTrail(true);
             }
 
+            UpdateMarks();
+        }
+
+        private void UpdateMarks()
+        {
+            if (zipper.Object == null || !zipper.Object.IsValid)
+            {
+                ClearMarks();
+                return;
+            }
+
+            var activeMarks = zipper.DimensionalMarks;
             for (int i = marks.Count - 1; i >= 0; i--)
             {
                 Mark m = marks[i];
                 bool gone = m.Target == null || m.Target.Object == null || !m.Target.Object.IsValid || m.Target.IsDead;
-                if (gone || Time.time >= m.ExpireAt)
+                if (gone || !activeMarks.TryGet(m.Target.Object.Id, out TickTimer expiry) || expiry.ExpiredOrNotRunning(zipper.Runner))
                 {
                     if (m.Instance != null)
-                        EffectAutoDestroy.Schedule(m.Instance, 0f);
+                        Destroy(m.Instance);
                     marks.RemoveAt(i);
                     continue;
                 }
                 if (m.Instance != null)
                     m.Instance.transform.position = m.Target.transform.position + (Vector3)markFx.offset;
+            }
+
+            if (marks.Count == activeMarks.Count) return;
+            foreach (var mark in activeMarks)
+            {
+                if (!mark.Value.ExpiredOrNotRunning(zipper.Runner))
+                    ShowMark(mark.Key);
             }
         }
 
@@ -178,37 +201,43 @@ namespace ProjectMS.CharacterSystem.Examples
 
         // ───────── 패시브 ─────────
 
-        public void PlayMarkApplied(NetworkId targetId, float duration)
+        private void ShowMark(NetworkId targetId)
         {
-            CharacterBase target = Resolve(targetId);
-            if (target == null)
-                return;
-
             foreach (Mark m in marks)
             {
-                if (m.Target != target)
-                    continue;
-                m.ExpireAt = Time.time + duration;   // 갱신
-                return;
+                if (m.Target.Object.Id == targetId)
+                    return;
             }
 
-            GameObject go = markFx != null ? markFx.Spawn(target.transform.position, 0f) : null;
-            if (go != null)
-                Destroy(go.GetComponent<EffectAutoDestroy>());
-            marks.Add(new Mark { Target = target, Instance = go, ExpireAt = Time.time + duration });
+            CharacterBase target = Resolve(targetId);
+            if (target == null || target.IsDead)
+                return;
+
+            GameObject go = markFx?.Spawn(target.transform.position, 0f);
+            if (go == null) return;
+            if (go.TryGetComponent(out EffectAutoDestroy autoDestroy))
+                Destroy(autoDestroy);
+
+            // 중앙 문양 한 장은 원래 크기와 불투명도로 고정하고 주변 입자는 한 번 재생한다.
+            if (go.TryGetComponent(out ParticleSystem rune))
+            {
+                rune.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+                var main = rune.main;
+                main.simulationSpace = ParticleSystemSimulationSpace.Local;
+                var color = rune.colorOverLifetime;
+                color.enabled = false;
+                var size = rune.sizeOverLifetime;
+                size.enabled = false;
+                rune.Play(false);
+                rune.Emit(1);
+                rune.Pause(false);
+            }
+            marks.Add(new Mark { Target = target, Instance = go });
         }
 
         public void PlayMarkConsumed(NetworkId targetId)
         {
             CharacterBase target = Resolve(targetId);
-            for (int i = marks.Count - 1; i >= 0; i--)
-            {
-                if (marks[i].Target != target)
-                    continue;
-                if (marks[i].Instance != null)
-                    Destroy(marks[i].Instance);
-                marks.RemoveAt(i);
-            }
             if (target != null)
                 SkillFxSlot.SpawnAll(markConsumeFx, target.transform.position + Vector3.up * 0.3f, 0f);
             if (zipper != null && zipper.IsLocalPlayer)

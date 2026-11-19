@@ -6714,7 +6714,7 @@ MonoBehaviour:
   ultimateBlastRadius: 2
   outOfBoundsZoneLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 32768
   markDuration: 4
   diveRechargeReductionRatio: 0.6
 --- !u!114 &152787374348568370
@@ -6804,11 +6804,11 @@ MonoBehaviour:
   phaseArriveShake: 0.55
   markFx:
     prefab: {fileID: 1308696705675058, guid: 92f1a4b7c0101cb4f84455289ac65548, type: 3}
-    scale: 0.22
+    scale: 0.3
     facing: 0
     angleOffset: 0
     offset: {x: 0, y: 0.95}
-    tint: {r: 0.78, g: 0.62, b: 1, a: 1}
+    tint: {r: 0.92, g: 0.8, b: 1, a: 1}
     lifetime: 0
   markConsumeFx:
   - prefab: {fileID: 1114928333372964, guid: 82d5a3913643335469996946b8da3030, type: 3}
